@@ -395,6 +395,13 @@ export class AbilityVfx {
     this.scene = scene;
   }
 
+  /** Number of ability effects still animating. Read-only introspection for
+   * dev tooling (e.g. src/dev/ability-vfx-gallery.ts's QA capture script) —
+   * not used by gameplay code. */
+  get activeCount(): number {
+    return this.sequences.length;
+  }
+
   trigger(vfxId: string, worldPos: [number, number, number]): void {
     switch (vfxId) {
       case "vfx.fire.ability_ignite":

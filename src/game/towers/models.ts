@@ -24,6 +24,14 @@ import {
   buildNatureArcaneTower,
   buildNatureEarthTower,
 } from "./models/fusionModels";
+import {
+  buildFireIceLightningTower,
+  buildFireLightningArcaneTower,
+  buildFireNatureEarthTower,
+  buildIceNatureArcaneTower,
+  buildIceNatureEarthTower,
+  buildLightningEarthArcaneTower,
+} from "./models/grandFusionModels";
 
 export { animateTowerModel } from "./models/motion";
 export { updateTowerVfxTime, releaseTowerCoreMaterial } from "@/game/towers/shaders/coreMaterial";
@@ -60,6 +68,15 @@ const MODEL_BUILDERS: Record<string, ModelBuilder> = {
   tower_nature_earth: buildNatureEarthTower,
   tower_nature_arcane: buildNatureArcaneTower,
   tower_earth_arcane: buildEarthArcaneTower,
+
+  // Grand Fusion towers (tri-element capstones — see TowerRegistry.ts's
+  // Grand Fusion section and GrandFusionMatrix.ts for the recipes)
+  tower_fire_ice_lightning: buildFireIceLightningTower,
+  tower_fire_nature_earth: buildFireNatureEarthTower,
+  tower_ice_nature_arcane: buildIceNatureArcaneTower,
+  tower_lightning_earth_arcane: buildLightningEarthArcaneTower,
+  tower_fire_lightning_arcane: buildFireLightningArcaneTower,
+  tower_ice_nature_earth: buildIceNatureEarthTower,
 };
 
 /**

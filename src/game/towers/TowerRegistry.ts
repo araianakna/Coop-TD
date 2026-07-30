@@ -10,6 +10,32 @@ import type {
 } from "@/game/types";
 
 // ---------------------------------------------------------------------------
+// Tier-3 capstone ability convention
+// ---------------------------------------------------------------------------
+//
+// `TowerDef.abilities` is (and always was) `TowerAbility[]` — nothing here
+// required a schema change to let a tower carry more than one ability.
+// What towers needed was a way to say "this second ability only turns on
+// once the tower is fully upgraded". That's the additive `minTier?: 1|2|3`
+// field on `TowerAbility` (see game/types.ts) — omitted/undefined means
+// "active from tier 1", so every ability that existed before this pass
+// (all 21 of them) is completely unaffected.
+//
+// The six base elemental towers below each now carry a SECOND ability with
+// `minTier: 3` — a capstone power, distinct in feel (different
+// `statusKind`, heavier `bonusDamage`, much longer `cooldownMs`) from their
+// tier-1 ability, not just a bigger version of it. The orchestrator wiring
+// ability triggering into Game.ts must gate on this field directly:
+//
+//   for (const ability of towerDef.abilities) {
+//     if (tower.currentTier >= (ability.minTier ?? 1)) { /* eligible to fire */ }
+//   }
+//
+// A field was chosen over an id-suffix convention (e.g. `_t3`) because it's
+// type-checked, self-documenting at the call site, and doesn't require the
+// orchestrator to string-parse ability ids to find the gate.
+//
+// ---------------------------------------------------------------------------
 // Tier-building helpers
 // ---------------------------------------------------------------------------
 
@@ -87,6 +113,8 @@ function makeAbility(opts: {
   statusDurationMs?: number;
   bonusDamage?: number;
   damageElement?: Element | "physical";
+  /** See "Tier-3 capstone ability convention" above. Omit for a tier-1-available ability. */
+  minTier?: 1 | 2 | 3;
 }): TowerAbility {
   const {
     id,
@@ -99,6 +127,7 @@ function makeAbility(opts: {
     statusDurationMs = 0,
     bonusDamage,
     damageElement,
+    minTier,
   } = opts;
 
   return {
@@ -106,6 +135,7 @@ function makeAbility(opts: {
     name,
     description,
     cooldownMs,
+    minTier,
     onTrigger: (ctx: TowerAbilityContext) => {
       const worldPos: [number, number, number] = [ctx.position.x, 0.6, ctx.position.z];
       ctx.emitVfx(vfxId, worldPos);
@@ -166,6 +196,20 @@ const fireTower: TowerDef = {
       statusMagnitude: 6,
       statusDurationMs: 4000,
     }),
+    makeAbility({
+      id: "ember_spire_meteor_strike",
+      name: "Meteor Strike",
+      description:
+        "Tier-3 capstone. Calls down a molten meteor that shatters the target's armor and detonates for massive fire damage.",
+      cooldownMs: 15000,
+      vfxId: "vfx.fire.ability_meteor_strike",
+      statusKind: "sunder",
+      statusMagnitude: 0.4,
+      statusDurationMs: 5000,
+      bonusDamage: 55,
+      damageElement: "fire",
+      minTier: 3,
+    }),
   ],
   targeting: "strongest",
   projectileVfx: "vfx.fire.projectile",
@@ -200,6 +244,20 @@ const iceTower: TowerDef = {
       statusKind: "chill",
       statusMagnitude: 0.35,
       statusDurationMs: 3000,
+    }),
+    makeAbility({
+      id: "frost_pillar_absolute_zero",
+      name: "Absolute Zero",
+      description:
+        "Tier-3 capstone. Flash-freezes the target solid in an expanding sphere of absolute cold, locking it far longer than a simple chill.",
+      cooldownMs: 16000,
+      vfxId: "vfx.ice.ability_absolute_zero",
+      statusKind: "freeze",
+      statusMagnitude: 1,
+      statusDurationMs: 3200,
+      bonusDamage: 25,
+      damageElement: "ice",
+      minTier: 3,
     }),
   ],
   targeting: "closest",
@@ -236,6 +294,20 @@ const lightningTower: TowerDef = {
       statusMagnitude: 1,
       statusDurationMs: 1500,
     }),
+    makeAbility({
+      id: "storm_conduit_grand_overload",
+      name: "Grand Overload",
+      description:
+        "Tier-3 capstone. Floods the target with raw current, frying its systems and silencing every special capability for several seconds.",
+      cooldownMs: 14000,
+      vfxId: "vfx.lightning.ability_grand_overload",
+      statusKind: "silence",
+      statusMagnitude: 1,
+      statusDurationMs: 4000,
+      bonusDamage: 40,
+      damageElement: "lightning",
+      minTier: 3,
+    }),
   ],
   targeting: "first",
   projectileVfx: "vfx.lightning.projectile",
@@ -270,6 +342,20 @@ const natureTower: TowerDef = {
       statusKind: "poison",
       statusMagnitude: 4,
       statusDurationMs: 5000,
+    }),
+    makeAbility({
+      id: "thornroot_verdant_wrath",
+      name: "Verdant Wrath",
+      description:
+        "Tier-3 capstone. Erupts a cage of ironwood roots that binds the target in place while gouging thorns tear deep wounds.",
+      cooldownMs: 15000,
+      vfxId: "vfx.nature.ability_verdant_wrath",
+      statusKind: "root",
+      statusMagnitude: 1,
+      statusDurationMs: 4000,
+      bonusDamage: 35,
+      damageElement: "nature",
+      minTier: 3,
     }),
   ],
   targeting: "weakest",
@@ -306,6 +392,17 @@ const earthTower: TowerDef = {
       statusMagnitude: 0.25,
       statusDurationMs: 4000,
     }),
+    makeAbility({
+      id: "stonewarden_cataclysm",
+      name: "Cataclysm",
+      description:
+        "Tier-3 capstone. Slams down a crushing avalanche of stone, dealing a massive burst of damage with no defenses spared.",
+      cooldownMs: 17000,
+      vfxId: "vfx.earth.ability_cataclysm",
+      bonusDamage: 70,
+      damageElement: "physical",
+      minTier: 3,
+    }),
   ],
   targeting: "strongest",
   projectileVfx: "vfx.earth.projectile",
@@ -340,6 +437,20 @@ const arcaneTower: TowerDef = {
       statusKind: "silence",
       statusMagnitude: 1,
       statusDurationMs: 2500,
+    }),
+    makeAbility({
+      id: "rune_obelisk_reality_tear",
+      name: "Reality Tear",
+      description:
+        "Tier-3 capstone. Tears a rift in reality beneath the target, shredding its defenses and unleashing raw arcane force.",
+      cooldownMs: 15000,
+      vfxId: "vfx.arcane.ability_reality_tear",
+      statusKind: "sunder",
+      statusMagnitude: 0.5,
+      statusDurationMs: 5000,
+      bonusDamage: 45,
+      damageElement: "arcane",
+      minTier: 3,
     }),
   ],
   targeting: "strongest",
@@ -887,6 +998,264 @@ const earthArcaneTower: TowerDef = {
 };
 
 // ---------------------------------------------------------------------------
+// Grand Fusion towers — tri-element capstones, one merge tier deeper than
+// the 15 base fusions above (a 2-element fusion tower + a third base
+// element it doesn't already contain). Recipes live in
+// GrandFusionMatrix.ts, not FusionMatrix.ts (kept separate for clarity —
+// the two matrices answer different questions: "which 2 elements make
+// this fusion" vs. "which fusion + which 3rd element makes this capstone").
+//
+// `element` field decision: `FusionElementPair` is strictly
+// `${Element}+${Element}` — it cannot express three elements without
+// widening a type other code already depends on, which is out of scope
+// here. Each Grand Fusion's `element` is instead set to its PARENT fusion
+// tower's pair (the 2-element fusion actually consumed by the recipe); the
+// third element is fully represented in the id, name, flavorText, and
+// ability, just not in this one typed field. E.g. Tempest Core consumes
+// Steamcaller (fire+ice) + a lightning tower, so its `element` is
+// `"fire+ice"` even though it is thematically a fire+ice+lightning tower.
+//
+// Ids/vfx ids follow the same convention as the 2-element fusions: element
+// names joined in ELEMENTS order (fire, ice, lightning, nature, earth,
+// arcane), e.g. `tower_fire_ice_lightning`, `vfx.fire_ice_lightning.impact`.
+// Costs step up sharply from a single fusion (tier-1 ~250-280 for a base
+// fusion vs. ~600-660 here) to reflect that a Grand Fusion consumes a whole
+// fusion tower plus a base tower's worth of investment.
+// ---------------------------------------------------------------------------
+
+const fireIceLightningTower: TowerDef = {
+  id: "tower_fire_ice_lightning",
+  name: "Tempest Core",
+  element: "fire+ice",
+  isFusion: true,
+  flavorText:
+    "A geyser-forged reactor where scalding steam ionizes into a captive storm — fire, ice, and lightning locked in violent equilibrium.",
+  tiers: buildTiers(
+    { damage: 34, range: 6.2, fireRateMs: 520, projectileSpeed: 20, splashRadius: 1.6 },
+    [620, 1280, 2550],
+    [1, 1.22, 1.5],
+    [
+      "A cracked ice vent now crackles with trapped lightning threading through its steam.",
+      "The vent has become a coiled reactor core, storm-charged steam roiling around a lightning-veined crystal spine.",
+      "A full tempest reactor — superheated steam, jagged ice, and continuous lightning locked in a self-sustaining storm.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "tempest_core_cataclysmic_squall",
+      name: "Cataclysmic Squall",
+      description:
+        "Grand Fusion capstone. Vents the whole reactor at once — a scalding, freezing, lightning-charged squall that shocks and burns the target severely.",
+      cooldownMs: 9500,
+      vfxId: "vfx.fire_ice_lightning.ability_squall",
+      statusKind: "shock",
+      statusMagnitude: 1,
+      statusDurationMs: 2500,
+      bonusDamage: 45,
+      damageElement: "lightning",
+    }),
+  ],
+  targeting: "strongest",
+  projectileVfx: "vfx.fire_ice_lightning.projectile",
+  impactVfx: "vfx.fire_ice_lightning.impact",
+  idleVfx: "vfx.fire_ice_lightning.idle",
+  modelId: "tower_fire_ice_lightning",
+};
+
+const fireNatureEarthTower: TowerDef = {
+  id: "tower_fire_nature_earth",
+  name: "Ashgrove Titan",
+  element: "fire+earth",
+  isFusion: true,
+  flavorText:
+    "A volcanic colossus whose molten cracks have been overtaken by fire-blooming vines — destruction and rebirth fused into one titan.",
+  tiers: buildTiers(
+    { damage: 46, range: 5.0, fireRateMs: 1400, projectileSpeed: 11, splashRadius: 2.0 },
+    [640, 1320, 2620],
+    [1, 1.25, 1.55],
+    [
+      "Boulders still weep magma, but the first fire-blossom vines have already taken root in the cracks.",
+      "Thick ember-vines now wrap the whole cairn, blossoms glowing like coals among the molten stone.",
+      "A true titan of living magma-stone, a canopy of fire-blossoms crowning a body of molten rock and root.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "ashgrove_titan_wildfire_eruption",
+      name: "Wildfire Eruption",
+      description:
+        "Grand Fusion capstone. Erupts a blast of molten rock and living spores at once, poisoning the target while it burns from a massive fire detonation.",
+      cooldownMs: 10000,
+      vfxId: "vfx.fire_nature_earth.ability_eruption",
+      statusKind: "poison",
+      statusMagnitude: 8,
+      statusDurationMs: 5000,
+      bonusDamage: 60,
+      damageElement: "fire",
+    }),
+  ],
+  targeting: "strongest",
+  projectileVfx: "vfx.fire_nature_earth.projectile",
+  impactVfx: "vfx.fire_nature_earth.impact",
+  idleVfx: "vfx.fire_nature_earth.idle",
+  modelId: "tower_fire_nature_earth",
+};
+
+const iceNatureArcaneTower: TowerDef = {
+  id: "tower_ice_nature_arcane",
+  name: "Elderfrost Sanctum",
+  element: "ice+nature",
+  isFusion: true,
+  flavorText:
+    "An ancient world-tree encased in eternal frost, its frozen boughs strung with slow-turning rings of ward-light.",
+  tiers: buildTiers(
+    { damage: 24, range: 6.8, fireRateMs: 750, projectileSpeed: 14, critChance: 0.26, critMultiplier: 2.2 },
+    [610, 1260, 2500],
+    [1, 1.24, 1.52],
+    [
+      "A frost-sheathed sapling, one faint glyph ring drifting through its icy canopy.",
+      "The canopy has widened beneath its ice shell, two glyph rings now circling it in counter-motion.",
+      "An elder sanctum tree, permafrost and rune-light fused into a canopy that hums with ancient ward-magic.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "elderfrost_sanctum_winters_ward",
+      name: "Winter's Ward",
+      description:
+        "Grand Fusion capstone. Envelops the target in a rune-warded flash-freeze, locking it solid while ancient arcane force gouges through the ice.",
+      cooldownMs: 9500,
+      vfxId: "vfx.ice_nature_arcane.ability_winters_ward",
+      statusKind: "freeze",
+      statusMagnitude: 1,
+      statusDurationMs: 2200,
+      bonusDamage: 32,
+      damageElement: "arcane",
+    }),
+  ],
+  targeting: "weakest",
+  projectileVfx: "vfx.ice_nature_arcane.projectile",
+  impactVfx: "vfx.ice_nature_arcane.impact",
+  idleVfx: "vfx.ice_nature_arcane.idle",
+  modelId: "tower_ice_nature_arcane",
+};
+
+const lightningEarthArcaneTower: TowerDef = {
+  id: "tower_lightning_earth_arcane",
+  name: "Stormforge Sovereign",
+  element: "earth+arcane",
+  isFusion: true,
+  flavorText: "A sovereign monolith wreathed in storm-charged sigils, each rivet arcing with captured lightning.",
+  tiers: buildTiers(
+    { damage: 38, range: 6.0, fireRateMs: 780, projectileSpeed: 18, critChance: 0.24, critMultiplier: 2.2 },
+    [650, 1340, 2650],
+    [1, 1.26, 1.56],
+    [
+      "A rune-slab monolith, one glyph now sparking faintly with trapped current.",
+      "Two glyphs blaze, rivets arcing visibly with captured storm-charge between them.",
+      "A sovereign monolith, every glyph and rivet alive with continuous lightning bound in stone and rune.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "stormforge_sovereign_judgment_circuit",
+      name: "Judgment Circuit",
+      description:
+        "Grand Fusion capstone. Routes the monolith's full storm-charge through the target's armor, sundering it and unleashing a devastating lightning surge.",
+      cooldownMs: 10500,
+      vfxId: "vfx.lightning_earth_arcane.ability_judgment",
+      statusKind: "sunder",
+      statusMagnitude: 0.35,
+      statusDurationMs: 4500,
+      bonusDamage: 50,
+      damageElement: "lightning",
+    }),
+  ],
+  targeting: "strongest",
+  projectileVfx: "vfx.lightning_earth_arcane.projectile",
+  impactVfx: "vfx.lightning_earth_arcane.impact",
+  idleVfx: "vfx.lightning_earth_arcane.idle",
+  modelId: "tower_lightning_earth_arcane",
+};
+
+const fireLightningArcaneTower: TowerDef = {
+  id: "tower_fire_lightning_arcane",
+  name: "Voidfire Nexus",
+  element: "fire+lightning",
+  isFusion: true,
+  flavorText: "An unstable miniature star, contained only by interlocking rings of arcane warding.",
+  tiers: buildTiers(
+    { damage: 30, range: 6.4, fireRateMs: 340, projectileSpeed: 28, critChance: 0.3, critMultiplier: 2.4 },
+    [660, 1360, 2680],
+    [1, 1.24, 1.5],
+    [
+      "A caged plasma mote now drifts inside a single faint ward-ring.",
+      "Two ward-rings spin around a swelling plasma core, sparks leaping against the containment.",
+      "A captive dying star — three ward-rings barely containing the plasma-lightning maelstrom within.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "voidfire_nexus_starfall_discharge",
+      name: "Starfall Discharge",
+      description:
+        "Grand Fusion capstone. Briefly drops the warding rings, releasing the full fury of the captive star as a shocking, incinerating discharge.",
+      cooldownMs: 8500,
+      vfxId: "vfx.fire_lightning_arcane.ability_starfall",
+      statusKind: "shock",
+      statusMagnitude: 1,
+      statusDurationMs: 3000,
+      bonusDamage: 65,
+      damageElement: "fire",
+    }),
+  ],
+  targeting: "first",
+  projectileVfx: "vfx.fire_lightning_arcane.projectile",
+  impactVfx: "vfx.fire_lightning_arcane.impact",
+  idleVfx: "vfx.fire_lightning_arcane.idle",
+  modelId: "tower_fire_lightning_arcane",
+};
+
+const iceNatureEarthTower: TowerDef = {
+  id: "tower_ice_nature_earth",
+  name: "Wildfrost Bastion",
+  element: "ice+earth",
+  isFusion: true,
+  flavorText:
+    "A rampart of ancient glacier-stone reclaimed by hardy frost-vines — immovable, and growing more so every season.",
+  tiers: buildTiers(
+    { damage: 42, range: 4.8, fireRateMs: 1550, projectileSpeed: 9, splashRadius: 1.9 },
+    [630, 1300, 2580],
+    [1, 1.27, 1.58],
+    [
+      "A rampart of alternating rock and ice, the first frost-hardy vines threading its cracks.",
+      "Vines now lattice the whole rampart, ice and root grown inseparable.",
+      "A living bastion of glacier and root — an unmoving wall, ancient and steadily, unstoppably growing.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "wildfrost_bastion_everfrost_bloom",
+      name: "Everfrost Bloom",
+      description:
+        "Grand Fusion capstone. Roots the target under a sudden lattice of frozen vines bursting from the rampart, crushing and immobilizing it.",
+      cooldownMs: 9500,
+      vfxId: "vfx.ice_nature_earth.ability_bloom",
+      statusKind: "root",
+      statusMagnitude: 1,
+      statusDurationMs: 3200,
+      bonusDamage: 40,
+      damageElement: "ice",
+    }),
+  ],
+  targeting: "strongest",
+  projectileVfx: "vfx.ice_nature_earth.projectile",
+  impactVfx: "vfx.ice_nature_earth.impact",
+  idleVfx: "vfx.ice_nature_earth.idle",
+  modelId: "tower_ice_nature_earth",
+};
+
+// ---------------------------------------------------------------------------
 // Public registry
 // ---------------------------------------------------------------------------
 
@@ -912,6 +1281,12 @@ const ALL_TOWERS: TowerDef[] = [
   natureEarthTower,
   natureArcaneTower,
   earthArcaneTower,
+  fireIceLightningTower,
+  fireNatureEarthTower,
+  iceNatureArcaneTower,
+  lightningEarthArcaneTower,
+  fireLightningArcaneTower,
+  iceNatureEarthTower,
 ];
 
 export const TOWER_REGISTRY: Map<string, TowerDef> = new Map(ALL_TOWERS.map((t) => [t.id, t]));

@@ -60,6 +60,24 @@ export interface TowerAbility {
   description: string;
   cooldownMs: number;
   onTrigger: (ctx: TowerAbilityContext) => void;
+  /**
+   * Minimum tower tier at which this ability is active/triggerable.
+   * Omitted (undefined) means "available from tier 1" — every ability that
+   * existed before this field was introduced has no `minTier`, so this is
+   * fully backward compatible and changes no existing behavior.
+   *
+   * This is the tier-gating convention for `TowerDef.abilities`: a tower can
+   * list more than one ability (the array already supported that), and an
+   * ability with e.g. `minTier: 3` is a capstone that should only be
+   * triggerable once the tower has been upgraded to that tier. The combat
+   * orchestrator (Game.ts) is responsible for checking
+   * `tower.currentTier >= (ability.minTier ?? 1)` before calling
+   * `ability.onTrigger` — abilities below the tower's current tier must
+   * simply not fire (and, in UI, should probably render as locked/greyed).
+   * See src/game/towers/TowerRegistry.ts's file-header comment and the six
+   * base towers' second `abilities[]` entry for the reference usage.
+   */
+  minTier?: 1 | 2 | 3;
 }
 
 export interface TowerAbilityContext {
