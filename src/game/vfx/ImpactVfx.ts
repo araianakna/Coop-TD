@@ -93,9 +93,18 @@ const STYLES: Record<Element, ElementImpactStyle> = {
   },
 };
 
+/** Anything a `Sequence` can drive: ticked every frame, returns whether it's
+ * still alive, and can be torn down early. `AbilityVfx` implements this for
+ * its bespoke primitives (arc bolts, orbit clusters, ground fissures, …) so
+ * they can share the same `Sequence` scheduler as `Flash`/`ExpandingRing`. */
+export interface SequenceEffect {
+  update(dt: number): boolean;
+  disposeNow(): void;
+}
+
 /** Camera-facing single-particle flash — a bright blob that scales down and
  * fades, reused for both small impacts and the big fusion flash. */
-class Flash {
+export class Flash {
   private system: ParticleSystem;
   private done = false;
 
@@ -139,7 +148,7 @@ class Flash {
 
 /** Flat expanding+fading ring, laid on the ground plane under the impact
  * point — the "shockwave" beat. */
-class ExpandingRing {
+export class ExpandingRing {
   private mesh: THREE.Mesh;
   private material: THREE.MeshBasicMaterial;
   private age = 0;
@@ -197,20 +206,24 @@ class ExpandingRing {
   }
 }
 
-interface ScheduledAction {
+export interface ScheduledAction {
   at: number;
   run: () => void;
 }
 
-/** A running multi-stage effect sequence (used for both simple impacts and
- * the fusion transform) — a bag of live sub-effects plus a schedule of
- * delayed spawns, ticked by age. */
-class Sequence {
+/** A running multi-stage effect sequence (used for simple impacts, the
+ * fusion transform, and every AbilityVfx effect) — a bag of live sub-effects
+ * plus a schedule of delayed spawns, ticked by age. `addEffect` accepts any
+ * `SequenceEffect` (AbilityVfx's bespoke primitives — arc bolts, orbit
+ * clusters, fissures, curve-grown vines, …) alongside the built-in
+ * Flash/ExpandingRing/ParticleSystem helpers. */
+export class Sequence {
   private age = 0;
   private schedule: ScheduledAction[];
   private flashes: Flash[] = [];
   private rings: ExpandingRing[] = [];
   private particleSystems: ParticleSystem[] = [];
+  private effects: SequenceEffect[] = [];
 
   constructor(schedule: ScheduledAction[] = []) {
     this.schedule = [...schedule].sort((a, b) => a.at - b.at);
@@ -230,6 +243,9 @@ class Sequence {
   addParticles(p: ParticleSystem) {
     this.particleSystems.push(p);
   }
+  addEffect(e: SequenceEffect) {
+    this.effects.push(e);
+  }
 
   update(dt: number): boolean {
     this.age += dt;
@@ -238,6 +254,7 @@ class Sequence {
     }
     this.flashes = this.flashes.filter((f) => f.update(dt));
     this.rings = this.rings.filter((r) => r.update(dt));
+    this.effects = this.effects.filter((e) => e.update(dt));
     for (const ps of this.particleSystems) ps.update(dt);
     this.particleSystems = this.particleSystems.filter((ps) => {
       if (ps.isActive()) return true;
@@ -248,6 +265,7 @@ class Sequence {
       this.schedule.length > 0 ||
       this.flashes.length > 0 ||
       this.rings.length > 0 ||
+      this.effects.length > 0 ||
       this.particleSystems.length > 0
     );
   }
@@ -255,9 +273,11 @@ class Sequence {
   disposeNow() {
     for (const f of this.flashes) f.disposeNow();
     for (const r of this.rings) r.dispose();
+    for (const e of this.effects) e.disposeNow();
     for (const ps of this.particleSystems) ps.dispose();
     this.flashes = [];
     this.rings = [];
+    this.effects = [];
     this.particleSystems = [];
     this.schedule = [];
   }

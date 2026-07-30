@@ -14,6 +14,8 @@
 // `emitVfx` understands any id produced by the helpers in "@/game/vfx/ids":
 //   impactVfxId(element)       -> plays a one-shot impact burst
 //   fusionVfxId(elementA, elementB) -> plays the fusion transform sequence
+//   <any ability id, e.g. "vfx.fire.ability_ignite"> -> plays that ability's
+//     bespoke AbilityVfx effect (see game/vfx/AbilityVfx.ts)
 // `projectileVfxId(element)` ids are NOT one-shot (a projectile needs a
 // moving target, which `emitVfx`'s single-worldPos signature can't express)
 // — spawn those directly via `VfxManager.projectiles.spawn(...)` from
@@ -23,14 +25,17 @@ import type { Element } from "@/game/types";
 import { parseVfxId } from "@/game/vfx/ids";
 import { ImpactVfx } from "@/game/vfx/ImpactVfx";
 import { ProjectileVfx } from "@/game/vfx/ProjectileVfx";
+import { AbilityVfx } from "@/game/vfx/AbilityVfx";
 
 export class VfxManager {
   readonly impacts: ImpactVfx;
   readonly projectiles: ProjectileVfx;
+  readonly abilities: AbilityVfx;
 
   constructor(scene: THREE.Scene) {
     this.impacts = new ImpactVfx(scene);
     this.projectiles = new ProjectileVfx(scene);
+    this.abilities = new AbilityVfx(scene);
   }
 
   /** Bound function ready to hand straight to TowerAbilityContext.emitVfx. */
@@ -42,6 +47,9 @@ export class VfxManager {
         return;
       case "fusion":
         this.impacts.triggerFusion(parsed.elements[0], parsed.elements[1], worldPos);
+        return;
+      case "ability":
+        this.abilities.trigger(parsed.id, worldPos);
         return;
       case "projectile":
         // Projectiles need a moving target; emitVfx only carries a static
@@ -65,10 +73,12 @@ export class VfxManager {
   update(dt: number): void {
     this.impacts.update(dt);
     this.projectiles.update(dt);
+    this.abilities.update(dt);
   }
 
   dispose(): void {
     this.impacts.dispose();
     this.projectiles.dispose();
+    this.abilities.dispose();
   }
 }

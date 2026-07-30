@@ -94,6 +94,31 @@ function buildKindTexture(grid: Grid): THREE.DataTexture {
 const TERRAIN_SHADE_GLSL = /* glsl */ `
   struct TerrainShade { vec3 albedo; float rough; vec3 emissive; };
 
+  // Path (1) and the spawn/base portals (3, 4) all count as "rune-circuit"
+  // nodes the glowing inlay should run through/into.
+  float rw_isPathLike(float k) {
+    return (k > 0.5 && k < 1.5) ? 1.0 : ((k > 2.5 && k < 4.5) ? 1.0 : 0.0);
+  }
+
+  // Distance from p to the segment a-b — used to build angular rune-glyph
+  // strokes (a stave + branch marks, like carved runic script) rather than
+  // a rounded blob.
+  float rw_sdSegment(vec2 p, vec2 a, vec2 b) {
+    vec2 pa = p - a;
+    vec2 ba = b - a;
+    float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+    return length(pa - ba * h);
+  }
+
+  // Rotate by a multiple of 90 degrees, picked per-cell, so a repeated
+  // glyph shape doesn't read as a stamped decal.
+  vec2 rw_quadRot(vec2 p, float idx) {
+    if (idx < 0.5) return p;
+    if (idx < 1.5) return vec2(-p.y, p.x);
+    if (idx < 2.5) return vec2(-p.x, -p.y);
+    return vec2(p.y, -p.x);
+  }
+
   TerrainShade shadeTerrain(vec3 worldPos, float slopeY, float time) {
     vec2 guv = vec2(
       (worldPos.x / uCellSize + uGridWidth * 0.5) / uGridWidth,
@@ -129,16 +154,68 @@ const TERRAIN_SHADE_GLSL = /* glsl */ `
     vec2 cellLocal = fract(guv * vec2(uGridWidth, uGridHeight)) - 0.5;
 
     if (kc >= 0.5 && kc < 1.5) {
-      // PATH — flagstone with mortar seams and a pulsing rune vein.
+      // PATH — flagstone with mortar seams and an inscribed rune circuit.
       float edgeDist = 0.5 - max(abs(cellLocal.x), abs(cellLocal.y));
       float mortarMask = smoothstep(0.0, 0.07, edgeDist);
       vec3 stoneBase = mix(stoneA, stoneB, smoothstep(-0.3, 0.3, detail));
       albedo = mix(mortar, stoneBase, mortarMask);
       albedo *= (0.9 + 0.15 * grain);
       rough = 0.5;
-      float vein = smoothstep(0.82, 1.0, 1.0 - abs(cellLocal.x) * 2.05) * mortarMask;
-      float pulse = 0.55 + 0.45 * sin(time * 1.6 + worldPos.x * 0.6 + worldPos.z * 0.6);
-      emissive = vec3(0.35, 1.25, 1.6) * vein * pulse * 1.35;
+
+      // Sample the 4 cardinal neighbor cells so the glow only runs toward
+      // flagstones that are *actually* part of the path — this makes the
+      // inlay bend correctly at turns instead of being a fixed-axis stripe.
+      vec2 cellId = floor(guv * vec2(uGridWidth, uGridHeight));
+      vec2 texel = vec2(1.0 / uGridWidth, 1.0 / uGridHeight);
+      float kcR = rw_isPathLike(floor(texture2D(uCellKindTex, clamp(guv + vec2(texel.x, 0.0), 0.0, 1.0)).r * 255.0 + 0.5));
+      float kcL = rw_isPathLike(floor(texture2D(uCellKindTex, clamp(guv - vec2(texel.x, 0.0), 0.0, 1.0)).r * 255.0 + 0.5));
+      float kcU = rw_isPathLike(floor(texture2D(uCellKindTex, clamp(guv + vec2(0.0, texel.y), 0.0, 1.0)).r * 255.0 + 0.5));
+      float kcD = rw_isPathLike(floor(texture2D(uCellKindTex, clamp(guv - vec2(0.0, texel.y), 0.0, 1.0)).r * 255.0 + 0.5));
+
+      // Organic width jitter so the inlay reads as hand-carved, not a ruled
+      // line — sampled in world space so it stays continuous across the
+      // cell seam it crosses. Kept thin: this is a connecting conduit
+      // seam between rune-stones, not the main event.
+      float widthNoise = rwFbm(worldPos.xz * 1.7 + 50.0, 2);
+      float traceW = 0.04 + widthNoise * 0.015;
+
+      float mR = kcR * step(0.0, cellLocal.x) * (1.0 - smoothstep(traceW * 0.55, traceW, abs(cellLocal.y)));
+      float mL = kcL * step(cellLocal.x, 0.0) * (1.0 - smoothstep(traceW * 0.55, traceW, abs(cellLocal.y)));
+      float mU = kcU * step(0.0, cellLocal.y) * (1.0 - smoothstep(traceW * 0.55, traceW, abs(cellLocal.x)));
+      float mD = kcD * step(cellLocal.y, 0.0) * (1.0 - smoothstep(traceW * 0.55, traceW, abs(cellLocal.x)));
+      float traceMask = max(max(mR, mL), max(mU, mD));
+
+      // Subtle brightness variation along the trace — like a worn, ancient
+      // seam rather than a perfectly uniform stripe.
+      float wear = rwFbm(worldPos.xz * 4.0 + 100.0, 2);
+      traceMask *= mix(0.45, 1.0, smoothstep(-0.6, 0.1, wear));
+
+      // Per-flagstone rune glyph: an angular stave-and-branch mark (like
+      // carved runic script) glowing at the block's center, rotated and
+      // varied per stone and present on a subset of stones — so the road
+      // reads as individually inscribed flagstones linked by a thin
+      // conduit seam, rather than one continuous painted line.
+      float cellHash = fract(sin(dot(cellId, vec2(127.1, 311.7))) * 43758.5453123);
+      float sigilPhase = fract(sin(dot(cellId, vec2(269.5, 183.3))) * 12543.31);
+      float rotIdx = floor(fract(cellHash * 17.0) * 4.0);
+      float variant = fract(cellHash * 29.0);
+      float carve = rwFbm(cellLocal * 9.0 + cellId * 3.7, 3);
+      vec2 gp = rw_quadRot(cellLocal, rotIdx) + carve * 0.018;
+      float glyphD = rw_sdSegment(gp, vec2(0.0, -0.24), vec2(0.0, 0.24));
+      glyphD = min(glyphD, rw_sdSegment(gp, vec2(0.0, 0.05), vec2(0.19, 0.24)));
+      if (variant > 0.3) {
+        glyphD = min(glyphD, rw_sdSegment(gp, vec2(0.0, -0.05), vec2(-0.19, -0.24)));
+      }
+      if (variant > 0.7) {
+        glyphD = min(glyphD, rw_sdSegment(gp, vec2(0.0, -0.16), vec2(0.16, -0.02)));
+      }
+      float strokeW = 0.035 + widthNoise * 0.01;
+      float sigil = 1.0 - smoothstep(strokeW * 0.6, strokeW * 1.5, glyphD);
+      sigil *= step(0.52, cellHash);
+
+      float glow = max(traceMask, sigil);
+      float pulse = 0.55 + 0.45 * sin(time * 1.6 + worldPos.x * 0.6 + worldPos.z * 0.6 + sigilPhase * 6.283);
+      emissive = vec3(0.35, 1.25, 1.6) * glow * mortarMask * pulse * 1.35;
     } else if (kc >= 2.5 && kc < 4.5) {
       // SPAWN / BASE — arcane portal stone with a glowing ring emblem.
       float d = length(cellLocal);

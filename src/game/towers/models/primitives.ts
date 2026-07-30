@@ -101,3 +101,16 @@ export function obelisk(topRadius: number, bottomRadius: number, height: number)
   geo.computeVertexNormals();
   return geo;
 }
+
+/**
+ * Torus "collar" band — wraps a pillar/trunk/mast partway up as a banded
+ * reinforcement ring, or lies flat as a base rim. Cheap way to break up a
+ * bare cylinder silhouette and add a chunk of visual mass without changing
+ * the tower's footprint or read. Built flat (ring in the XZ plane, hole
+ * facing up); rotate for a vertical collar instead.
+ */
+export function ringBand(radius: number, tubeRadius: number, radialSegments = 6, tubularSegments = 20): THREE.BufferGeometry {
+  const geo = new THREE.TorusGeometry(radius, tubeRadius, radialSegments, tubularSegments);
+  geo.rotateX(Math.PI / 2);
+  return geo;
+}
