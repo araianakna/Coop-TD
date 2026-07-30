@@ -1,0 +1,441 @@
+// Per-element impact bursts (for `impactVfx` ids) plus the tower-fusion
+// transformation "wow moment" — a multi-stage charge -> flash -> shockwave
+// -> particle explosion -> settle sequence combining both parent elements.
+//
+// vfx-id convention: `impactVfxId(element)` from "@/game/vfx/ids" produces
+// `"vfx.<element>.impact"`; `fusionVfxId(a, b)` produces
+// `"vfx.fusion.<a>+<b>"`. VfxManager routes both shapes here.
+//
+// Usage:
+//   const impact = new ImpactVfx(scene);
+//   impact.trigger("fire", worldPos);
+//   impact.triggerFusion("fire", "nature", worldPos);
+//   // each frame:
+//   impact.update(dt);
+//   // on teardown:
+//   impact.dispose();
+import * as THREE from "three";
+import type { Element } from "@/game/types";
+import { ELEMENT_PALETTES } from "@/game/vfx/palette";
+import { ParticleSystem, type ParticleShape } from "@/game/vfx/ParticleSystem";
+
+interface ElementImpactStyle {
+  shape: ParticleShape;
+  burstCount: number;
+  burstSpeed: [number, number];
+  burstLifetime: [number, number];
+  gravity: THREE.Vector3;
+  turbulence: number;
+  ringDuration: number;
+  ringEndRadius: number;
+}
+
+const STYLES: Record<Element, ElementImpactStyle> = {
+  fire: {
+    shape: "soft",
+    burstCount: 26,
+    burstSpeed: [1.5, 4.5],
+    burstLifetime: [0.25, 0.5],
+    gravity: new THREE.Vector3(0, 1.2, 0),
+    turbulence: 2.2,
+    ringDuration: 0.35,
+    ringEndRadius: 1.1,
+  },
+  ice: {
+    shape: "shard",
+    burstCount: 22,
+    burstSpeed: [2, 5],
+    burstLifetime: [0.3, 0.55],
+    gravity: new THREE.Vector3(0, -2.5, 0),
+    turbulence: 0.2,
+    ringDuration: 0.4,
+    ringEndRadius: 1.0,
+  },
+  lightning: {
+    shape: "spark",
+    burstCount: 30,
+    burstSpeed: [3, 8],
+    burstLifetime: [0.1, 0.22],
+    gravity: new THREE.Vector3(0, 0, 0),
+    turbulence: 6,
+    ringDuration: 0.22,
+    ringEndRadius: 1.3,
+  },
+  nature: {
+    shape: "leaf",
+    burstCount: 20,
+    burstSpeed: [1, 3],
+    burstLifetime: [0.4, 0.7],
+    gravity: new THREE.Vector3(0, -0.6, 0),
+    turbulence: 0.8,
+    ringDuration: 0.45,
+    ringEndRadius: 0.9,
+  },
+  earth: {
+    shape: "chunk",
+    burstCount: 18,
+    burstSpeed: [1.5, 4],
+    burstLifetime: [0.35, 0.6],
+    gravity: new THREE.Vector3(0, -6, 0),
+    turbulence: 0.1,
+    ringDuration: 0.3,
+    ringEndRadius: 1.0,
+  },
+  arcane: {
+    shape: "shard",
+    burstCount: 24,
+    burstSpeed: [1.5, 4.5],
+    burstLifetime: [0.3, 0.6],
+    gravity: new THREE.Vector3(0, 0.3, 0),
+    turbulence: 0.6,
+    ringDuration: 0.4,
+    ringEndRadius: 1.1,
+  },
+};
+
+/** Camera-facing single-particle flash — a bright blob that scales down and
+ * fades, reused for both small impacts and the big fusion flash. */
+class Flash {
+  private system: ParticleSystem;
+  private done = false;
+
+  constructor(
+    scene: THREE.Scene,
+    pos: [number, number, number],
+    colorStart: THREE.ColorRepresentation,
+    colorEnd: THREE.ColorRepresentation,
+    peakSize: number,
+    duration: number,
+  ) {
+    this.system = new ParticleSystem(scene, {
+      colorStart,
+      colorEnd,
+      sizeStart: peakSize,
+      sizeEnd: peakSize * 0.15,
+      lifetime: [duration, duration],
+      speed: [0, 0],
+      spreadAngle: 0,
+      fadeInFrac: 0.02,
+      maxParticles: 1,
+      intensity: 1.4,
+    });
+    this.system.burst(pos, 1);
+  }
+
+  update(dt: number): boolean {
+    this.system.update(dt);
+    if (!this.done && !this.system.isActive()) {
+      this.system.dispose();
+      this.done = true;
+    }
+    return !this.done;
+  }
+
+  disposeNow() {
+    this.system.dispose();
+    this.done = true;
+  }
+}
+
+/** Flat expanding+fading ring, laid on the ground plane under the impact
+ * point — the "shockwave" beat. */
+class ExpandingRing {
+  private mesh: THREE.Mesh;
+  private material: THREE.MeshBasicMaterial;
+  private age = 0;
+  private duration: number;
+  private endRadius: number;
+  private startOpacity: number;
+  private scene: THREE.Scene;
+
+  constructor(
+    scene: THREE.Scene,
+    pos: [number, number, number],
+    color: THREE.Color,
+    endRadius: number,
+    duration: number,
+    startOpacity = 0.9,
+  ) {
+    this.scene = scene;
+    this.duration = duration;
+    this.endRadius = endRadius;
+    this.startOpacity = startOpacity;
+    const geo = new THREE.RingGeometry(0.72, 1, 40);
+    geo.rotateX(-Math.PI / 2);
+    this.material = new THREE.MeshBasicMaterial({
+      color: color.clone().multiplyScalar(1.8),
+      transparent: true,
+      opacity: startOpacity,
+      side: THREE.DoubleSide,
+      blending: THREE.AdditiveBlending,
+      toneMapped: false,
+      depthWrite: false,
+    });
+    this.mesh = new THREE.Mesh(geo, this.material);
+    this.mesh.position.set(pos[0], pos[1] + 0.02, pos[2]);
+    this.mesh.scale.setScalar(0.05);
+    scene.add(this.mesh);
+  }
+
+  update(dt: number): boolean {
+    this.age += dt;
+    const t = Math.min(1, this.age / this.duration);
+    const eased = 1 - Math.pow(1 - t, 2); // ease-out
+    this.mesh.scale.setScalar(0.05 + eased * this.endRadius);
+    this.material.opacity = this.startOpacity * (1 - t);
+    if (t >= 1) {
+      this.dispose();
+      return false;
+    }
+    return true;
+  }
+
+  dispose() {
+    this.scene.remove(this.mesh);
+    this.mesh.geometry.dispose();
+    this.material.dispose();
+  }
+}
+
+interface ScheduledAction {
+  at: number;
+  run: () => void;
+}
+
+/** A running multi-stage effect sequence (used for both simple impacts and
+ * the fusion transform) — a bag of live sub-effects plus a schedule of
+ * delayed spawns, ticked by age. */
+class Sequence {
+  private age = 0;
+  private schedule: ScheduledAction[];
+  private flashes: Flash[] = [];
+  private rings: ExpandingRing[] = [];
+  private particleSystems: ParticleSystem[] = [];
+
+  constructor(schedule: ScheduledAction[] = []) {
+    this.schedule = [...schedule].sort((a, b) => a.at - b.at);
+  }
+
+  scheduleAt(at: number, run: () => void) {
+    this.schedule.push({ at, run });
+    this.schedule.sort((a, b) => a.at - b.at);
+  }
+
+  addFlash(f: Flash) {
+    this.flashes.push(f);
+  }
+  addRing(r: ExpandingRing) {
+    this.rings.push(r);
+  }
+  addParticles(p: ParticleSystem) {
+    this.particleSystems.push(p);
+  }
+
+  update(dt: number): boolean {
+    this.age += dt;
+    while (this.schedule.length > 0 && this.schedule[0].at <= this.age) {
+      this.schedule.shift()!.run();
+    }
+    this.flashes = this.flashes.filter((f) => f.update(dt));
+    this.rings = this.rings.filter((r) => r.update(dt));
+    for (const ps of this.particleSystems) ps.update(dt);
+    this.particleSystems = this.particleSystems.filter((ps) => {
+      if (ps.isActive()) return true;
+      ps.dispose();
+      return false;
+    });
+    return (
+      this.schedule.length > 0 ||
+      this.flashes.length > 0 ||
+      this.rings.length > 0 ||
+      this.particleSystems.length > 0
+    );
+  }
+
+  disposeNow() {
+    for (const f of this.flashes) f.disposeNow();
+    for (const r of this.rings) r.dispose();
+    for (const ps of this.particleSystems) ps.dispose();
+    this.flashes = [];
+    this.rings = [];
+    this.particleSystems = [];
+    this.schedule = [];
+  }
+}
+
+export class ImpactVfx {
+  private scene: THREE.Scene;
+  private sequences: Sequence[] = [];
+
+  constructor(scene: THREE.Scene) {
+    this.scene = scene;
+  }
+
+  /** Single-element impact burst for `vfx.<element>.impact`. */
+  trigger(element: Element, worldPos: [number, number, number]): void {
+    const palette = ELEMENT_PALETTES[element];
+    const style = STYLES[element];
+    const seq = new Sequence([]);
+
+    seq.addFlash(new Flash(this.scene, worldPos, palette.core, palette.rim, 0.55, 0.16));
+    seq.addRing(new ExpandingRing(this.scene, worldPos, palette.core, style.ringEndRadius, style.ringDuration, 0.7));
+
+    const burst = new ParticleSystem(this.scene, {
+      colorStart: palette.core,
+      colorEnd: palette.edge,
+      sizeStart: 0.18,
+      sizeEnd: 0.03,
+      lifetime: style.burstLifetime,
+      speed: style.burstSpeed,
+      direction: new THREE.Vector3(0, 1, 0),
+      spreadAngle: Math.PI * 0.85,
+      gravity: style.gravity,
+      drag: 0.6,
+      turbulence: style.turbulence,
+      shape: style.shape,
+      maxParticles: style.burstCount,
+      rotationSpeed: [-4, 4],
+      intensity: 1.2,
+    });
+    burst.burst(worldPos, style.burstCount);
+    seq.addParticles(burst);
+
+    this.sequences.push(seq);
+  }
+
+  /**
+   * Signature fusion transformation effect for two parent elements:
+   *   1. charge   (0.00s) — particles from both elements converge inward
+   *   2. flash    (0.20s) — bright combined-color flash
+   *   3. shockwave(0.20s) — two expanding rings (one per parent element)
+   *   4. burst    (0.22s) — big two-color particle explosion
+   *   5. settle   (0.65s) — slow drifting embers as the new tower "settles"
+   */
+  triggerFusion(elementA: Element, elementB: Element, worldPos: [number, number, number]): void {
+    const pa = ELEMENT_PALETTES[elementA];
+    const pb = ELEMENT_PALETTES[elementB];
+    const blend = pa.core.clone().lerp(pb.core, 0.5).lerp(new THREE.Color(0xffffff), 0.35);
+
+    const seq = new Sequence([]);
+
+    // Stage 1: charge — particles pulled inward from a shell around the point.
+    const charge = new ParticleSystem(this.scene, {
+      colorStart: pa.core,
+      colorEnd: pb.core,
+      sizeStart: 0.05,
+      sizeEnd: 0.18,
+      lifetime: [0.18, 0.2],
+      speed: [3.2, 4.2],
+      direction: new THREE.Vector3(0, 1, 0),
+      spreadAngle: Math.PI, // full sphere
+      originSpread: 2.2,
+      gravity: new THREE.Vector3(0, 0, 0),
+      drag: 0,
+      shape: "soft",
+      maxParticles: 60,
+      intensity: 1.3,
+    });
+    // Spawn each particle already flying INWARD: burst() only supports
+    // outward cones, so approximate the "converge" read by spawning on a
+    // ring around the point with a short, fast lifetime timed to land
+    // roughly at the center right as the flash fires.
+    charge.burst(worldPos, 60);
+    seq.addParticles(charge);
+
+    const actions: ScheduledAction[] = [
+      {
+        at: 0.2,
+        run: () => {
+          // Stage 2: flash — big bright combined-color pop.
+          seq.addFlash(new Flash(this.scene, worldPos, blend, blend, 1.6, 0.22));
+        },
+      },
+      {
+        at: 0.2,
+        run: () => {
+          // Stage 3: shockwave — two rings, one per parent element, racing
+          // outward at slightly different speeds for a layered look.
+          seq.addRing(new ExpandingRing(this.scene, worldPos, pa.core, 2.2, 0.55, 1));
+          seq.addRing(new ExpandingRing(this.scene, worldPos, pb.core, 2.7, 0.7, 0.85));
+        },
+      },
+      {
+        at: 0.22,
+        run: () => {
+          // Stage 4: explosion — two overlapping color bursts, one per
+          // parent element, so the result visibly reads as "both colors".
+          const explodeCommon = {
+            lifetime: [0.5, 0.9] as [number, number],
+            speed: [3, 7] as [number, number],
+            direction: new THREE.Vector3(0, 1, 0),
+            spreadAngle: Math.PI * 0.95,
+            gravity: new THREE.Vector3(0, -1.5, 0),
+            drag: 0.4,
+            turbulence: 1.5,
+            maxParticles: 46,
+            rotationSpeed: [-5, 5] as [number, number],
+            intensity: 1.3,
+          };
+          const burstA = new ParticleSystem(this.scene, {
+            ...explodeCommon,
+            colorStart: pa.core,
+            colorEnd: pa.edge,
+            sizeStart: 0.22,
+            sizeEnd: 0.02,
+            shape: "shard",
+          });
+          burstA.burst(worldPos, 46);
+          seq.addParticles(burstA);
+
+          const burstB = new ParticleSystem(this.scene, {
+            ...explodeCommon,
+            colorStart: pb.core,
+            colorEnd: pb.edge,
+            sizeStart: 0.22,
+            sizeEnd: 0.02,
+            shape: "soft",
+          });
+          burstB.burst(worldPos, 46);
+          seq.addParticles(burstB);
+        },
+      },
+      {
+        at: 0.65,
+        run: () => {
+          // Stage 5: settle — slow rising embers as the new tower "cools".
+          const settle = new ParticleSystem(this.scene, {
+            colorStart: blend,
+            colorEnd: pa.core.clone().lerp(pb.core, 0.5),
+            sizeStart: 0.1,
+            sizeEnd: 0.02,
+            lifetime: [0.6, 1.1],
+            speed: [0.2, 0.6],
+            direction: new THREE.Vector3(0, 1, 0),
+            spreadAngle: 0.5,
+            gravity: new THREE.Vector3(0, 0.4, 0),
+            drag: 1,
+            turbulence: 0.4,
+            shape: "soft",
+            maxParticles: 24,
+            intensity: 1,
+          });
+          settle.burst(worldPos, 24);
+          seq.addParticles(settle);
+        },
+      },
+    ];
+
+    for (const action of actions) seq.scheduleAt(action.at, action.run);
+
+    this.sequences.push(seq);
+  }
+
+  update(dt: number): void {
+    this.sequences = this.sequences.filter((s) => s.update(dt));
+  }
+
+  dispose(): void {
+    for (const s of this.sequences) s.disposeNow();
+    this.sequences = [];
+  }
+}

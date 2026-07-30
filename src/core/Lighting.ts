@@ -7,7 +7,7 @@ export interface LightingRig {
 }
 
 export function createLightingRig(scene: THREE.Scene): LightingRig {
-  const hemi = new THREE.HemisphereLight(0x9fc9ff, 0x2a1f3d, 0.5);
+  const hemi = new THREE.HemisphereLight(0x9fc9ff, 0x2a1f3d, 0.58);
   scene.add(hemi);
 
   const sun = new THREE.DirectionalLight(0xfff1d6, 1.6);
@@ -25,11 +25,11 @@ export function createLightingRig(scene: THREE.Scene): LightingRig {
   scene.add(sun);
   scene.add(sun.target);
 
-  const fill = new THREE.DirectionalLight(0x6f8fff, 0.35);
+  const fill = new THREE.DirectionalLight(0x6f8fff, 0.42);
   fill.position.set(20, 12, -20);
   scene.add(fill);
 
-  scene.fog = new THREE.FogExp2(0x1b1330, 0.018);
+  scene.fog = new THREE.FogExp2(0x1b1330, 0.015);
 
   return { sun, hemi, fill };
 }

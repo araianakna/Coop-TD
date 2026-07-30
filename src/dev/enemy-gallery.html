@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Runeward — Enemy Gallery (dev)</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: #0c0910;
+        overflow: hidden;
+        height: 100%;
+      }
+      #app {
+        width: 100vw;
+        height: 100vh;
+      }
+      #labels {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        font: 12px/1.3 system-ui, sans-serif;
+        color: #e8e0ff;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+      }
+      .label {
+        position: absolute;
+        transform: translate(-50%, 0);
+        text-align: center;
+        white-space: nowrap;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <div id="labels"></div>
+    <script type="module" src="/src/dev/enemy-gallery.ts"></script>
+  </body>
+</html>
