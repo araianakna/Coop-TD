@@ -231,8 +231,12 @@ function buildThornling(): EnemyModel {
     const z = -0.16 + t * 0.36;
     const zr = THREE.MathUtils.clamp(z / thornBodySemiZ, -0.98, 0.98);
     const y = thornBodyCenterY + thornBodySemiY * Math.sqrt(1 - zr * zr) + 0.015;
+    // Small alternating X stagger so the ridge reads as individual spikes
+    // fanning outward instead of visually stacking into one blade when
+    // viewed head-on down the Z axis.
+    const xOff = (i % 2 === 0 ? 1 : -1) * 0.05 * (i + 1);
     const spike = new THREE.Mesh(thornSpikeGeo, spikeMat);
-    addPart(group, spike, [0, y, z], [0.55 - t * 0.5, 0, 0], 0.8 + t * 0.45);
+    addPart(group, spike, [xOff, y, z], [0.55 - t * 0.5, 0, (i % 2 === 0 ? 1 : -1) * 0.18], 0.8 + t * 0.45);
     spikes.push(spike);
   }
 
@@ -263,7 +267,7 @@ function buildThornling(): EnemyModel {
 
 function buildCragback(): EnemyModel {
   const group = new THREE.Group();
-  const shellMat = matteMat(0x6e5c46, 0.85, 0.1);
+  const shellMat = matteMat(0x81694c, 0.65, 0.12);
   const crackMat = glowMat(0xff9a3c, 0xffb347, 1.8, { roughness: 0.5 });
   const legMat = matteMat(0x40331f, 0.8, 0.1);
 
@@ -320,7 +324,7 @@ function buildCragback(): EnemyModel {
   }
 
   const eyeGeo = new THREE.SphereGeometry(0.04, 6, 6);
-  const eyeMat = glowMat(0xff5a3c, 0xff5a3c, 1.6, { roughness: 0.4 });
+  const eyeMat = glowMat(0xff5a3c, 0xff5a3c, 2.0, { roughness: 0.4 });
   addPart(group, new THREE.Mesh(eyeGeo, eyeMat), [0.1, 0.32, 0.72]);
   addPart(group, new THREE.Mesh(eyeGeo, eyeMat), [-0.1, 0.32, 0.72]);
 
@@ -343,22 +347,36 @@ function buildCragback(): EnemyModel {
 
 function buildSkitterwing(): EnemyModel {
   const group = new THREE.Group();
-  const coreMat = glowMat(0x6a2fbf, 0xb073ff, 2.1, { roughness: 0.35, metalness: 0.3 });
-  const wingMat = glowMat(0x8a4fe0, 0xa066ff, 1.4, {
+  const coreMat = glowMat(0x4a1f8f, 0x9a5fff, 1.5, { roughness: 0.4, metalness: 0.25 });
+  const wingMat = glowMat(0x6a2fbf, 0x8a4fe0, 1.1, {
     roughness: 0.3,
     metalness: 0.4,
     transparent: true,
-    opacity: 0.55,
+    opacity: 0.6,
     side: THREE.DoubleSide,
   });
+  const eyeMat = glowMat(0xff2fa0, 0xff2fa0, 2.2, { roughness: 0.3 });
 
-  addPart(group, new THREE.Mesh(jaggedIcosahedron(0.16, 1, 0.03, "skitterwing-core"), coreMat), [0, 0.9, 0]);
+  addPart(group, new THREE.Mesh(jaggedIcosahedron(0.16, 1, 0.035, "skitterwing-core"), coreMat), [0, 0.9, 0]);
+  // Thin glowing slit eyes read as unsettling/feral rather than a cute dot-eyed pet.
+  const eyeGeo = new THREE.BoxGeometry(0.02, 0.07, 0.02);
+  addPart(group, new THREE.Mesh(eyeGeo, eyeMat), [0.065, 0.9, 0.15], [0, 0, 0.2]);
+  addPart(group, new THREE.Mesh(eyeGeo, eyeMat), [-0.065, 0.9, 0.15], [0, 0, -0.2]);
 
+  // Jagged, torn-membrane bat/moth wing silhouette (straight segments with
+  // notches) instead of a smooth rounded scallop, which read as an
+  // unintentionally cute plush toy rather than a corrupted wisp.
   const wingShape = new THREE.Shape();
   wingShape.moveTo(0, 0);
-  wingShape.quadraticCurveTo(0.35, 0.28, 0.5, 0.05);
-  wingShape.quadraticCurveTo(0.42, -0.05, 0.3, -0.02);
-  wingShape.quadraticCurveTo(0.18, -0.16, 0, -0.02);
+  wingShape.lineTo(0.1, 0.12);
+  wingShape.lineTo(0.2, 0.34);
+  wingShape.lineTo(0.28, 0.22);
+  wingShape.lineTo(0.4, 0.36);
+  wingShape.lineTo(0.52, 0.1);
+  wingShape.lineTo(0.43, -0.03);
+  wingShape.lineTo(0.31, 0.03);
+  wingShape.lineTo(0.19, -0.09);
+  wingShape.lineTo(0.07, -0.03);
   wingShape.closePath();
   const wingGeo = new THREE.ShapeGeometry(wingShape);
 

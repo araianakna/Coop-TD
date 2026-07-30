@@ -318,27 +318,26 @@ export class ImpactVfx {
 
     const seq = new Sequence([]);
 
-    // Stage 1: charge — particles pulled inward from a shell around the point.
+    // Stage 1: charge — energy gathering at the point (grows in size rather
+    // than literally converging inward — ParticleSystem's burst cone only
+    // supports outward motion — but the short lifetime timed to peak right
+    // as the flash fires reads as power building up before it pops).
     const charge = new ParticleSystem(this.scene, {
       colorStart: pa.core,
       colorEnd: pb.core,
       sizeStart: 0.05,
-      sizeEnd: 0.18,
-      lifetime: [0.18, 0.2],
-      speed: [3.2, 4.2],
+      sizeEnd: 0.24,
+      lifetime: [0.16, 0.2],
+      speed: [0.3, 0.9],
       direction: new THREE.Vector3(0, 1, 0),
       spreadAngle: Math.PI, // full sphere
-      originSpread: 2.2,
+      originSpread: 1.6,
       gravity: new THREE.Vector3(0, 0, 0),
       drag: 0,
       shape: "soft",
       maxParticles: 60,
-      intensity: 1.3,
+      intensity: 1.4,
     });
-    // Spawn each particle already flying INWARD: burst() only supports
-    // outward cones, so approximate the "converge" read by spawning on a
-    // ring around the point with a short, fast lifetime timed to land
-    // roughly at the center right as the flash fires.
     charge.burst(worldPos, 60);
     seq.addParticles(charge);
 
@@ -347,16 +346,26 @@ export class ImpactVfx {
         at: 0.2,
         run: () => {
           // Stage 2: flash — big bright combined-color pop.
-          seq.addFlash(new Flash(this.scene, worldPos, blend, blend, 1.6, 0.22));
+          seq.addFlash(new Flash(this.scene, worldPos, blend, blend, 2.1, 0.24));
         },
       },
       {
         at: 0.2,
         run: () => {
-          // Stage 3: shockwave — two rings, one per parent element, racing
-          // outward at slightly different speeds for a layered look.
-          seq.addRing(new ExpandingRing(this.scene, worldPos, pa.core, 2.2, 0.55, 1));
-          seq.addRing(new ExpandingRing(this.scene, worldPos, pb.core, 2.7, 0.7, 0.85));
+          // Stage 3: shockwave — two rings, one per parent element. Uses
+          // the more saturated `mid` tone (not `core`, which is often
+          // near-white) so each ring keeps its parent's hue instead of
+          // washing out to grey once additive-blended + tonemapped. Ring B
+          // is deliberately delayed a beat so the two stay visibly
+          // separated as concentric bands instead of overlapping into one
+          // blurred band.
+          seq.addRing(new ExpandingRing(this.scene, worldPos, pa.mid, 2.4, 0.5, 1));
+        },
+      },
+      {
+        at: 0.28,
+        run: () => {
+          seq.addRing(new ExpandingRing(this.scene, worldPos, pb.mid, 3.2, 0.65, 0.9));
         },
       },
       {
@@ -364,38 +373,40 @@ export class ImpactVfx {
         run: () => {
           // Stage 4: explosion — two overlapping color bursts, one per
           // parent element, so the result visibly reads as "both colors".
+          // This is the main spectacle beat, sized well above a normal
+          // impact burst.
           const explodeCommon = {
-            lifetime: [0.5, 0.9] as [number, number],
-            speed: [3, 7] as [number, number],
+            lifetime: [0.55, 1.0] as [number, number],
+            speed: [4, 9] as [number, number],
             direction: new THREE.Vector3(0, 1, 0),
             spreadAngle: Math.PI * 0.95,
             gravity: new THREE.Vector3(0, -1.5, 0),
             drag: 0.4,
-            turbulence: 1.5,
-            maxParticles: 46,
+            turbulence: 1.6,
+            maxParticles: 70,
             rotationSpeed: [-5, 5] as [number, number],
-            intensity: 1.3,
+            intensity: 1.5,
           };
           const burstA = new ParticleSystem(this.scene, {
             ...explodeCommon,
             colorStart: pa.core,
             colorEnd: pa.edge,
-            sizeStart: 0.22,
-            sizeEnd: 0.02,
+            sizeStart: 0.42,
+            sizeEnd: 0.04,
             shape: "shard",
           });
-          burstA.burst(worldPos, 46);
+          burstA.burst(worldPos, 70);
           seq.addParticles(burstA);
 
           const burstB = new ParticleSystem(this.scene, {
             ...explodeCommon,
             colorStart: pb.core,
             colorEnd: pb.edge,
-            sizeStart: 0.22,
-            sizeEnd: 0.02,
+            sizeStart: 0.42,
+            sizeEnd: 0.04,
             shape: "soft",
           });
-          burstB.burst(worldPos, 46);
+          burstB.burst(worldPos, 70);
           seq.addParticles(burstB);
         },
       },

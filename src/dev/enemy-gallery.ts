@@ -48,8 +48,8 @@ const REGULAR_TARGET_HEIGHT = 1.7; // world units every non-boss silhouette is n
 const BOSS_TARGET_HEIGHT = 3.6; // bosses read taller/heavier even after normalization
 
 const COLS = 5;
-const SPACING_X = 2.8;
-const SPACING_Z = 2.8;
+const SPACING_X = 4.6;
+const SPACING_Z = 4.6;
 
 const box = new THREE.Box3();
 const size = new THREE.Vector3();
@@ -85,11 +85,16 @@ const entries = ENEMY_REGISTRY.map((def, i) => {
   model.group.updateWorldMatrix(true, true);
   box.setFromObject(model.group);
   box.getSize(size);
-  const rawHeight = Math.max(size.y, 0.0001);
+  // Normalize on the largest bounding dimension, not just height: a
+  // wide-but-short flyer (wingspan on X, little extent on Y) would
+  // otherwise get blown up to a grotesque scale chasing a "height" target
+  // it never had much of in the first place.
+  const rawMaxDim = Math.max(size.x, size.y, size.z, 0.0001);
   const targetHeight = def.isBoss ? BOSS_TARGET_HEIGHT : REGULAR_TARGET_HEIGHT;
-  const normalizedScale = targetHeight / rawHeight;
+  const normalizedScale = targetHeight / rawMaxDim;
   const centerX = (box.min.x + box.max.x) / 2;
   const centerZ = (box.min.z + box.max.z) / 2;
+  const actualHeight = size.y * normalizedScale;
 
   const pivot = new THREE.Group();
   pivot.position.set(
@@ -112,9 +117,10 @@ const entries = ENEMY_REGISTRY.map((def, i) => {
     pivot,
     slotX: x,
     slotZ: z,
-    anchor: new THREE.Vector3(x, targetHeight * 0.5 + 0.16, z),
+    anchor: new THREE.Vector3(x, 0.16 + actualHeight + 0.22, z),
     label,
     displayHeight: targetHeight,
+    midHeight: 0.16 + actualHeight * 0.5,
   };
 });
 
@@ -148,8 +154,8 @@ function focus(i: number) {
   if (!e) return;
   const h = e.displayHeight;
   const dist = h * 1.35 + 0.9;
-  camera.position.set(e.slotX + dist * 0.55, e.anchor.y + h * 0.15, e.slotZ + dist * 0.85);
-  camera.lookAt(e.slotX, e.anchor.y, e.slotZ);
+  camera.position.set(e.slotX + dist * 0.55, e.midHeight + h * 0.2, e.slotZ + dist * 0.85);
+  camera.lookAt(e.slotX, e.midHeight, e.slotZ);
 }
 
 const clock = new THREE.Clock();
