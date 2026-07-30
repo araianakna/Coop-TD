@@ -6,6 +6,7 @@ import {
   crystalShard,
   flameLick,
   glyphRing,
+  obelisk as obeliskGeo,
   plinth,
   roughRock,
   spiralTube,
@@ -28,22 +29,26 @@ export function buildFireIceTower(tier: 1 | 2 | 3): THREE.Group {
   base.position.y = 0.18;
   group.add(base);
 
+  // Crystal shell is deliberately short (60% of the total height) so the
+  // flame vent rises clearly above its open top instead of hiding inside
+  // solid opaque geometry.
   const towerH = 0.75 + tier * 0.28;
-  const vent = shadowed(new THREE.Mesh(crystalShard(0.3, towerH, 6), iceCrystal));
+  const shellH = towerH * 0.62;
+  const vent = shadowed(new THREE.Mesh(crystalShard(0.3, shellH, 6), iceCrystal));
   vent.position.y = 0.36;
   group.add(vent);
 
-  const ventCore = new THREE.Mesh(flameLick(0.16 + tier * 0.02, towerH * 0.7), fireCore);
-  ventCore.position.y = 0.5 + towerH * 0.55;
-  applyMotion(ventCore, { bobAmp: 0.04, bobSpeed: 3.2 });
+  const ventCore = new THREE.Mesh(flameLick(0.17 + tier * 0.025, towerH * 0.75), fireCore);
+  ventCore.position.y = 0.36 + shellH + towerH * 0.22;
+  applyMotion(ventCore, { bobAmp: 0.05, bobSpeed: 3.2 });
   group.add(ventCore);
 
   const puffCount = tier + 2;
   for (let i = 0; i < puffCount; i++) {
     const a = (i / puffCount) * Math.PI * 2;
-    const puff = new THREE.Mesh(new THREE.IcosahedronGeometry(0.06 + (i % 2) * 0.02, 0), iceCoreMat);
-    puff.position.set(Math.cos(a) * 0.32, 0.5 + towerH * 0.5 + i * 0.09, Math.sin(a) * 0.32);
-    applyMotion(puff, { bobAmp: 0.08, bobSpeed: 1.1 + i * 0.2, bobPhase: i * 1.5, spinSpeed: 0.4 });
+    const puff = new THREE.Mesh(new THREE.IcosahedronGeometry(0.07 + (i % 2) * 0.025, 0), iceCoreMat);
+    puff.position.set(Math.cos(a) * 0.3, 0.36 + shellH + i * 0.1, Math.sin(a) * 0.3);
+    applyMotion(puff, { bobAmp: 0.09, bobSpeed: 1.1 + i * 0.2, bobPhase: i * 1.5, spinSpeed: 0.4 });
     group.add(puff);
   }
   return group;
@@ -112,7 +117,7 @@ export function buildFireNatureTower(tier: 1 | 2 | 3): THREE.Group {
   trunk.position.y = 0.28 + trunkH / 2;
   group.add(trunk);
 
-  const vine = new THREE.Mesh(spiralTube(0.2, trunkH * 0.95, 2 + tier * 0.4, 0.04), fireCore);
+  const vine = new THREE.Mesh(spiralTube(0.2, trunkH * 0.95, 2 + tier * 0.4, 0.055), fireCore);
   vine.position.y = 0.3;
   applyMotion(vine, { spinSpeed: -0.2 });
   group.add(vine);
@@ -179,20 +184,18 @@ export function buildFireArcaneTower(tier: 1 | 2 | 3): THREE.Group {
   group.add(disc);
 
   const obeliskH = 0.9 + tier * 0.32;
-  const obelisk = shadowed(new THREE.Mesh(new THREE.OctahedronGeometry(0.2, 0), crystalMat));
-  obelisk.scale.set(1, obeliskH / 0.4, 1);
-  obelisk.position.y = 0.3 + obeliskH / 2;
-  group.add(obelisk);
+  const pillar = shadowed(new THREE.Mesh(obeliskGeo(0.05, 0.18, obeliskH), crystalMat));
+  pillar.position.y = 0.3 + obeliskH / 2;
+  group.add(pillar);
 
-  const flameCoreMesh = new THREE.Mesh(new THREE.OctahedronGeometry(0.13, 1), fireCore);
-  flameCoreMesh.scale.copy(obelisk.scale);
-  flameCoreMesh.position.copy(obelisk.position);
+  const flameCoreMesh = new THREE.Mesh(obeliskGeo(0.02, 0.1, obeliskH * 0.94), fireCore);
+  flameCoreMesh.position.copy(pillar.position);
   applyMotion(flameCoreMesh, { spinSpeed: 0.4 });
   group.add(flameCoreMesh);
 
   const ringCount = tier;
   for (let i = 0; i < ringCount; i++) {
-    const ring = glyphRing(0.4 + i * 0.16, 5 + i * 2, 0.1, fireCore);
+    const ring = glyphRing(0.4 + i * 0.16, 5 + i * 2, 0.15, fireCore);
     ring.position.y = 0.48 + i * 0.3;
     applyMotion(ring, { spinSpeed: (i % 2 === 0 ? 1 : -1) * (0.35 + i * 0.1), bobAmp: 0.03, bobSpeed: 1.2 });
     group.add(ring);
@@ -224,7 +227,7 @@ export function buildIceLightningTower(tier: 1 | 2 | 3): THREE.Group {
   shard.position.y = 0.3;
   group.add(shard);
 
-  const boltShard = new THREE.Mesh(crystalShard(0.1, centerH * 0.85, 6), boltCore);
+  const boltShard = new THREE.Mesh(crystalShard(0.14, centerH * 0.85, 6), boltCore);
   boltShard.position.y = 0.3;
   applyMotion(boltShard, { spinSpeed: -0.3 });
   group.add(boltShard);
@@ -239,7 +242,7 @@ export function buildIceLightningTower(tier: 1 | 2 | 3): THREE.Group {
     spike.rotation.x = -Math.sin(a) * 0.4;
     group.add(spike);
 
-    const arc = new THREE.Mesh(new THREE.IcosahedronGeometry(0.035, 0), boltCore);
+    const arc = new THREE.Mesh(new THREE.IcosahedronGeometry(0.055, 0), boltCore);
     arc.position.set(Math.cos(a) * 0.45, 0.28 + h * 0.6, Math.sin(a) * 0.45);
     applyMotion(arc, { bobAmp: 0.02, bobSpeed: 8 + i, bobPhase: i * 3 });
     group.add(arc);
@@ -259,27 +262,37 @@ export function buildIceNatureTower(tier: 1 | 2 | 3): THREE.Group {
   base.position.y = 0.14;
   group.add(base);
 
+  // Trunk stays wood the full way up — the ice only wraps a mid-height
+  // collar band, so both parent elements stay legible instead of the ice
+  // shell fully occluding the tree.
   const trunkH = 0.8 + tier * 0.28;
-  const trunk = shadowed(new THREE.Mesh(plinth(0.13, 0.2, trunkH, 7), wood));
+  const trunk = shadowed(new THREE.Mesh(plinth(0.11, 0.2, trunkH, 7), wood));
   trunk.position.y = 0.28 + trunkH / 2;
   group.add(trunk);
 
-  const shell = shadowed(new THREE.Mesh(plinth(0.17, 0.24, trunkH * 1.02, 7), iceCrystal));
-  shell.position.copy(trunk.position);
-  group.add(shell);
+  const collarH = trunkH * 0.4;
+  const collar = shadowed(new THREE.Mesh(plinth(0.16, 0.2, collarH, 7), iceCrystal));
+  collar.position.y = 0.3 + trunkH * 0.32;
+  group.add(collar);
 
   const canopyY = 0.32 + trunkH;
-  const shardCount = 4 + tier * 2;
-  for (let i = 0; i < shardCount; i++) {
-    const a = (i / shardCount) * Math.PI * 2;
-    const icicle = shadowed(new THREE.Mesh(crystalShard(0.06, 0.2 + (i % 2) * 0.1, 5), iceCrystal));
-    icicle.position.set(Math.cos(a) * 0.2, canopyY, Math.sin(a) * 0.2);
+  const leafCount = 3 + tier * 2;
+  for (let i = 0; i < leafCount; i++) {
+    const a = (i / leafCount) * Math.PI * 2;
+    const leaf = shadowed(new THREE.Mesh(roughRock(0.11, 0, 0.3, i), wood));
+    leaf.scale.set(1.3, 0.45, 1);
+    const r = 0.16 + (i % 2) * 0.07;
+    leaf.position.set(Math.cos(a) * r, canopyY + (i % 2) * 0.07, Math.sin(a) * r);
+    group.add(leaf);
+
+    const icicle = shadowed(new THREE.Mesh(crystalShard(0.045, 0.16 + (i % 2) * 0.08, 5), iceCrystal));
+    icicle.position.set(Math.cos(a) * r, canopyY - 0.04, Math.sin(a) * r);
     icicle.rotation.x = Math.PI;
     group.add(icicle);
   }
 
   const seed = new THREE.Mesh(new THREE.IcosahedronGeometry(0.1 + tier * 0.02, 1), iceCore);
-  seed.position.y = canopyY + 0.16;
+  seed.position.y = canopyY + 0.18;
   applyMotion(seed, { spinSpeed: 0.5, bobAmp: 0.04, bobSpeed: 1.5 });
   group.add(seed);
   return group;
@@ -331,21 +344,19 @@ export function buildIceArcaneTower(tier: 1 | 2 | 3): THREE.Group {
   group.add(disc);
 
   const obeliskH = 0.9 + tier * 0.32;
-  const obelisk = shadowed(new THREE.Mesh(new THREE.OctahedronGeometry(0.19, 0), crystalMat));
-  obelisk.scale.set(1, obeliskH / 0.38, 1);
-  obelisk.position.y = 0.3 + obeliskH / 2;
-  group.add(obelisk);
+  const pillar = shadowed(new THREE.Mesh(obeliskGeo(0.045, 0.17, obeliskH), crystalMat));
+  pillar.position.y = 0.3 + obeliskH / 2;
+  group.add(pillar);
 
-  const glow = new THREE.Mesh(new THREE.OctahedronGeometry(0.12, 1), iceCore);
-  glow.scale.copy(obelisk.scale);
-  glow.position.copy(obelisk.position);
+  const glow = new THREE.Mesh(obeliskGeo(0.018, 0.095, obeliskH * 0.94), iceCore);
+  glow.position.copy(pillar.position);
   applyMotion(glow, { spinSpeed: 0.4 });
   group.add(glow);
 
   const ringCount = tier;
   for (let i = 0; i < ringCount; i++) {
     const mat = i % 2 === 0 ? iceCore : arcaneCore;
-    const ring = glyphRing(0.4 + i * 0.16, 5 + i * 2, 0.1, mat);
+    const ring = glyphRing(0.4 + i * 0.16, 5 + i * 2, 0.15, mat);
     ring.position.y = 0.48 + i * 0.3;
     applyMotion(ring, { spinSpeed: (i % 2 === 0 ? 1 : -1) * (0.4 + i * 0.1), bobAmp: 0.03, bobSpeed: 1.2 });
     group.add(ring);
@@ -452,24 +463,37 @@ export function buildLightningArcaneTower(tier: 1 | 2 | 3): THREE.Group {
   group.add(disc);
 
   const spireH = 0.95 + tier * 0.34;
-  const spire = shadowed(new THREE.Mesh(new THREE.OctahedronGeometry(0.16, 0), crystalMat));
-  spire.scale.set(1, spireH / 0.32, 1);
+  const spire = shadowed(new THREE.Mesh(obeliskGeo(0.04, 0.15, spireH), crystalMat));
   spire.position.y = 0.3 + spireH / 2;
   group.add(spire);
 
-  const glow = new THREE.Mesh(new THREE.OctahedronGeometry(0.1, 1), boltCore);
-  glow.scale.copy(spire.scale);
+  const glow = new THREE.Mesh(obeliskGeo(0.016, 0.09, spireH * 0.94), boltCore);
   glow.position.copy(spire.position);
   applyMotion(glow, { spinSpeed: 1.0 });
   group.add(glow);
 
+  // The inner glow core is fully hidden inside the opaque spire, so give
+  // lightning an external presence too: sparking motes riding each coil ring.
   const ringCount = tier + 1;
   for (let i = 0; i < ringCount; i++) {
+    const ringY = 0.4 + (i / ringCount) * spireH;
     const ring = shadowed(new THREE.Mesh(spiralTube(0.3 + i * 0.05, 0.02, 1, 0.02, 32), metal));
     ring.rotation.x = Math.PI / 2;
-    ring.position.y = 0.4 + (i / ringCount) * spireH;
+    ring.position.y = ringY;
     applyMotion(ring, { spinSpeed: (i % 2 === 0 ? 1 : -1) * (0.6 + i * 0.15) });
     group.add(ring);
+
+    const sparkCount = 3;
+    for (let s = 0; s < sparkCount; s++) {
+      const a = (s / sparkCount) * Math.PI * 2 + i;
+      const spark = new THREE.Mesh(new THREE.IcosahedronGeometry(0.045, 0), boltCore);
+      const holder = new THREE.Group();
+      holder.position.y = ringY;
+      spark.position.set(Math.cos(a) * (0.3 + i * 0.05), 0, Math.sin(a) * (0.3 + i * 0.05));
+      holder.add(spark);
+      applyMotion(holder, { spinSpeed: (i % 2 === 0 ? 1 : -1) * (0.6 + i * 0.15) });
+      group.add(holder);
+    }
   }
   return group;
 }
@@ -479,7 +503,11 @@ export function buildNatureEarthTower(tier: 1 | 2 | 3): THREE.Group {
   const group = new THREE.Group();
   const stone = createStructureMaterial("earth", "stone", tier);
   const wood = createStructureMaterial("nature", "wood", tier);
-  const natureCore = createElementCoreMaterial("nature", tier, { scale: 2.4 });
+  // High uScale breaks the glow into speckled moss patches instead of a
+  // solid coat, so the rock underneath (the "earth" half of this fusion)
+  // stays legible instead of getting fully swallowed by green glow.
+  const mossCore = createElementCoreMaterial("nature", tier, { scale: 7.5, intensity: 0.85 });
+  const vineCore = createElementCoreMaterial("nature", tier, { scale: 2.2 });
 
   const base = shadowed(new THREE.Mesh(roughRock(0.6, 1, 0.3, tier), stone));
   base.scale.y = 0.38;
@@ -494,13 +522,13 @@ export function buildNatureEarthTower(tier: 1 | 2 | 3): THREE.Group {
     boulder.position.y = y + r * 0.7;
     group.add(boulder);
 
-    const moss = new THREE.Mesh(roughRock(r * 1.015, 1, 0.3, i * 2.5), natureCore);
+    const moss = new THREE.Mesh(roughRock(r * 1.02, 1, 0.3, i * 2.5), mossCore);
     moss.position.copy(boulder.position);
     group.add(moss);
     y += r * 1.2;
   }
 
-  const vine = shadowed(new THREE.Mesh(spiralTube(0.4, y * 0.85, 2.5 + tier * 0.4, 0.03), wood));
+  const vine = new THREE.Mesh(spiralTube(0.42, y * 0.85, 2.5 + tier * 0.4, 0.045), vineCore);
   vine.position.y = 0.2;
   group.add(vine);
 
@@ -532,7 +560,7 @@ export function buildNatureArcaneTower(tier: 1 | 2 | 3): THREE.Group {
   trunk.position.y = 0.28 + trunkH / 2;
   group.add(trunk);
 
-  const vine = new THREE.Mesh(spiralTube(0.2, trunkH * 0.95, 2 + tier * 0.4, 0.035), natureCore);
+  const vine = new THREE.Mesh(spiralTube(0.2, trunkH * 0.95, 2 + tier * 0.4, 0.055), natureCore);
   vine.position.y = 0.3;
   applyMotion(vine, { spinSpeed: 0.15 });
   group.add(vine);

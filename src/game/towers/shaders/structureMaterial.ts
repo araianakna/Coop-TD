@@ -21,17 +21,23 @@ export function createStructureMaterial(
   const emissiveStrength = [0.1, 0.2, 0.32][tier - 1];
 
   if (variant === "crystal") {
+    // NOTE: transmission-heavy glass looks convincing only with a proper
+    // env map feeding the transmission render target; without one (no probe
+    // set up in this scene) it degrades to a flat translucent grey and
+    // washes out every element's color. Keep transmission low/off and lean
+    // on a saturated base color + clearcoat specular instead — reads as
+    // "polished colored crystal" reliably in any lighting setup.
     return new THREE.MeshPhysicalMaterial({
-      color: new THREE.Color(pal.coreB).lerp(new THREE.Color(0xffffff), 0.4),
-      roughness: 0.1,
-      metalness: 0,
-      transmission: 0.5,
-      thickness: 0.6,
+      color: new THREE.Color(pal.coreA).lerp(new THREE.Color(pal.coreB), 0.55),
+      roughness: 0.22,
+      metalness: 0.05,
+      transmission: 0.08,
+      thickness: 0.3,
       ior: 1.45,
       emissive: edgeGlow,
-      emissiveIntensity: emissiveStrength,
-      clearcoat: 0.6,
-      clearcoatRoughness: 0.2,
+      emissiveIntensity: emissiveStrength * 1.4,
+      clearcoat: 0.9,
+      clearcoatRoughness: 0.12,
     });
   }
   if (variant === "metal") {
@@ -45,9 +51,11 @@ export function createStructureMaterial(
   }
   if (variant === "wood") {
     return new THREE.MeshStandardMaterial({
-      color: new THREE.Color(pal.structureDark).lerp(new THREE.Color(0x5a4327), 0.55),
-      roughness: 0.88,
+      color: new THREE.Color(pal.structureDark).lerp(new THREE.Color(0x7a5a34), 0.7),
+      roughness: 0.82,
       metalness: 0.02,
+      emissive: edgeGlow,
+      emissiveIntensity: emissiveStrength * 0.18,
     });
   }
   // stone

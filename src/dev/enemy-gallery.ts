@@ -75,6 +75,12 @@ const entries = ENEMY_REGISTRY.map((def, i) => {
   // regardless of the creature's true in-game world-unit size — bosses are
   // deliberately normalized to a taller target so they still read as
   // bigger-budget/more-threatening next to regulars.
+  //
+  // Scaling/centering must be derived from the model's own bounding box,
+  // not world origin: several builders (e.g. flying creatures) bake a
+  // nonzero hover offset into their geometry, so naively scaling around
+  // (0,0,0) blows that offset up right along with the model and launches
+  // it off its pedestal.
   model.group.position.set(0, 0, 0);
   model.group.updateWorldMatrix(true, true);
   box.setFromObject(model.group);
@@ -82,9 +88,15 @@ const entries = ENEMY_REGISTRY.map((def, i) => {
   const rawHeight = Math.max(size.y, 0.0001);
   const targetHeight = def.isBoss ? BOSS_TARGET_HEIGHT : REGULAR_TARGET_HEIGHT;
   const normalizedScale = targetHeight / rawHeight;
+  const centerX = (box.min.x + box.max.x) / 2;
+  const centerZ = (box.min.z + box.max.z) / 2;
 
   const pivot = new THREE.Group();
-  pivot.position.set(x, 0.16, z);
+  pivot.position.set(
+    x - centerX * normalizedScale,
+    0.16 - box.min.y * normalizedScale,
+    z - centerZ * normalizedScale,
+  );
   pivot.scale.setScalar(normalizedScale);
   pivot.add(model.group);
   scene.add(pivot);
@@ -98,24 +110,36 @@ const entries = ENEMY_REGISTRY.map((def, i) => {
     def,
     model,
     pivot,
+    slotX: x,
+    slotZ: z,
     anchor: new THREE.Vector3(x, targetHeight * 0.5 + 0.16, z),
     label,
     displayHeight: targetHeight,
   };
 });
 
-// Camera framing: closer, lower-pitch "trading card" angle so silhouettes
-// and material detail actually read, instead of a steep zoomed-out top-down
-// view where every creature is a handful of pixels.
-const rows = Math.ceil(ENEMY_REGISTRY.length / COLS);
-const gridWidth = COLS * SPACING_X;
-const gridDepth = rows * SPACING_Z;
-const overviewPos = new THREE.Vector3(0, gridDepth * 0.62 + 1.6, gridDepth * 0.95 + gridWidth * 0.18);
-const overviewTarget = new THREE.Vector3(0, 0.9, gridDepth * 0.32 - 1.2);
+// Camera framing: fit the whole grid's real bounding box into view (accounts
+// for both width and the fact that near-row objects sit much closer to the
+// camera than far-row ones) instead of a hand-tuned guess that either
+// zoomed in on one row or left everything a speck.
+const overallBox = new THREE.Box3();
+for (const e of entries) overallBox.expandByObject(e.pivot);
+const boxSize = new THREE.Vector3();
+const boxCenter = new THREE.Vector3();
+overallBox.getSize(boxSize);
+overallBox.getCenter(boxCenter);
 
 function overview() {
-  camera.position.copy(overviewPos);
-  camera.lookAt(overviewTarget);
+  const vFov = THREE.MathUtils.degToRad(camera.fov);
+  const hFov = 2 * Math.atan(Math.tan(vFov / 2) * camera.aspect);
+  // Depth (boxSize.z) also eats into vertical headroom because near-row
+  // subjects sit much closer to the camera than far-row ones once we tilt
+  // down — fold it into the vertical fit distance with a healthy margin.
+  const distForHeight = (boxSize.y / 2 + boxSize.z * 0.5) / Math.tan(vFov / 2);
+  const distForWidth = boxSize.x / 2 / Math.tan(hFov / 2);
+  const dist = Math.max(distForHeight, distForWidth) * 1.25 + boxSize.z * 0.5;
+  camera.position.set(boxCenter.x, boxCenter.y + boxSize.y * 0.55, boxCenter.z + dist);
+  camera.lookAt(boxCenter.x, boxCenter.y * 0.5, boxCenter.z);
 }
 overview();
 
@@ -124,8 +148,8 @@ function focus(i: number) {
   if (!e) return;
   const h = e.displayHeight;
   const dist = h * 1.35 + 0.9;
-  camera.position.set(e.pivot.position.x + dist * 0.55, e.anchor.y + h * 0.15, e.pivot.position.z + dist * 0.85);
-  camera.lookAt(e.pivot.position.x, e.anchor.y, e.pivot.position.z);
+  camera.position.set(e.slotX + dist * 0.55, e.anchor.y + h * 0.15, e.slotZ + dist * 0.85);
+  camera.lookAt(e.slotX, e.anchor.y, e.slotZ);
 }
 
 const clock = new THREE.Clock();

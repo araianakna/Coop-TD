@@ -119,7 +119,7 @@ export function createFoliage(grid: Grid): THREE.Group {
   const crystalColors: THREE.Color[] = [];
   const mushroomCapColors: THREE.Color[] = [];
 
-  const rockPalette = [0x59544f, 0x4a4640, 0x6b6259, 0x403d3a].map((c) => new THREE.Color(c));
+  const rockPalette = [0x8a8078, 0x6f665c, 0x9a8f7f, 0x746a5e].map((c) => new THREE.Color(c));
   const crystalPalette = [0x6ad0ff, 0x8a5cff, 0x54ffb0, 0xff8a5c].map((c) => new THREE.Color(c));
   const mushroomPalette = [0xff6bd6, 0x6adfff, 0xa4ff6b, 0xffb26a].map((c) => new THREE.Color(c));
 
@@ -206,15 +206,15 @@ export function createFoliage(grid: Grid): THREE.Group {
         trunkH,
         0.7 + rand() * 0.3,
       );
-      const branchCount = 2 + Math.floor(rand() * 3);
+      const branchCount = 1 + Math.floor(rand() * 2);
       for (let i = 0; i < branchCount; i++) {
-        const along = 0.45 + rand() * 0.45;
+        const along = 0.5 + rand() * 0.4;
         const by = groundY + trunkH * along;
         const bAngle = rand() * Math.PI * 2;
-        const bTilt = 0.7 + rand() * 0.6;
-        const bLen = 0.5 + rand() * 0.5;
-        const bx = anchor.x + Math.cos(bAngle) * bLen * 0.35;
-        const bz = anchor.z + Math.sin(bAngle) * bLen * 0.35;
+        const bTilt = 0.8 + rand() * 0.5;
+        const bLen = 0.55 + rand() * 0.5;
+        const bx = anchor.x + Math.cos(bAngle) * bLen * 0.3;
+        const bz = anchor.z + Math.sin(bAngle) * bLen * 0.3;
         pushTransform(
           buckets.treeBranch,
           null,
@@ -225,9 +225,9 @@ export function createFoliage(grid: Grid): THREE.Group {
           bAngle,
           bTilt,
           0,
-          0.6 + rand() * 0.3,
+          1.1 + rand() * 0.4,
           bLen,
-          0.6 + rand() * 0.3,
+          1.1 + rand() * 0.4,
         );
       }
     } else {
@@ -262,7 +262,7 @@ export function createFoliage(grid: Grid): THREE.Group {
   group.name = "foliage";
 
   const rockGeo = new THREE.DodecahedronGeometry(0.4, 0);
-  const rockMat = new THREE.MeshStandardMaterial({ roughness: 0.95, metalness: 0.05, vertexColors: true });
+  const rockMat = new THREE.MeshStandardMaterial({ roughness: 0.8, metalness: 0.05, vertexColors: true });
   addInstanced(group, rockGeo, rockMat, buckets.rock, rockColors);
 
   const crystalGeo = new THREE.OctahedronGeometry(0.22, 0);
@@ -283,14 +283,14 @@ export function createFoliage(grid: Grid): THREE.Group {
   };
   addInstanced(group, crystalGeo, crystalMat, buckets.crystal, crystalColors);
 
-  const trunkGeo = new THREE.CylinderGeometry(0.05, 0.09, 1, 5);
-  const trunkMat = new THREE.MeshStandardMaterial({ color: 0x2c2320, roughness: 0.95 });
+  const trunkGeo = new THREE.CylinderGeometry(0.06, 0.1, 1, 5);
+  const trunkMat = new THREE.MeshStandardMaterial({ color: 0x4a3a30, roughness: 0.9 });
   addInstanced(group, trunkGeo, trunkMat, buckets.treeTrunk, null);
 
-  const branchGeo = new THREE.CylinderGeometry(0.02, 0.045, 1, 4);
+  const branchGeo = new THREE.CylinderGeometry(0.025, 0.05, 1, 4);
   branchGeo.translate(0, 0.5, 0);
   branchGeo.rotateX(Math.PI / 2);
-  const branchMat = new THREE.MeshStandardMaterial({ color: 0x241c19, roughness: 0.95 });
+  const branchMat = new THREE.MeshStandardMaterial({ color: 0x3d3026, roughness: 0.9 });
   addInstanced(group, branchGeo, branchMat, buckets.treeBranch, null);
 
   const stemGeo = new THREE.CylinderGeometry(0.03, 0.045, 0.22, 6);

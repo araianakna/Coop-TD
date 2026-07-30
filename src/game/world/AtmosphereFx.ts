@@ -16,9 +16,9 @@ export interface AtmosphereOptions {
 }
 
 export function createAtmosphereFx(grid: Grid, options: AtmosphereOptions = {}): THREE.Points {
-  const count = options.count ?? 240;
-  const heightMin = options.heightMin ?? 0.35;
-  const heightRange = options.heightRange ?? 6;
+  const count = options.count ?? 150;
+  const heightMin = options.heightMin ?? 0.4;
+  const heightRange = options.heightRange ?? 6.5;
   const color = new THREE.Color(options.color ?? 0xffd9a0);
 
   const halfW = (grid.width * grid.cellSize) / 2 + 3;
@@ -37,7 +37,7 @@ export function createAtmosphereFx(grid: Grid, options: AtmosphereOptions = {}):
     phase[i] = Math.random() * Math.PI * 2;
     speed[i] = 0.12 + Math.random() * 0.3;
     sway[i] = 0.25 + Math.random() * 0.85;
-    size[i] = 3 + Math.random() * 6;
+    size[i] = 5 + Math.random() * 8;
   }
 
   const geometry = new THREE.BufferGeometry();

@@ -36,14 +36,15 @@ const skyFragmentShader = /* glsl */ `
     float b = clamp(-h, 0.0, 1.0);
     vec3 finalColor = mix(skyMix, bottomColor, pow(b, 0.5));
 
-    // Drifting cloud layer: project the sky direction onto a plane so the
-    // noise field reads as clouds sliding across the dome, confined to a
-    // band between the horizon and zenith.
-    vec2 cloudUv = dir.xz / max(0.06, dir.y + 0.18) * 0.55 + vec2(uTime * 0.007, uTime * 0.0025);
-    float clouds = rwFbm(cloudUv * 1.3, 5);
-    clouds = smoothstep(0.08, 0.58, clouds);
-    float cloudMask = smoothstep(0.02, 0.3, h) * smoothstep(1.0, 0.5, h);
-    finalColor = mix(finalColor, cloudColor, clouds * cloudMask * 0.5);
+    // Drifting cloud layer: azimuth/elevation (spherical) projection so the
+    // noise field reads as clouds sliding across the dome at a predictable
+    // scale regardless of view angle, confined to a band above the horizon.
+    float azimuth = atan(dir.z, dir.x);
+    vec2 cloudUv = vec2(azimuth * 1.6, h * 2.6) + vec2(uTime * 0.02, uTime * 0.004);
+    float clouds = rwFbm(cloudUv * 1.6, 5);
+    clouds = smoothstep(-0.05, 0.4, clouds);
+    float cloudMask = smoothstep(-0.35, 0.05, h) * smoothstep(1.0, 0.4, h);
+    finalColor = mix(finalColor, cloudColor, clouds * cloudMask * 0.7);
 
     gl_FragColor = vec4(finalColor, 1.0);
   }
@@ -70,7 +71,7 @@ function buildMountainRing(radius: number, segments: number, seed: number): THRE
       Math.sin(angle * 7.7 + seed * 2.0) * 0.3 +
       Math.sin(angle * 13.3 - seed) * 0.2;
     const jag = (rand() - 0.5) * 2;
-    heights.push(Math.max(2.5, 7 + n * 5 + jag * 2.4));
+    heights.push(Math.max(2, 6 + n * 4 + jag * 2));
   }
 
   const positions: number[] = [];
@@ -120,9 +121,11 @@ export function createSkybox(): THREE.Group {
   group.add(skySphere);
 
   // Distant mountain silhouettes near the horizon, tinted by scene fog for depth.
-  const mountainGeo = buildMountainRing(110, 96, 77);
+  // Kept fairly close (just beyond the terrain's padded skirt) and tall so
+  // they still poke into frame under this game's steep top-down camera tilt.
+  const mountainGeo = buildMountainRing(44, 96, 77);
   const mountainMat = new THREE.MeshBasicMaterial({
-    color: 0x241a3a,
+    color: 0x2e2050,
     side: THREE.DoubleSide,
     fog: true,
   });
@@ -131,13 +134,13 @@ export function createSkybox(): THREE.Group {
   group.add(mountains);
 
   // Second, closer/lower ridge layer for parallax depth, slightly different hue.
-  const mountainGeo2 = buildMountainRing(85, 80, 133);
+  const mountainGeo2 = buildMountainRing(39, 80, 133);
   const mountainMat2 = new THREE.MeshBasicMaterial({
-    color: 0x3a2650,
+    color: 0x452f66,
     side: THREE.DoubleSide,
     fog: true,
     transparent: true,
-    opacity: 0.85,
+    opacity: 0.9,
   });
   const mountains2 = new THREE.Mesh(mountainGeo2, mountainMat2);
   mountains2.renderOrder = -998;

@@ -13,11 +13,11 @@ export const ELEMENT_PALETTE: Record<
   { coreA: number; coreB: number; rim: number; structure: number; structureDark: number }
 > = {
   fire: { coreA: 0xb0140a, coreB: 0xffb23c, rim: 0xffe29a, structure: 0x3a2320, structureDark: 0x1c1210 },
-  ice: { coreA: 0x1c6fbf, coreB: 0xe8fbff, rim: 0xaee9ff, structure: 0x25313e, structureDark: 0x121a20 },
-  lightning: { coreA: 0x4d2ed6, coreB: 0xe4d9ff, rim: 0xb3f5ff, structure: 0x2a2440, structureDark: 0x14101f },
-  nature: { coreA: 0x0f6b2c, coreB: 0xc3ff7e, rim: 0xe4ffbe, structure: 0x2c2416, structureDark: 0x16110a },
+  ice: { coreA: 0x1c6fbf, coreB: 0x8fe3ff, rim: 0xbdf3ff, structure: 0x25313e, structureDark: 0x121a20 },
+  lightning: { coreA: 0x4d2ed6, coreB: 0xb488ff, rim: 0xc7f5ff, structure: 0x2a2440, structureDark: 0x14101f },
+  nature: { coreA: 0x0f6b2c, coreB: 0x8fe04a, rim: 0xd8ff9a, structure: 0x2c2416, structureDark: 0x16110a },
   earth: { coreA: 0x8a4a12, coreB: 0xffcf5c, rim: 0xffe6a8, structure: 0x3d332a, structureDark: 0x1e1912 },
-  arcane: { coreA: 0x7d1fa3, coreB: 0xf3b8ff, rim: 0x8ef9ff, structure: 0x2a1c3a, structureDark: 0x140d1c },
+  arcane: { coreA: 0x7d1fa3, coreB: 0xdd6dff, rim: 0x9ef9ff, structure: 0x2a1c3a, structureDark: 0x140d1c },
 };
 
 /**
@@ -92,7 +92,7 @@ const CORE_FRAGMENT = /* glsl */ `
     vec3 q = p * uScale;
     float veins = twFbm(q);
     float pulse = 0.5 + 0.5 * sin(t * 2.1 + p.y * 3.2 + veins * 4.0);
-    return smoothstep(0.22, 0.7, veins) * (0.5 + pulse * 0.7);
+    return smoothstep(0.05, 0.55, veins) * (0.6 + pulse * 0.55);
   }
 
   float patternEarth(vec3 p, float t) {
@@ -123,7 +123,7 @@ const CORE_FRAGMENT = /* glsl */ `
 
     vec3 base = mix(uColorA, uColorB, clamp(v, 0.0, 1.0));
     float fresnel = pow(1.0 - clamp(dot(normalize(vNormalW), vViewDir), 0.0, 1.0), 2.0);
-    vec3 color = base * (0.35 + v * uIntensity) + uRimColor * fresnel * uIntensity * 0.55;
+    vec3 color = base * (0.3 + v * uIntensity) + uRimColor * fresnel * uIntensity * 0.35;
     float alpha = clamp(0.4 + v * 0.6, 0.0, 1.0);
     gl_FragColor = vec4(color, alpha);
   }
@@ -152,7 +152,7 @@ export function createElementCoreMaterial(
   opts: CoreMaterialOptions = {},
 ): THREE.ShaderMaterial {
   const pal = ELEMENT_PALETTE[element];
-  const tierIntensity = [1.8, 2.4, 3.2][tier - 1];
+  const tierIntensity = [1.35, 1.75, 2.25][tier - 1];
   const material = new THREE.ShaderMaterial({
     vertexShader: CORE_VERTEX,
     fragmentShader: CORE_FRAGMENT,

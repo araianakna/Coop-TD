@@ -28,7 +28,7 @@ interface CamPreset {
 // (RtsCameraController), read-only reference — not imported/modified.
 const CAMERA_PRESETS: CamPreset[] = [
   { yaw: 0.12, pitch: 1.02, distance: 34, label: "default RTS framing" },
-  { yaw: -0.65, pitch: 0.7, distance: 24, label: "low angle, close" },
+  { yaw: -0.65, pitch: 0.52, distance: 30, label: "low establishing shot (sky/atmosphere)" },
   { yaw: 1.15, pitch: 1.22, distance: 46, label: "high angle, wide" },
 ];
 
@@ -103,6 +103,8 @@ resize();
 
 // Exposed for the Playwright QA script to switch angles without a reload.
 (window as unknown as { __setCam: (i: number) => void }).__setCam = setCamera;
+(window as unknown as { __scene: THREE.Scene }).__scene = scene;
+(window as unknown as { __camera: THREE.PerspectiveCamera }).__camera = camera;
 
 const clock = new THREE.Clock();
 

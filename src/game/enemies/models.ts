@@ -77,6 +77,20 @@ function jaggedIcosahedron(radius: number, detail: number, amount: number, seed:
   return jitter(new THREE.IcosahedronGeometry(radius, detail), amount, seed, freq);
 }
 
+/** A cone with its local origin at the BASE (tip points +Y) instead of
+ * three.js's default center-of-bounding-box origin. Spikes/horns/claws
+ * placed with a center-anchored cone end up half-embedded in the body
+ * they're attached to, which — combined with a jittered, non-convex host
+ * surface — creates ugly light-leak seams where the embedded half peeks
+ * through gaps in the host mesh. Base-anchoring means `addPart(..., pos,
+ * rot)` puts the base exactly at `pos` and the whole cone reads cleanly
+ * outward from the surface. */
+function baseCone(radius: number, height: number, segments = 4): THREE.ConeGeometry {
+  const g = new THREE.ConeGeometry(radius, height, segments);
+  g.translate(0, height / 2, 0);
+  return g;
+}
+
 // ---------------------------------------------------------------------------
 // Material helpers — calibrated against the lighting rig in
 // src/core/Lighting.ts (sun 1.6, hemi 0.5, fill 0.35) and the bloom pass
@@ -202,19 +216,23 @@ function buildThornling(): EnemyModel {
     legs.push(leg);
   }
 
-  const spikeGeo = new THREE.ConeGeometry(0.065, 0.42, 4);
-  const spikeMat = glowMat(0x5a8a3a, 0x9dff4f, 1.8, { roughness: 0.55 });
+  // Spine ridge spikes: bases sit exactly on the body's ellipsoid surface
+  // (computed analytically from its radius/scale) so they read as a clean
+  // ridge instead of half-swallowed needles poking through gaps in the
+  // jittered shell.
+  const thornBodyCenterY = 0.38;
+  const thornBodySemiY = 0.36 * 0.85;
+  const thornBodySemiZ = 0.36;
+  const thornSpikeGeo = baseCone(0.06, 0.34, 4);
+  const spikeMat = glowMat(0x5a8a3a, 0x9dff4f, 1.9, { roughness: 0.55 });
   const spikes: THREE.Mesh[] = [];
   for (let i = 0; i < 5; i++) {
     const t = i / 4;
-    const spike = new THREE.Mesh(spikeGeo, spikeMat);
-    addPart(
-      group,
-      spike,
-      [0, 0.58 + t * 0.05, -0.22 + t * 0.6],
-      [0.5 - t * 0.4, 0, 0],
-      0.85 + t * 0.5,
-    );
+    const z = -0.16 + t * 0.36;
+    const zr = THREE.MathUtils.clamp(z / thornBodySemiZ, -0.98, 0.98);
+    const y = thornBodyCenterY + thornBodySemiY * Math.sqrt(1 - zr * zr) + 0.015;
+    const spike = new THREE.Mesh(thornSpikeGeo, spikeMat);
+    addPart(group, spike, [0, y, z], [0.55 - t * 0.5, 0, 0], 0.8 + t * 0.45);
     spikes.push(spike);
   }
 
@@ -222,10 +240,10 @@ function buildThornling(): EnemyModel {
   addPart(group, new THREE.Mesh(eyeGeo, eyeMat), [0.09, 0.52, 0.5]);
   addPart(group, new THREE.Mesh(eyeGeo, eyeMat), [-0.09, 0.52, 0.5]);
 
-  const fangGeo = new THREE.ConeGeometry(0.025, 0.11, 4);
+  const fangGeo = baseCone(0.025, 0.11, 4);
   const fangMat = matteMat(0xe8f0d8, 0.4, 0.05);
-  addPart(group, new THREE.Mesh(fangGeo, fangMat), [0.06, 0.44, 0.52], [Math.PI, 0, 0]);
-  addPart(group, new THREE.Mesh(fangGeo, fangMat), [-0.06, 0.44, 0.52], [Math.PI, 0, 0]);
+  addPart(group, new THREE.Mesh(fangGeo, fangMat), [0.06, 0.46, 0.53], [Math.PI, 0, 0]);
+  addPart(group, new THREE.Mesh(fangGeo, fangMat), [-0.06, 0.46, 0.53], [Math.PI, 0, 0]);
 
   function update(_dt: number, elapsed: number) {
     const bob = Math.sin(elapsed * 6.5) * 0.035;
@@ -264,11 +282,11 @@ function buildCragback(): EnemyModel {
     [1, 0.8, 0.9],
   );
 
-  const pincerGeo = new THREE.ConeGeometry(0.045, 0.26, 4);
+  const pincerGeo = baseCone(0.045, 0.26, 4);
   const pincers: THREE.Mesh[] = [];
   for (const x of [0.13, -0.13]) {
     const pincer = new THREE.Mesh(pincerGeo, legMat);
-    addPart(group, pincer, [x, 0.24, 0.78], [Math.PI / 2 + 0.3, 0, Math.sign(x) * 0.35]);
+    addPart(group, pincer, [x, 0.24, 0.8], [Math.PI / 2 + 0.3, 0, Math.sign(x) * 0.35]);
     pincers.push(pincer);
   }
 
@@ -375,19 +393,19 @@ function buildVoltling(): EnemyModel {
   const coreMat = crystalMat(0x2a6fff, 0.15, 0.5);
   const shardMat = glowMat(0x6fa8ff, 0x9fd4ff, 2.5, { roughness: 0.1, metalness: 0.5 });
 
-  const core = addPart(group, new THREE.Mesh(jaggedIcosahedron(0.15, 0, 0.04, "voltling-core"), coreMat), [0, 0.16, 0]);
+  const core = addPart(group, new THREE.Mesh(jaggedIcosahedron(0.2, 0, 0.04, "voltling-core"), coreMat), [0, 0.21, 0]);
 
-  const shardGeo = new THREE.ConeGeometry(0.035, 0.22, 4);
+  const shardGeo = baseCone(0.045, 0.32, 4);
   const shards: THREE.Mesh[] = [];
+  const upAxis = new THREE.Vector3(0, 1, 0);
   for (let i = 0; i < 6; i++) {
     const a = (i / 6) * Math.PI * 2;
+    const outward = new THREE.Vector3(Math.sin(a), 0.35, Math.cos(a)).normalize();
     const shard = new THREE.Mesh(shardGeo, shardMat);
-    addPart(
-      group,
-      shard,
-      [Math.sin(a) * 0.13, 0.16 + Math.cos(a * 2) * 0.05, Math.cos(a) * 0.13],
-      [Math.cos(a), 0, -Math.sin(a)],
-    );
+    shard.position.set(outward.x * 0.19, 0.21 + outward.y * 0.19, outward.z * 0.19);
+    shard.quaternion.setFromUnitVectors(upAxis, outward);
+    shard.castShadow = true;
+    group.add(shard);
     shards.push(shard);
   }
 
@@ -399,7 +417,7 @@ function buildVoltling(): EnemyModel {
     const jz = (Math.cos(elapsed * 19) + Math.sin(elapsed * 13 + 2)) * 0.015;
     group.position.set(basePos.x + jx, 0.02 + Math.abs(Math.sin(elapsed * 14)) * 0.06, basePos.z + jz);
     group.rotation.y = elapsed * 2.5;
-    const flicker = 1.8 + rand() * 0.9;
+    const flicker = 1.4 + rand() * 0.6;
     for (const s of shards) (s.material as THREE.MeshStandardMaterial).emissiveIntensity = flicker;
     core.scale.setScalar(1 + Math.sin(elapsed * 30) * 0.06);
   }
@@ -424,18 +442,18 @@ function buildFrostfang(): EnemyModel {
   );
   const jaw = addPart(
     group,
-    new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.14, 4), veinMat),
+    new THREE.Mesh(baseCone(0.04, 0.14, 4), veinMat),
     [0, 0.36, 0.6],
     [Math.PI / 2, 0, 0],
   );
 
-  const spikeGeo = new THREE.ConeGeometry(0.05, 0.3, 4);
+  const spikeGeo = baseCone(0.05, 0.3, 4);
   for (let i = 0; i < 4; i++) {
     const t = i / 3;
     addPart(
       group,
       new THREE.Mesh(spikeGeo, veinMat),
-      [0, 0.6, -0.24 + t * 0.55],
+      [0, 0.56, -0.2 + t * 0.5],
       [0.3, 0, 0],
       0.9 - t * 0.15,
     );
@@ -503,9 +521,9 @@ function buildCinderling(): EnemyModel {
     [0, 0.86, 0.16],
   );
 
-  const hornGeo = new THREE.ConeGeometry(0.03, 0.16, 4);
-  addPart(group, new THREE.Mesh(hornGeo, rockMat), [0.08, 0.98, 0.14], [-0.3, 0, 0.2]);
-  addPart(group, new THREE.Mesh(hornGeo, rockMat), [-0.08, 0.98, 0.14], [-0.3, 0, -0.2]);
+  const hornGeo = baseCone(0.035, 0.18, 4);
+  addPart(group, new THREE.Mesh(hornGeo, rockMat), [0.08, 0.95, 0.1], [-0.3, 0, 0.2]);
+  addPart(group, new THREE.Mesh(hornGeo, rockMat), [-0.08, 0.95, 0.1], [-0.3, 0, -0.2]);
 
   const crackGeo = new THREE.BoxGeometry(0.045, 0.22, 0.045);
   const cracks: THREE.Mesh[] = [];
@@ -641,14 +659,14 @@ function buildSandveil(): EnemyModel {
     segments.push(seg);
   }
 
-  const clawGeo = new THREE.ConeGeometry(0.09, 0.24, 4);
+  const clawGeo = baseCone(0.09, 0.24, 4);
   const claws: THREE.Group[] = [];
   for (const x of [0.24, -0.24]) {
     const pivot = new THREE.Group();
     pivot.position.set(x, 0.2, 0.5);
     const claw = new THREE.Mesh(clawGeo, darkMat);
-    claw.rotation.z = Math.sign(x) * 1.1;
-    claw.position.x = Math.sign(x) * 0.1;
+    claw.rotation.z = Math.sign(x) * 1.3;
+    claw.position.x = Math.sign(x) * 0.06;
     pivot.add(claw);
     group.add(pivot);
     claws.push(pivot);
@@ -670,8 +688,8 @@ function buildSandveil(): EnemyModel {
     currentParent = pivot;
     tailParts.push(pivot);
   }
-  const stinger = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.16, 4), stingerMat);
-  stinger.position.set(0, 0.12, -0.05);
+  const stinger = new THREE.Mesh(baseCone(0.045, 0.18, 4), stingerMat);
+  stinger.position.set(0, 0.08, -0.02);
   stinger.rotation.x = -1.2;
   currentParent.add(stinger);
 
@@ -752,9 +770,9 @@ function buildCindercolossus(): EnemyModel {
   addPart(group, new THREE.Mesh(eyeGeo, lavaMat), [0.2, 3.1, 0.75]);
   addPart(group, new THREE.Mesh(eyeGeo, lavaMat), [-0.2, 3.1, 0.75]);
 
-  const hornGeo = new THREE.ConeGeometry(0.12, 0.6, 5);
-  addPart(group, new THREE.Mesh(hornGeo, obsidianMat), [0.35, 3.5, 0.1], [0.4, 0, 0.3]);
-  addPart(group, new THREE.Mesh(hornGeo, obsidianMat), [-0.35, 3.5, 0.1], [0.4, 0, -0.3]);
+  const hornGeo = baseCone(0.13, 0.65, 5);
+  addPart(group, new THREE.Mesh(hornGeo, obsidianMat), [0.32, 3.3, 0.0], [0.4, 0, 0.3]);
+  addPart(group, new THREE.Mesh(hornGeo, obsidianMat), [-0.32, 3.3, 0.0], [0.4, 0, -0.3]);
 
   const armGeo = new THREE.CylinderGeometry(0.28, 0.34, 1.3, 6);
   const armPivots: THREE.Group[] = [];
@@ -787,7 +805,7 @@ function buildCindercolossus(): EnemyModel {
   function update(dt: number, elapsed: number) {
     group.position.y = Math.sin(elapsed * 0.9) * 0.06;
     group.rotation.z = Math.sin(elapsed * 0.9) * 0.015;
-    const heartbeat = 1.9 + Math.pow(Math.max(0, Math.sin(elapsed * 1.3)), 4) * 1.4;
+    const heartbeat = 1.7 + Math.pow(Math.max(0, Math.sin(elapsed * 1.3)), 4) * 1.1;
     (core.material as THREE.MeshStandardMaterial).emissiveIntensity = heartbeat;
     for (const c of cracks) (c.material as THREE.MeshStandardMaterial).emissiveIntensity = heartbeat * 0.85;
     core.scale.setScalar(1 + Math.sin(elapsed * 1.3) * 0.04);
@@ -838,7 +856,7 @@ function buildHollowglacier(): EnemyModel {
   }
 
   // Hanging icicle "robe" beneath the cloak.
-  const icicleGeo = new THREE.ConeGeometry(0.12, 1.1, 5);
+  const icicleGeo = baseCone(0.11, 0.7, 5);
   const icicles: THREE.Mesh[] = [];
   for (let i = 0; i < 8; i++) {
     const a = (i / 8) * Math.PI * 2;

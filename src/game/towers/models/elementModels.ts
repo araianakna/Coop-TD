@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { createElementCoreMaterial } from "@/game/towers/shaders/coreMaterial";
 import { createStructureMaterial } from "@/game/towers/shaders/structureMaterial";
 import { applyMotion } from "./motion";
-import { crystalShard, flameLick, glyphRing, plinth, roughRock, spiralTube } from "./primitives";
+import { crystalShard, flameLick, glyphRing, obelisk, plinth, roughRock, spiralTube } from "./primitives";
 
 function shadowed(mesh: THREE.Mesh): THREE.Mesh {
   mesh.castShadow = true;
@@ -163,7 +163,7 @@ export function buildNatureTower(tier: 1 | 2 | 3): THREE.Group {
   trunk.position.y = 0.28 + trunkHeight / 2;
   group.add(trunk);
 
-  const vine = new THREE.Mesh(spiralTube(0.2, trunkHeight * 0.95, 2 + tier * 0.4, 0.035), core);
+  const vine = new THREE.Mesh(spiralTube(0.2, trunkHeight * 0.95, 2 + tier * 0.4, 0.055), core);
   vine.position.y = 0.3;
   applyMotion(vine, { spinSpeed: 0.15 });
   group.add(vine);
@@ -253,14 +253,12 @@ export function buildArcaneTower(tier: 1 | 2 | 3): THREE.Group {
   group.add(disc);
 
   const obeliskHeight = 0.95 + tier * 0.32;
-  const obelisk = shadowed(new THREE.Mesh(new THREE.OctahedronGeometry(0.2, 0), crystalMat));
-  obelisk.scale.set(1, obeliskHeight / 0.4, 1);
-  obelisk.position.y = 0.32 + obeliskHeight / 2;
-  group.add(obelisk);
+  const pillar = shadowed(new THREE.Mesh(obelisk(0.05, 0.18, obeliskHeight), crystalMat));
+  pillar.position.y = 0.32 + obeliskHeight / 2;
+  group.add(pillar);
 
-  const glowCore = new THREE.Mesh(new THREE.OctahedronGeometry(0.13, 1), core);
-  glowCore.scale.copy(obelisk.scale);
-  glowCore.position.copy(obelisk.position);
+  const glowCore = new THREE.Mesh(obelisk(0.02, 0.1, obeliskHeight * 0.94), core);
+  glowCore.position.copy(pillar.position);
   applyMotion(glowCore, { spinSpeed: 0.5 });
   group.add(glowCore);
 

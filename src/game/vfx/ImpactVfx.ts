@@ -33,7 +33,7 @@ interface ElementImpactStyle {
 const STYLES: Record<Element, ElementImpactStyle> = {
   fire: {
     shape: "soft",
-    burstCount: 26,
+    burstCount: 34,
     burstSpeed: [1.5, 4.5],
     burstLifetime: [0.25, 0.5],
     gravity: new THREE.Vector3(0, 1.2, 0),
@@ -43,7 +43,7 @@ const STYLES: Record<Element, ElementImpactStyle> = {
   },
   ice: {
     shape: "shard",
-    burstCount: 22,
+    burstCount: 30,
     burstSpeed: [2, 5],
     burstLifetime: [0.3, 0.55],
     gravity: new THREE.Vector3(0, -2.5, 0),
@@ -53,7 +53,7 @@ const STYLES: Record<Element, ElementImpactStyle> = {
   },
   lightning: {
     shape: "spark",
-    burstCount: 30,
+    burstCount: 40,
     burstSpeed: [3, 8],
     burstLifetime: [0.1, 0.22],
     gravity: new THREE.Vector3(0, 0, 0),
@@ -63,7 +63,7 @@ const STYLES: Record<Element, ElementImpactStyle> = {
   },
   nature: {
     shape: "leaf",
-    burstCount: 20,
+    burstCount: 28,
     burstSpeed: [1, 3],
     burstLifetime: [0.4, 0.7],
     gravity: new THREE.Vector3(0, -0.6, 0),
@@ -73,7 +73,7 @@ const STYLES: Record<Element, ElementImpactStyle> = {
   },
   earth: {
     shape: "chunk",
-    burstCount: 18,
+    burstCount: 26,
     burstSpeed: [1.5, 4],
     burstLifetime: [0.35, 0.6],
     gravity: new THREE.Vector3(0, -6, 0),
@@ -83,7 +83,7 @@ const STYLES: Record<Element, ElementImpactStyle> = {
   },
   arcane: {
     shape: "shard",
-    burstCount: 24,
+    burstCount: 32,
     burstSpeed: [1.5, 4.5],
     burstLifetime: [0.3, 0.6],
     gravity: new THREE.Vector3(0, 0.3, 0),
@@ -277,14 +277,14 @@ export class ImpactVfx {
     const style = STYLES[element];
     const seq = new Sequence([]);
 
-    seq.addFlash(new Flash(this.scene, worldPos, palette.core, palette.rim, 0.55, 0.16));
-    seq.addRing(new ExpandingRing(this.scene, worldPos, palette.core, style.ringEndRadius, style.ringDuration, 0.7));
+    seq.addFlash(new Flash(this.scene, worldPos, palette.core, palette.rim, 0.95, 0.22));
+    seq.addRing(new ExpandingRing(this.scene, worldPos, palette.core, style.ringEndRadius, style.ringDuration, 0.85));
 
     const burst = new ParticleSystem(this.scene, {
       colorStart: palette.core,
       colorEnd: palette.edge,
-      sizeStart: 0.18,
-      sizeEnd: 0.03,
+      sizeStart: 0.32,
+      sizeEnd: 0.05,
       lifetime: style.burstLifetime,
       speed: style.burstSpeed,
       direction: new THREE.Vector3(0, 1, 0),
@@ -295,7 +295,7 @@ export class ImpactVfx {
       shape: style.shape,
       maxParticles: style.burstCount,
       rotationSpeed: [-4, 4],
-      intensity: 1.2,
+      intensity: 1.35,
     });
     burst.burst(worldPos, style.burstCount);
     seq.addParticles(burst);

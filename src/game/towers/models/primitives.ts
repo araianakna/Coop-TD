@@ -89,3 +89,15 @@ export function flameLick(radius: number, height: number): THREE.BufferGeometry 
 export function plinth(radiusTop: number, radiusBottom: number, height: number, sides = 8): THREE.BufferGeometry {
   return new THREE.CylinderGeometry(radiusTop, radiusBottom, height, sides);
 }
+
+/**
+ * Square-tapered obelisk (a 4-sided prism with flat glyph-friendly faces) —
+ * deliberately angular/architectural, distinct from the round faceted
+ * crystalShard() so arcane towers don't silhouette-collide with ice ones.
+ */
+export function obelisk(topRadius: number, bottomRadius: number, height: number): THREE.BufferGeometry {
+  const geo = new THREE.CylinderGeometry(topRadius, bottomRadius, height, 4, 1);
+  geo.rotateY(Math.PI / 4);
+  geo.computeVertexNormals();
+  return geo;
+}

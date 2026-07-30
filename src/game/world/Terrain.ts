@@ -64,7 +64,7 @@ export function sampleTerrainHeight(grid: Grid, worldX: number, worldZ: number):
 
   // "blocked" or "wild" (outside the playable rect): pronounced, rockier relief.
   const outside = distanceOutsideGrid(grid, worldX, worldZ);
-  const amp = THREE.MathUtils.lerp(0.4, 1.15, outside);
+  const amp = THREE.MathUtils.lerp(0.35, 0.95, outside);
   const r = ridge(ridgeFbm(worldX * 0.045, worldZ * 0.045));
   const n = macroFbm(worldX * 0.09, worldZ * 0.09);
   return r * amp * 0.75 + n * amp * 0.3 + 0.12;
@@ -105,9 +105,9 @@ const TERRAIN_SHADE_GLSL = /* glsl */ `
       kc = floor(texture2D(uCellKindTex, clamp(guv, 0.0, 1.0)).r * 255.0 + 0.5);
     }
 
-    float macro = rwFbm(worldPos.xz * 0.09, 3);
-    float detail = rwFbm(worldPos.xz * 0.9 + 13.0, 2);
-    float grain = rwFbm(worldPos.xz * 4.5 - 7.0, 2);
+    float macro = rwFbm(worldPos.xz * 0.05, 3);
+    float detail = rwFbm(worldPos.xz * 0.55 + 13.0, 2);
+    float grain = rwFbm(worldPos.xz * 3.0 - 7.0, 2);
 
     vec3 grassLo  = vec3(0.129, 0.267, 0.180);
     vec3 grassHi  = vec3(0.243, 0.361, 0.180);
@@ -149,24 +149,23 @@ const TERRAIN_SHADE_GLSL = /* glsl */ `
       float pulse = 0.7 + 0.3 * sin(time * 2.1);
       emissive = vec3(0.55, 0.25, 1.4) * (ring * 1.8 + 0.12) * pulse;
     } else if (kc >= -0.5 && kc < 0.5) {
-      // BUILDABLE — bright, unmistakably "placeable" turf.
-      vec3 g = mix(grassLo, grassHi, smoothstep(-0.5, 0.5, macro));
-      g = mix(g, mossCol, smoothstep(0.2, 0.6, detail) * 0.35);
+      // BUILDABLE — bright, unmistakably "placeable" turf. Game.ts already
+      // draws the ring/hit-area markers on top, so this stays a natural
+      // grass blend rather than repeating a per-tile halo pattern.
+      vec3 g = mix(grassLo, grassHi, smoothstep(-0.35, 0.35, macro));
+      g = mix(g, mossCol, smoothstep(0.15, 0.55, detail) * 0.3);
       g *= buildTint * 1.55;
-      g *= (0.92 + 0.12 * grain);
-      float d = length(cellLocal);
-      float halo = smoothstep(0.46, 0.28, d);
-      g = mix(g, g * 1.2 + vec3(0.03, 0.02, 0.0), halo * 0.5);
+      g *= (0.94 + 0.08 * grain);
       albedo = g;
       rough = 0.8;
     } else {
       // BLOCKED / WILD — rolling hills, mossy dirt blending to exposed rock on slopes.
-      vec3 g = mix(grassLo * 0.8, mossCol, smoothstep(-0.4, 0.4, macro));
-      vec3 groundMix = mix(dirtCol, g, smoothstep(-0.2, 0.5, detail));
+      vec3 g = mix(grassLo * 0.8, mossCol, smoothstep(-0.35, 0.35, macro));
+      vec3 groundMix = mix(dirtCol, g, smoothstep(-0.15, 0.45, detail));
       float rockAmt = smoothstep(0.8, 0.4, slopeY);
       vec3 rockMix = mix(rockCol, rockDark, smoothstep(-0.3, 0.3, grain));
       albedo = mix(groundMix, rockMix, rockAmt);
-      albedo *= (0.9 + 0.15 * grain);
+      albedo *= (0.94 + 0.09 * grain);
       rough = mix(0.85, 0.95, rockAmt);
     }
 
@@ -241,7 +240,7 @@ export function buildTerrain(grid: Grid): TerrainBuild {
     shader.fragmentShader = shader.fragmentShader
       .replace(
         "#include <common>",
-        `#include <common>\n${GLSL_NOISE}\n${TERRAIN_SHADE_GLSL}\nvarying float vSlope;\nvarying vec3 vWorldPos;\nuniform sampler2D uCellKindTex;\nuniform float uGridWidth;\nuniform float uGridHeight;\nuniform float uCellSize;\nuniform float uTime;`,
+        `#include <common>\nvarying float vSlope;\nvarying vec3 vWorldPos;\nuniform sampler2D uCellKindTex;\nuniform float uGridWidth;\nuniform float uGridHeight;\nuniform float uCellSize;\nuniform float uTime;\n${GLSL_NOISE}\n${TERRAIN_SHADE_GLSL}`,
       )
       .replace(
         "#include <roughnessmap_fragment>",

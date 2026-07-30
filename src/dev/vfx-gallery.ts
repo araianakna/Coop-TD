@@ -267,7 +267,12 @@ onResize();
 
 const clock = new THREE.Clock();
 function loop() {
-  const dt = Math.min(clock.getDelta(), 0.05);
+  // NOTE: capped higher than the main game loop's 0.05s clamp (see
+  // game/Game.ts) because this standalone harness sometimes runs under
+  // slow software-rendered headless browsers for QA screenshots, where
+  // real frame intervals can exceed 50ms; a tight clamp there would make
+  // simulated time drift far behind wall-clock time during QA capture.
+  const dt = Math.min(clock.getDelta(), 0.2);
   cameraController.update(dt);
 
   for (const el of ELEMENTS) {
@@ -283,8 +288,13 @@ requestAnimationFrame(loop);
 // Expose for manual poking from the browser console / Playwright scripts.
 (window as unknown as { __vfxGallery: unknown }).__vfxGallery = {
   scene,
+  camera,
+  cameraController,
   vfxManager,
   triggerImpact,
   triggerProjectile,
   triggerFusion,
+  markerPositions,
+  altarPos,
+  projectileSource,
 };

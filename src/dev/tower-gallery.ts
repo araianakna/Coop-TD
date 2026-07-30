@@ -60,7 +60,10 @@ visibleTowers.forEach((def, col) => {
   const x = col * COL_SPACING;
   for (const tierDef of def.tiers) {
     const tier = tierDef.tier;
-    const z = -(tier - 1) * ROW_SPACING;
+    // Tier 1 sits farthest from camera (smaller apparent size), tier 3
+    // nearest (larger apparent size) — perspective reinforces the actual
+    // scale growth instead of fighting it.
+    const z = -(3 - tier) * ROW_SPACING;
     const group = createTowerModel(def.modelId, tier);
     group.scale.setScalar(tierDef.modelScale);
     group.position.set(x, 0, z);
