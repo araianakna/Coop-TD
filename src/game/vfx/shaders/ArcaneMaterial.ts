@@ -48,7 +48,7 @@ const FRAGMENT_BODY = /* glsl */ `
       d = ring(local, 0.22, 0.045);
     }
     float glyphLine = 1.0 - smoothstep(0.0, 0.03, abs(d));
-    vec3 glyphColor = uColorCore * glyphLine * active * 2.2;
+    vec3 glyphColor = uColorCore * glyphLine * glyphActive * 2.2;
 
     // Clean concentric rings sweeping outward from the surface center,
     // giving a "channeling power" read distinct from fire/nature glow.
