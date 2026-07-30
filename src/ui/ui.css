@@ -763,3 +763,91 @@
   font-size: 15px;
   padding: 12px 30px;
 }
+
+/* -------------------------------------------------------------------------
+   Orchestrator layout anchors — positions the otherwise-unpositioned
+   shop/fusion/inspector panel roots over the canvas. Applied via
+   classList.add from Game.ts rather than baked into each component, since
+   placement is a layout concern owned by whoever mounts them.
+   ------------------------------------------------------------------------- */
+
+.rw-anchor-shop {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  pointer-events: auto;
+  z-index: 15;
+}
+
+.rw-anchor-fusion {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  z-index: 30;
+}
+
+.rw-anchor-inspector {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  pointer-events: auto;
+  z-index: 15;
+}
+
+/* -------------------------------------------------------------------------
+   Tower inspector (upgrade/sell mini-panel for a single selected tower)
+   ------------------------------------------------------------------------- */
+
+.rw-inspector {
+  width: 260px;
+}
+
+.rw-inspector-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rw-inspector-icon {
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.14), transparent 60%), var(--rw-purple-800);
+  box-shadow: inset 0 0 0 1px rgba(255, 210, 122, 0.35);
+  flex: none;
+}
+
+.rw-inspector-name {
+  font-family: var(--rw-font-display);
+  font-size: 16px;
+  color: var(--rw-gold-100);
+}
+
+.rw-inspector-tier {
+  font-size: 12px;
+  color: rgba(255, 233, 199, 0.65);
+  letter-spacing: 0.03em;
+}
+
+.rw-inspector-desc {
+  margin: 10px 0 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(255, 240, 220, 0.8);
+}
+
+.rw-inspector-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.rw-inspector-actions .rw-btn {
+  flex: 1;
+  font-size: 13px;
+  padding: 9px 10px;
+}

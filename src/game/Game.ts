@@ -1,43 +1,84 @@
 import * as THREE from "three";
+import "@/ui/ui.css";
 import { createRenderer } from "@/core/Renderer";
 import { createCamera, RtsCameraController } from "@/core/Camera";
 import { createLightingRig } from "@/core/Lighting";
 import { createSkybox } from "@/game/world/Skybox";
 import { createTerrain } from "@/game/world/Terrain";
+import { createFoliage } from "@/game/world/Foliage";
+import { createAtmosphereFx } from "@/game/world/AtmosphereFx";
 import { buildMap01 } from "@/game/world/Map01";
 import { Economy } from "@/game/economy/Economy";
-import { InputManager } from "@/game/input/InputManager";
-import type { GridCoord } from "@/game/types";
+import { InputManager, type CursorState, type PlayerSlot } from "@/game/input/InputManager";
+import type {
+  DamageInstance,
+  Element,
+  EnemyDef,
+  FusionElementPair,
+  GridCoord,
+  StatusEffect,
+  TowerAbility,
+  TowerAbilityContext,
+  TowerDef,
+  TowerTierDef,
+} from "@/game/types";
+import { getTowerDef, listBaseTowers } from "@/game/towers/TowerRegistry";
+import { getFusionRecipe } from "@/game/towers/FusionMatrix";
+import {
+  animateTowerModel,
+  createTowerModel,
+  releaseTowerCoreMaterial,
+  updateTowerVfxTime,
+} from "@/game/towers/models";
+import { getEnemyDef } from "@/game/enemies/EnemyRegistry";
+import { createEnemyModel } from "@/game/enemies/models";
+import { getWave, TOTAL_WAVES } from "@/game/enemies/WaveManager";
+import { VfxManager } from "@/game/vfx/VfxManager";
+import { createHUD } from "@/ui/HUD";
+import { createShopPanel, type ShopPanel } from "@/ui/ShopPanel";
+import { createFusionPanel, type FusionCandidatePair, type FusionPanelApi } from "@/ui/FusionPanel";
+import { createTowerInspector, type TowerInspector } from "@/ui/TowerInspector";
+import { createCursorIndicators, type CursorIndicators } from "@/ui/CursorIndicators";
+import { createVictoryScreen, createDefeatScreen, type EndScreen } from "@/ui/EndScreens";
 
-interface PlaceholderTower {
+const STARTING_GOLD = 220;
+const STARTING_LIVES = 20;
+const FIRST_WAVE_DELAY_SECONDS = 3;
+const BETWEEN_WAVE_DELAY_SECONDS = 4;
+const FUSION_COST_FACTOR = 0.5; // fusing "recycles" both source towers, so it's cheaper than buying the fusion outright
+const SELL_REFUND_FACTOR = 0.5;
+
+interface TowerInstance {
   id: string;
-  mesh: THREE.Group;
+  def: TowerDef;
+  tier: 1 | 2 | 3;
   coord: GridCoord;
-  range: number;
-  fireRateMs: number;
-  cooldown: number;
-  damage: number;
+  group: THREE.Group;
+  cooldownMs: number;
+  abilityCooldowns: Map<string, number>;
+  goldSpent: number;
+  altShot: boolean;
 }
 
-interface PlaceholderEnemy {
+interface EnemyInstance {
   id: string;
-  mesh: THREE.Mesh;
+  def: EnemyDef;
+  group: THREE.Group;
+  updateFn: (dtSeconds: number, elapsedSeconds: number) => void;
   waypointIndex: number;
-  progress: number; // 0..1 along current segment
-  speed: number; // cells per second
+  progress: number;
   health: number;
   maxHealth: number;
+  statusEffects: StatusEffect[];
+  speedMultiplier: number;
   healthBarFg: THREE.Mesh;
 }
 
-interface Projectile {
-  mesh: THREE.Mesh;
-  target: PlaceholderEnemy;
-  speed: number;
-  damage: number;
+interface QueuedSpawn {
+  enemyId: string;
+  healthMultiplier: number;
+  atElapsed: number;
 }
-
-const TOWER_COLOR = 0xff7a3c;
 
 export class Game {
   private scene = new THREE.Scene();
@@ -45,59 +86,128 @@ export class Game {
   private cameraController: RtsCameraController;
   private rendererBundle: ReturnType<typeof createRenderer>;
   private clock = new THREE.Clock();
+  private elapsed = 0;
   private input: InputManager;
   private raycaster = new THREE.Raycaster();
 
   private map = buildMap01();
-  private economy = new Economy(150, 20);
+  private economy = new Economy(STARTING_GOLD, STARTING_LIVES);
+  private vfx: VfxManager;
 
-  private towers: PlaceholderTower[] = [];
-  private enemies: PlaceholderEnemy[] = [];
-  private projectiles: Projectile[] = [];
-  private towerId = 0;
-  private enemyId = 0;
-  private spawnTimer = 0;
-  private spawnInterval = 1.4;
-  private enemiesToSpawn = 8;
-  private ground: THREE.Mesh;
+  private tickables: THREE.Object3D[] = [];
   private cellMarkers: THREE.Mesh[] = [];
 
-  private hudEl: HTMLDivElement;
+  private towers: TowerInstance[] = [];
+  private enemies: EnemyInstance[] = [];
+  private towerIdCounter = 0;
+  private enemyIdCounter = 0;
+
+  private armedTowerDefId: string | null = null;
+  private selectedTowerIds: string[] = [];
+
+  private waveIndex = 0;
+  private spawnQueue: QueuedSpawn[] = [];
+  private nextWaveAtElapsed: number | null = FIRST_WAVE_DELAY_SECONDS;
+  private gameOver = false;
+  private victory = false;
+
+  private hud: ReturnType<typeof createHUD>;
+  private shop: ShopPanel;
+  private fusion: FusionPanelApi;
+  private inspector: TowerInspector;
+  private cursors: CursorIndicators;
+  private victoryScreen: EndScreen;
+  private defeatScreen: EndScreen;
 
   constructor(host: HTMLElement) {
     this.scene.background = new THREE.Color(0x120a1f);
-    this.scene.add(createSkybox());
+
+    const skybox = createSkybox();
+    this.scene.add(skybox);
+    this.tickables.push(skybox);
     createLightingRig(this.scene);
 
     this.cameraController = new RtsCameraController(this.camera, host);
     this.rendererBundle = createRenderer(host, this.scene, this.camera);
     this.input = new InputManager(this.rendererBundle.renderer.domElement);
+    this.vfx = new VfxManager(this.scene);
 
-    this.ground = createTerrain(this.map.grid);
-    this.scene.add(this.ground);
+    const terrain = createTerrain(this.map.grid);
+    this.scene.add(terrain);
+    this.tickables.push(terrain);
+
+    this.scene.add(createFoliage(this.map.grid));
+
+    const atmosphere = createAtmosphereFx(this.map.grid);
+    this.scene.add(atmosphere);
+    this.tickables.push(atmosphere);
 
     this.addBuildableMarkers();
 
-    this.hudEl = document.createElement("div");
-    this.hudEl.className = "hud";
-    host.appendChild(this.hudEl);
-    this.economy.subscribe((s) => {
-      this.hudEl.textContent = `Gold: ${s.gold}   Lives: ${s.lives}   Wave: ${s.wave}`;
+    // --- UI layer -----------------------------------------------------
+    const uiRoot = document.createElement("div");
+    uiRoot.style.position = "absolute";
+    uiRoot.style.inset = "0";
+    uiRoot.style.pointerEvents = "none";
+    uiRoot.style.zIndex = "10";
+    host.appendChild(uiRoot);
+
+    this.hud = createHUD(this.economy);
+    uiRoot.appendChild(this.hud.el);
+
+    this.shop = createShopPanel({
+      towers: listBaseTowers(),
+      economy: this.economy,
+      onSelect: (tower) => this.handleShopSelect(tower),
     });
+    this.shop.el.classList.add("rw-anchor-shop");
+    uiRoot.appendChild(this.shop.el);
+
+    this.fusion = createFusionPanel({
+      getCandidatePairs: () => this.getFusionCandidatePairs(),
+      onConfirm: (pairId) => this.handleFusionConfirm(pairId),
+      onCancel: () => this.clearSelection(),
+    });
+    this.fusion.el.classList.add("rw-anchor-fusion");
+    uiRoot.appendChild(this.fusion.el);
+
+    this.inspector = createTowerInspector({
+      onUpgrade: () => this.handleUpgrade(),
+      onSell: () => this.handleSell(),
+    });
+    this.inspector.el.classList.add("rw-anchor-inspector");
+    this.inspector.hide();
+    uiRoot.appendChild(this.inspector.el);
+
+    this.cursors = createCursorIndicators();
+    uiRoot.appendChild(this.cursors.container);
+
+    this.victoryScreen = createVictoryScreen({ onRestart: () => window.location.reload() });
+    this.victoryScreen.el.style.pointerEvents = "auto";
+    uiRoot.appendChild(this.victoryScreen.el);
+
+    this.defeatScreen = createDefeatScreen({ onRestart: () => window.location.reload() });
+    this.defeatScreen.el.style.pointerEvents = "auto";
+    uiRoot.appendChild(this.defeatScreen.el);
 
     window.addEventListener("resize", () => this.onResize());
     this.onResize();
 
-    this.rendererBundle.renderer.domElement.addEventListener("click", (e) =>
-      this.handleClick(e),
-    );
+    this.rendererBundle.renderer.domElement.addEventListener("click", (e) => {
+      const rect = this.rendererBundle.renderer.domElement.getBoundingClientRect();
+      const ndcX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      const ndcY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      this.performInteractionAt(ndcX, ndcY);
+    });
 
     requestAnimationFrame(this.loop);
   }
 
+  // -------------------------------------------------------------------
+  // Buildable tile markers (visual ring + invisible full-tile hit area)
+  // -------------------------------------------------------------------
+
   private addBuildableMarkers() {
-    // Visual ring (decorative only — its hole means it can't be the raycast
-    // target, or clicking the intuitive center of a tile would miss it).
     const ringGeo = new THREE.RingGeometry(0.55, 0.7, 24);
     ringGeo.rotateX(-Math.PI / 2);
     const ringMat = new THREE.MeshBasicMaterial({
@@ -107,7 +217,6 @@ export class Game {
       side: THREE.DoubleSide,
     });
 
-    // Invisible full-tile hit area used for raycasting/placement.
     const hitGeo = new THREE.CircleGeometry(0.95, 16);
     hitGeo.rotateX(-Math.PI / 2);
     const hitMat = new THREE.MeshBasicMaterial({ visible: false });
@@ -128,112 +237,380 @@ export class Game {
     }
   }
 
-  private handleClick(e: MouseEvent) {
-    const rect = this.rendererBundle.renderer.domElement.getBoundingClientRect();
-    const ndcX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-    const ndcY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-    this.raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), this.camera);
-    const hits = this.raycaster.intersectObjects(this.cellMarkers);
-    if (hits.length === 0) return;
-    const coord = hits[0].object.userData.gridCoord as GridCoord;
-    this.tryPlaceTower(coord);
+  // -------------------------------------------------------------------
+  // Input / selection
+  // -------------------------------------------------------------------
+
+  private handleShopSelect(tower: TowerDef) {
+    if (this.armedTowerDefId === tower.id) {
+      this.armedTowerDefId = null;
+      this.shop.setSelected(null);
+      return;
+    }
+    this.armedTowerDefId = tower.id;
+    this.shop.setSelected(tower.id);
+    this.clearSelection();
   }
 
-  private tryPlaceTower(coord: GridCoord) {
-    const cost = 25;
+  private performInteractionAt(ndcX: number, ndcY: number) {
+    this.raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), this.camera);
+
+    if (this.armedTowerDefId) {
+      const hits = this.raycaster.intersectObjects(this.cellMarkers);
+      if (hits.length > 0) {
+        const coord = hits[0].object.userData.gridCoord as GridCoord;
+        const def = getTowerDef(this.armedTowerDefId);
+        if (def) this.tryPlaceTower(coord, def);
+      }
+      return;
+    }
+
+    const hits = this.raycaster.intersectObjects(
+      this.towers.map((t) => t.group),
+      true,
+    );
+    if (hits.length > 0) {
+      let obj: THREE.Object3D | null = hits[0].object;
+      while (obj && obj.userData.towerId === undefined) obj = obj.parent;
+      if (obj) {
+        this.toggleTowerSelection(obj.userData.towerId as string);
+        return;
+      }
+    }
+    this.clearSelection();
+  }
+
+  private tryPlaceTower(coord: GridCoord, def: TowerDef) {
+    const cost = def.tiers[0].cost;
     if (!this.economy.canAfford(cost)) return;
     if (!this.map.grid.isBuildable(coord.x, coord.z)) return;
 
-    const id = `tower-${this.towerId++}`;
+    const id = `tower-${this.towerIdCounter++}`;
     if (!this.map.grid.placeTower(coord.x, coord.z, id)) return;
     this.economy.spend(cost);
 
-    const group = new THREE.Group();
-    const base = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.4, 0.5, 0.4, 8),
-      new THREE.MeshStandardMaterial({ color: 0x33263f, roughness: 0.6 }),
-    );
-    base.position.y = 0.2;
-    base.castShadow = true;
-    const spire = new THREE.Mesh(
-      new THREE.ConeGeometry(0.28, 0.9, 6),
-      new THREE.MeshStandardMaterial({
-        color: TOWER_COLOR,
-        emissive: new THREE.Color(TOWER_COLOR).multiplyScalar(0.4),
-        roughness: 0.35,
-        metalness: 0.2,
-      }),
-    );
-    spire.position.y = 0.85;
-    spire.castShadow = true;
-    group.add(base, spire);
-
+    const group = createTowerModel(def.modelId, 1);
     const [wx, wz] = this.map.grid.gridToWorld(coord);
     group.position.set(wx, 0, wz);
+    group.userData.towerId = id;
     this.scene.add(group);
 
     this.towers.push({
       id,
-      mesh: group,
+      def,
+      tier: 1,
       coord,
-      range: 4.5,
-      fireRateMs: 550,
-      cooldown: 0,
-      damage: 14,
+      group,
+      cooldownMs: 0,
+      abilityCooldowns: new Map(),
+      goldSpent: cost,
+      altShot: false,
     });
+
+    this.armedTowerDefId = null;
+    this.shop.setSelected(null);
   }
 
-  private spawnEnemy() {
-    const id = `enemy-${this.enemyId++}`;
-    const geo = new THREE.IcosahedronGeometry(0.35, 0);
-    const mat = new THREE.MeshStandardMaterial({
-      color: 0x8a3fd9,
-      emissive: 0x2a0f4a,
-      roughness: 0.4,
-      metalness: 0.3,
-    });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.castShadow = true;
+  private toggleTowerSelection(towerId: string) {
+    if (this.selectedTowerIds.includes(towerId)) {
+      this.selectedTowerIds = this.selectedTowerIds.filter((id) => id !== towerId);
+    } else {
+      if (this.selectedTowerIds.length >= 2) this.selectedTowerIds = [];
+      this.selectedTowerIds.push(towerId);
+    }
+    this.refreshSelectionUI();
+  }
 
+  private clearSelection() {
+    if (this.selectedTowerIds.length === 0) return;
+    this.selectedTowerIds = [];
+    this.refreshSelectionUI();
+  }
+
+  private refreshSelectionUI() {
+    if (this.selectedTowerIds.length === 2) {
+      this.inspector.hide();
+      this.fusion.open();
+      return;
+    }
+    this.fusion.close();
+
+    if (this.selectedTowerIds.length === 1) {
+      const tower = this.towers.find((t) => t.id === this.selectedTowerIds[0]);
+      if (tower) {
+        this.inspector.show(this.buildInspectorInfo(tower));
+        return;
+      }
+    }
+    this.inspector.hide();
+  }
+
+  private buildInspectorInfo(tower: TowerInstance) {
+    const tiers: TowerTierDef[] = tower.def.tiers;
+    const tierDef = tiers[tower.tier - 1];
+    const nextTierDef = tower.tier < 3 ? tiers[tower.tier] : null;
+    return {
+      name: tower.def.name,
+      element: tower.def.element,
+      tier: tower.tier,
+      description: tierDef.description,
+      nextTierCost: nextTierDef ? nextTierDef.cost : null,
+      canAffordUpgrade: nextTierDef ? this.economy.canAfford(nextTierDef.cost) : false,
+      sellValue: Math.round(tower.goldSpent * SELL_REFUND_FACTOR),
+    };
+  }
+
+  // -------------------------------------------------------------------
+  // Fusion
+  // -------------------------------------------------------------------
+
+  private getFusionCandidatePairs(): FusionCandidatePair[] {
+    if (this.selectedTowerIds.length !== 2) return [];
+    const [towerA, towerB] = this.selectedTowerIds.map((id) => this.towers.find((t) => t.id === id));
+    if (!towerA || !towerB || towerA.def.isFusion || towerB.def.isFusion) return [];
+
+    const elA = towerA.def.element as Element;
+    const elB = towerB.def.element as Element;
+    const recipe = getFusionRecipe(elA, elB);
+    if (!recipe) return [];
+    const resultDef = getTowerDef(recipe.resultTowerId);
+    if (!resultDef) return [];
+
+    const cost = Math.round(resultDef.tiers[0].cost * FUSION_COST_FACTOR);
+    return [
+      {
+        id: recipe.resultTowerId,
+        towerA: { id: towerA.id, name: towerA.def.name, element: elA },
+        towerB: { id: towerB.id, name: towerB.def.name, element: elB },
+        resultName: resultDef.name,
+        resultElementPair: resultDef.element as FusionElementPair,
+        flavorText: resultDef.flavorText,
+        cost,
+        affordable: this.economy.canAfford(cost),
+      },
+    ];
+  }
+
+  private handleFusionConfirm(pairId: string) {
+    const candidates = this.getFusionCandidatePairs();
+    const candidate = candidates.find((c) => c.id === pairId);
+    if (!candidate || candidate.affordable === false) return;
+    if (candidate.cost !== undefined && !this.economy.canAfford(candidate.cost)) return;
+
+    const towerA = this.towers.find((t) => t.id === candidate.towerA.id);
+    const towerB = this.towers.find((t) => t.id === candidate.towerB.id);
+    if (!towerA || !towerB) return;
+
+    const resultDef = getTowerDef(pairId);
+    if (!resultDef) return;
+
+    if (candidate.cost !== undefined) this.economy.spend(candidate.cost);
+
+    const coord = towerA.coord;
+    this.disposeTowerGroup(towerA.group);
+    this.disposeTowerGroup(towerB.group);
+    this.map.grid.removeTower(towerA.coord.x, towerA.coord.z);
+    this.map.grid.removeTower(towerB.coord.x, towerB.coord.z);
+    this.towers = this.towers.filter((t) => t !== towerA && t !== towerB);
+
+    const id = `tower-${this.towerIdCounter++}`;
+    this.map.grid.placeTower(coord.x, coord.z, id);
+    const group = createTowerModel(resultDef.modelId, 1);
+    const [wx, wz] = this.map.grid.gridToWorld(coord);
+    group.position.set(wx, 0, wz);
+    group.userData.towerId = id;
+    this.scene.add(group);
+
+    this.towers.push({
+      id,
+      def: resultDef,
+      tier: 1,
+      coord,
+      group,
+      cooldownMs: 0,
+      abilityCooldowns: new Map(),
+      goldSpent: (candidate.cost ?? 0) + towerA.goldSpent + towerB.goldSpent,
+      altShot: false,
+    });
+
+    this.vfx.impacts.triggerFusion(candidate.towerA.element, candidate.towerB.element, [wx, 0.8, wz]);
+
+    this.selectedTowerIds = [];
+    this.fusion.close();
+    this.inspector.hide();
+  }
+
+  // -------------------------------------------------------------------
+  // Upgrade / sell
+  // -------------------------------------------------------------------
+
+  private handleUpgrade() {
+    const tower = this.towers.find((t) => t.id === this.selectedTowerIds[0]);
+    if (!tower || tower.tier >= 3) return;
+    const tiers: TowerTierDef[] = tower.def.tiers;
+    const nextTierDef = tiers[tower.tier];
+    if (!this.economy.canAfford(nextTierDef.cost)) return;
+
+    this.economy.spend(nextTierDef.cost);
+    tower.goldSpent += nextTierDef.cost;
+    tower.tier = (tower.tier + 1) as 1 | 2 | 3;
+
+    this.disposeTowerGroup(tower.group);
+    const group = createTowerModel(tower.def.modelId, tower.tier);
+    const [wx, wz] = this.map.grid.gridToWorld(tower.coord);
+    group.position.set(wx, 0, wz);
+    group.userData.towerId = tower.id;
+    this.scene.add(group);
+    tower.group = group;
+
+    this.inspector.show(this.buildInspectorInfo(tower));
+  }
+
+  private handleSell() {
+    const tower = this.towers.find((t) => t.id === this.selectedTowerIds[0]);
+    if (!tower) return;
+    this.economy.earn(Math.round(tower.goldSpent * SELL_REFUND_FACTOR));
+    this.disposeTowerGroup(tower.group);
+    this.map.grid.removeTower(tower.coord.x, tower.coord.z);
+    this.towers = this.towers.filter((t) => t !== tower);
+    this.clearSelection();
+  }
+
+  private disposeTowerGroup(group: THREE.Group) {
+    group.traverse((obj) => {
+      const mesh = obj as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      for (const mat of mats) {
+        if (!mat) continue;
+        if ((mat as THREE.ShaderMaterial).isShaderMaterial) {
+          try {
+            releaseTowerCoreMaterial(mat as THREE.ShaderMaterial);
+          } catch {
+            // not a registered core material — fine, nothing to release
+          }
+        }
+        mat.dispose();
+      }
+      mesh.geometry?.dispose();
+    });
+    this.scene.remove(group);
+  }
+
+  // -------------------------------------------------------------------
+  // Waves / spawning
+  // -------------------------------------------------------------------
+
+  private updateWaves() {
+    if (this.gameOver || this.victory) return;
+
+    if (this.nextWaveAtElapsed !== null && this.elapsed >= this.nextWaveAtElapsed) {
+      this.nextWaveAtElapsed = null;
+      this.startWave(this.waveIndex + 1);
+    }
+
+    while (this.spawnQueue.length > 0 && this.spawnQueue[0].atElapsed <= this.elapsed) {
+      const next = this.spawnQueue.shift()!;
+      this.spawnEnemy(next.enemyId, next.healthMultiplier);
+    }
+
+    if (
+      this.waveIndex > 0 &&
+      this.spawnQueue.length === 0 &&
+      this.enemies.length === 0 &&
+      this.nextWaveAtElapsed === null
+    ) {
+      if (this.waveIndex >= TOTAL_WAVES) {
+        this.victory = true;
+        this.victoryScreen.show(this.waveIndex);
+      } else {
+        this.nextWaveAtElapsed = this.elapsed + BETWEEN_WAVE_DELAY_SECONDS;
+      }
+    }
+  }
+
+  private startWave(index: number) {
+    const wave = getWave(index);
+    if (!wave) return;
+    this.waveIndex = index;
+    this.economy.setWave(index);
+
+    const queue: QueuedSpawn[] = [];
+    let latest = this.elapsed;
+    for (const entry of wave.spawns) {
+      for (let i = 0; i < entry.count; i++) {
+        const at = this.elapsed + (i * entry.intervalMs) / 1000;
+        queue.push({ enemyId: entry.enemyId, healthMultiplier: entry.healthMultiplier ?? 1, atElapsed: at });
+        latest = Math.max(latest, at);
+      }
+    }
+    if (wave.bossId) {
+      queue.push({ enemyId: wave.bossId, healthMultiplier: 1, atElapsed: latest + 1.5 });
+    }
+    queue.sort((a, b) => a.atElapsed - b.atElapsed);
+    this.spawnQueue = queue;
+  }
+
+  private spawnEnemy(enemyId: string, healthMultiplier: number) {
+    const def = getEnemyDef(enemyId);
+    const { group, update } = createEnemyModel(def.modelId);
+
+    const spawn = this.map.waypoints[0];
+    const [wx, wz] = this.map.grid.gridToWorld(spawn);
+    group.position.set(wx, 0, wz);
+    this.scene.add(group);
+
+    const barY = def.isBoss ? 2.6 : 1.3;
     const barBg = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.6, 0.08),
+      new THREE.PlaneGeometry(def.isBoss ? 1.6 : 0.6, 0.09),
       new THREE.MeshBasicMaterial({ color: 0x000000 }),
     );
-    barBg.position.y = 0.6;
+    barBg.position.y = barY;
     const barFg = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.58, 0.06),
-      new THREE.MeshBasicMaterial({ color: 0x4dff88 }),
+      new THREE.PlaneGeometry((def.isBoss ? 1.56 : 0.58), 0.07),
+      new THREE.MeshBasicMaterial({ color: def.isBoss ? 0xffb14d : 0x4dff88 }),
     );
-    barFg.position.y = 0.601;
-    mesh.add(barBg, barFg);
+    barFg.position.y = barY + 0.001;
+    group.add(barBg, barFg);
 
-    const start = this.map.waypoints[0];
-    const [wx, wz] = this.map.grid.gridToWorld(start);
-    mesh.position.set(wx, 0.35, wz);
-    this.scene.add(mesh);
+    const health = Math.round(def.baseHealth * healthMultiplier);
 
-    const health = 60;
     this.enemies.push({
-      id,
-      mesh,
+      id: `enemy-${this.enemyIdCounter++}`,
+      def,
+      group,
+      updateFn: update,
       waypointIndex: 0,
       progress: 0,
-      speed: 1.6,
       health,
       maxHealth: health,
+      statusEffects: [],
+      speedMultiplier: 1,
       healthBarFg: barFg,
     });
   }
 
+  // -------------------------------------------------------------------
+  // Enemy movement / status effects
+  // -------------------------------------------------------------------
+
   private updateEnemies(dt: number) {
+    const wps = this.map.waypoints;
     for (const enemy of [...this.enemies]) {
-      const wps = this.map.waypoints;
-      if (enemy.waypointIndex >= wps.length - 1) {
-        this.removeEnemy(enemy, false);
-        this.economy.loseLife(1);
+      this.updateStatusEffects(enemy, dt);
+      if (enemy.health <= 0) {
+        this.killEnemy(enemy);
         continue;
       }
-      enemy.progress += (enemy.speed * dt) / this.map.grid.cellSize;
+
+      if (enemy.waypointIndex >= wps.length - 1) {
+        this.economy.loseLife(enemy.def.isBoss ? 5 : 1);
+        this.removeEnemy(enemy);
+        continue;
+      }
+
+      const effectiveSpeed = enemy.def.baseSpeed * enemy.speedMultiplier;
+      enemy.progress += (effectiveSpeed * dt) / this.map.grid.cellSize;
       if (enemy.progress >= 1) {
         enemy.progress = 0;
         enemy.waypointIndex++;
@@ -245,84 +622,260 @@ export class Game {
       const [bx, bz] = this.map.grid.gridToWorld(b);
       const x = THREE.MathUtils.lerp(ax, bx, enemy.progress);
       const z = THREE.MathUtils.lerp(az, bz, enemy.progress);
-      enemy.mesh.position.set(x, 0.35 + Math.sin(performance.now() * 0.005) * 0.03, z);
-      enemy.mesh.lookAt(bx, 0.35, bz);
+      enemy.group.position.set(x, 0, z);
+      if (effectiveSpeed > 0.01) enemy.group.lookAt(bx, 0, bz);
+
+      enemy.updateFn(dt, this.elapsed);
 
       const hpFrac = Math.max(0, enemy.health / enemy.maxHealth);
       enemy.healthBarFg.scale.x = hpFrac;
-      enemy.healthBarFg.position.x = -0.29 * (1 - hpFrac);
+      enemy.healthBarFg.position.x = -((enemy.def.isBoss ? 0.78 : 0.29) * (1 - hpFrac));
+    }
+  }
+
+  private updateStatusEffects(enemy: EnemyInstance, dtSeconds: number) {
+    const now = Date.now();
+    enemy.statusEffects = enemy.statusEffects.filter((e) => now - e.appliedAt < e.durationMs);
+
+    let speedMult = 1;
+    for (const effect of enemy.statusEffects) {
+      if (effect.kind === "chill") speedMult *= 1 - effect.magnitude;
+      if (effect.kind === "freeze" || effect.kind === "root") speedMult = 0;
+      if (effect.kind === "burn" || effect.kind === "poison") {
+        enemy.health -= effect.magnitude * dtSeconds;
+      }
+    }
+    enemy.speedMultiplier = Math.max(0, speedMult);
+  }
+
+  private effectiveArmor(enemy: EnemyInstance): number {
+    const sunder = enemy.statusEffects.find((e) => e.kind === "sunder");
+    return sunder ? enemy.def.armor * (1 - sunder.magnitude) : enemy.def.armor;
+  }
+
+  private removeEnemy(enemy: EnemyInstance) {
+    this.scene.remove(enemy.group);
+    this.enemies = this.enemies.filter((e) => e !== enemy);
+  }
+
+  private killEnemy(enemy: EnemyInstance) {
+    this.economy.earn(enemy.def.bounty);
+    this.removeEnemy(enemy);
+  }
+
+  // -------------------------------------------------------------------
+  // Combat
+  // -------------------------------------------------------------------
+
+  private currentTierDef(tower: TowerInstance) {
+    return tower.def.tiers[tower.tier - 1];
+  }
+
+  private towerElements(tower: TowerInstance): [Element, Element | null] {
+    const el = tower.def.element;
+    if (el.includes("+")) {
+      const [a, b] = el.split("+") as [Element, Element];
+      return [a, b];
+    }
+    return [el as Element, null];
+  }
+
+  private pickTarget(tower: TowerInstance): EnemyInstance | null {
+    const stats = this.currentTierDef(tower).stats;
+    const [twx, twz] = this.map.grid.gridToWorld(tower.coord);
+    const inRange = this.enemies.filter((e) => {
+      const dx = e.group.position.x - twx;
+      const dz = e.group.position.z - twz;
+      return Math.hypot(dx, dz) <= stats.range;
+    });
+    if (inRange.length === 0) return null;
+
+    const progress = (e: EnemyInstance) => e.waypointIndex + e.progress;
+    const dist = (e: EnemyInstance) => {
+      const dx = e.group.position.x - twx;
+      const dz = e.group.position.z - twz;
+      return Math.hypot(dx, dz);
+    };
+
+    switch (tower.def.targeting) {
+      case "first":
+        return inRange.reduce((a, b) => (progress(b) > progress(a) ? b : a));
+      case "last":
+        return inRange.reduce((a, b) => (progress(b) < progress(a) ? b : a));
+      case "closest":
+        return inRange.reduce((a, b) => (dist(b) < dist(a) ? b : a));
+      case "strongest":
+        return inRange.reduce((a, b) => (b.health > a.health ? b : a));
+      case "weakest":
+        return inRange.reduce((a, b) => (b.health < a.health ? b : a));
+      default:
+        return inRange[0];
     }
   }
 
   private updateTowers(dtMs: number) {
     for (const tower of this.towers) {
-      tower.cooldown -= dtMs;
-      if (tower.cooldown > 0) continue;
-      const [twx, twz] = this.map.grid.gridToWorld(tower.coord);
-      let target: PlaceholderEnemy | null = null;
-      let bestProgress = -1;
-      for (const enemy of this.enemies) {
-        const dx = enemy.mesh.position.x - twx;
-        const dz = enemy.mesh.position.z - twz;
-        const dist = Math.hypot(dx, dz);
-        if (dist <= tower.range) {
-          const overallProgress = enemy.waypointIndex + enemy.progress;
-          if (overallProgress > bestProgress) {
-            bestProgress = overallProgress;
-            target = enemy;
-          }
-        }
-      }
+      animateTowerModel(tower.group, this.elapsed);
+
+      const target = this.pickTarget(tower);
       if (target) {
+        tower.group.lookAt(target.group.position.x, tower.group.position.y, target.group.position.z);
+      }
+
+      tower.cooldownMs -= dtMs;
+      if (tower.cooldownMs <= 0 && target) {
         this.fireProjectile(tower, target);
-        tower.cooldown = tower.fireRateMs;
+        tower.cooldownMs = this.currentTierDef(tower).stats.fireRateMs;
       }
-    }
-  }
 
-  private fireProjectile(tower: PlaceholderTower, target: PlaceholderEnemy) {
-    const mesh = new THREE.Mesh(
-      new THREE.SphereGeometry(0.1, 8, 8),
-      new THREE.MeshBasicMaterial({ color: TOWER_COLOR }),
-    );
-    mesh.position.copy(tower.mesh.position).setY(0.9);
-    this.scene.add(mesh);
-    this.projectiles.push({ mesh, target, speed: 9, damage: tower.damage });
-  }
-
-  private updateProjectiles(dt: number) {
-    for (const proj of [...this.projectiles]) {
-      if (!this.enemies.includes(proj.target)) {
-        this.removeProjectile(proj);
-        continue;
-      }
-      const dir = new THREE.Vector3().subVectors(
-        proj.target.mesh.position,
-        proj.mesh.position,
-      );
-      const dist = dir.length();
-      if (dist < 0.25) {
-        proj.target.health -= proj.damage;
-        this.removeProjectile(proj);
-        if (proj.target.health <= 0) {
-          this.economy.earn(6);
-          this.removeEnemy(proj.target, true);
+      for (const ability of tower.def.abilities) {
+        const remaining = tower.abilityCooldowns.get(ability.id) ?? 0;
+        const updated = remaining - dtMs;
+        if (updated <= 0 && target) {
+          this.triggerAbility(tower, ability, target);
+          tower.abilityCooldowns.set(ability.id, ability.cooldownMs);
+        } else {
+          tower.abilityCooldowns.set(ability.id, updated);
         }
-        continue;
       }
-      dir.normalize();
-      proj.mesh.position.addScaledVector(dir, proj.speed * dt);
     }
   }
 
-  private removeEnemy(enemy: PlaceholderEnemy, _killed: boolean) {
-    this.scene.remove(enemy.mesh);
-    this.enemies = this.enemies.filter((e) => e !== enemy);
+  private fireProjectile(tower: TowerInstance, target: EnemyInstance) {
+    const [elA, elB] = this.towerElements(tower);
+    tower.altShot = !tower.altShot;
+    const element = elB && tower.altShot ? elB : elA;
+    const stats = this.currentTierDef(tower).stats;
+    const fromPos: [number, number, number] = [
+      tower.group.position.x,
+      tower.group.position.y + 0.9,
+      tower.group.position.z,
+    ];
+
+    this.vfx.projectiles.spawn(element, fromPos, () => target.group.position.toArray() as [number, number, number], {
+      speed: stats.projectileSpeed,
+      onArrive: (pos) => this.resolveHit(tower, target, pos, stats.damage, stats.splashRadius, stats.critChance, stats.critMultiplier),
+    });
   }
 
-  private removeProjectile(proj: Projectile) {
-    this.scene.remove(proj.mesh);
-    this.projectiles = this.projectiles.filter((p) => p !== proj);
+  private resolveHit(
+    tower: TowerInstance,
+    target: EnemyInstance,
+    pos: [number, number, number],
+    baseDamage: number,
+    splashRadius: number | undefined,
+    critChance: number | undefined,
+    critMultiplier: number | undefined,
+  ) {
+    const [elA, elB] = this.towerElements(tower);
+
+    if (this.enemies.includes(target)) {
+      this.applyDamage(target, baseDamage, elA, critChance, critMultiplier);
+    }
+
+    if (elB) {
+      this.vfx.impacts.triggerFusion(elA, elB, pos);
+    } else {
+      this.vfx.impacts.trigger(elA, pos);
+    }
+
+    if (splashRadius) {
+      for (const enemy of this.enemies) {
+        if (enemy === target) continue;
+        const dx = enemy.group.position.x - pos[0];
+        const dz = enemy.group.position.z - pos[2];
+        if (Math.hypot(dx, dz) <= splashRadius) {
+          this.applyDamage(enemy, baseDamage * 0.6, elA, critChance, critMultiplier);
+        }
+      }
+    }
+  }
+
+  private applyDamage(
+    enemy: EnemyInstance,
+    baseDamage: number,
+    element: Element,
+    critChance?: number,
+    critMultiplier?: number,
+  ) {
+    const mult = enemy.def.resistances[element] ?? enemy.def.weaknesses[element] ?? 1;
+    let dmg = baseDamage * mult;
+    if (critChance && critMultiplier && Math.random() < critChance) dmg *= critMultiplier;
+    const armor = this.effectiveArmor(enemy);
+    dmg *= 100 / (100 + armor);
+    enemy.health -= dmg;
+  }
+
+  private triggerAbility(tower: TowerInstance, ability: TowerAbility, target: EnemyInstance) {
+    const ctx: TowerAbilityContext = {
+      towerId: tower.id,
+      position: tower.coord,
+      applyStatus: (_targetId: string, effect: StatusEffect) => {
+        if (!this.enemies.includes(target)) return;
+        target.statusEffects = target.statusEffects.filter((e) => e.kind !== effect.kind);
+        target.statusEffects.push(effect);
+      },
+      dealDamage: (_targetId: string, dmg: DamageInstance) => {
+        if (!this.enemies.includes(target)) return;
+        if (dmg.element === "physical") {
+          const armor = this.effectiveArmor(target);
+          target.health -= dmg.amount * (100 / (100 + armor));
+        } else {
+          this.applyDamage(target, dmg.amount, dmg.element);
+        }
+      },
+      emitVfx: (vfxId: string, worldPos: [number, number, number]) => this.emitAbilityVfx(tower, vfxId, worldPos),
+    };
+    ability.onTrigger(ctx);
+  }
+
+  private emitAbilityVfx(tower: TowerInstance, vfxId: string, worldPos: [number, number, number]) {
+    const token = vfxId.split(".")[1];
+    const [elA, elB] = this.towerElements(tower);
+    if (elB) {
+      this.vfx.impacts.triggerFusion(elA, elB, worldPos);
+      return;
+    }
+    const isElement = (s: string): s is Element =>
+      s === "fire" || s === "ice" || s === "lightning" || s === "nature" || s === "earth" || s === "arcane";
+    this.vfx.impacts.trigger(isElement(token) ? token : elA, worldPos);
+  }
+
+  // -------------------------------------------------------------------
+  // Local co-op cursors
+  // -------------------------------------------------------------------
+
+  private updateCursors() {
+    const rect = this.rendererBundle.renderer.domElement.getBoundingClientRect();
+    this.applyCursor("p1", this.input.getCursor("p1"), rect);
+    this.applyCursor("p2", this.input.getCursor("p2"), rect);
+    this.cursors.setP2Active(this.input.isP2Active());
+
+    const p2 = this.input.getCursor("p2");
+    if (p2.actionJustPressed) {
+      if (this.victory) this.victoryScreen.el.querySelector<HTMLButtonElement>(".rw-endscreen-restart")?.click();
+      else if (this.gameOver) this.defeatScreen.el.querySelector<HTMLButtonElement>(".rw-endscreen-restart")?.click();
+      else this.performInteractionAt(p2.ndcX, p2.ndcY);
+    }
+  }
+
+  private applyCursor(player: PlayerSlot, cursor: CursorState, rect: DOMRect) {
+    const x = rect.left + (cursor.ndcX * 0.5 + 0.5) * rect.width;
+    const y = rect.top + (1 - (cursor.ndcY * 0.5 + 0.5)) * rect.height;
+    this.cursors.setPosition(player, x, y);
+    this.cursors.setActionPressed(player, cursor.actionPressed);
+  }
+
+  // -------------------------------------------------------------------
+  // Lifecycle
+  // -------------------------------------------------------------------
+
+  private checkGameOver() {
+    if (this.gameOver || this.victory) return;
+    if (this.economy.isGameOver) {
+      this.gameOver = true;
+      this.defeatScreen.show(this.waveIndex);
+    }
   }
 
   private onResize() {
@@ -335,21 +888,26 @@ export class Game {
 
   private loop = () => {
     const dt = Math.min(this.clock.getDelta(), 0.05);
+    this.elapsed += dt;
+
     this.input.update();
     this.cameraController.update(dt);
 
-    if (this.enemiesToSpawn > 0) {
-      this.spawnTimer -= dt;
-      if (this.spawnTimer <= 0) {
-        this.spawnTimer = this.spawnInterval;
-        this.spawnEnemy();
-        this.enemiesToSpawn--;
-      }
+    if (!this.gameOver && !this.victory) {
+      this.updateWaves();
+      this.updateTowers(dt * 1000);
+      this.updateEnemies(dt);
     }
 
-    this.updateEnemies(dt);
-    this.updateTowers(dt * 1000);
-    this.updateProjectiles(dt);
+    updateTowerVfxTime(this.elapsed);
+    this.vfx.update(dt);
+    for (const obj of this.tickables) {
+      const tick = obj.userData.tick as ((dt: number, elapsed: number) => void) | undefined;
+      tick?.(dt, this.elapsed);
+    }
+
+    this.updateCursors();
+    this.checkGameOver();
 
     this.rendererBundle.composer.render();
     requestAnimationFrame(this.loop);
