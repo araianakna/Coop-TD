@@ -279,7 +279,7 @@
 
 .rw-shop-panel {
   width: 300px;
-  max-height: min(78vh, 620px);
+  max-height: min(84vh, 660px);
   display: flex;
   flex-direction: column;
 }
@@ -293,6 +293,7 @@
 .rw-shop-panel .rw-panel-body {
   min-height: 0;
   overflow-y: auto;
+  padding-bottom: 18px;
 }
 
 .rw-shop-list {
@@ -415,6 +416,22 @@
 
 .rw-fusion-panel {
   width: 380px;
+}
+
+/* Dims the 3D scene behind the fusion confirm modal so it reads as a real
+   blocking dialog instead of a card floating over an unmodified, equally
+   bright background (matches the dimmed backdrop EndScreens already use).
+   A huge zero-blur box-shadow "spotlight" avoids needing an extra
+   viewport-fixed element, which would otherwise be broken by the transform
+   on .rw-anchor-fusion (it establishes a containing block for `fixed`
+   descendants, so a child `position: fixed` backdrop would NOT cover the
+   viewport — this technique sidesteps that entirely). */
+.rw-fusion-panel:not(.rw-fusion-hidden) {
+  box-shadow:
+    0 18px 44px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(0, 0, 0, 0.7),
+    0 0 26px rgba(190, 130, 50, 0.16),
+    0 0 0 9999px rgba(6, 3, 12, 0.6);
 }
 
 .rw-fusion-hidden {

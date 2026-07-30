@@ -82,8 +82,6 @@ const _euler = new THREE.Euler();
 
 function pushTransform(
   bucket: THREE.Matrix4[],
-  colors: THREE.Color[] | null,
-  color: THREE.Color | null,
   x: number,
   y: number,
   z: number,
@@ -100,28 +98,37 @@ function pushTransform(
   _scale.set(scaleX, scaleY, scaleZ);
   const m = new THREE.Matrix4().compose(_pos, _quat, _scale);
   bucket.push(m);
-  if (colors && color) colors.push(color);
 }
 
 export function createFoliage(grid: Grid): THREE.Group {
   const rand = mulberry32(0x50a1e5);
   const anchors = scatterAnchors(grid, rand);
 
-  const buckets: Record<PropType, THREE.Matrix4[]> = {
+  // NOTE: per-instance vertex colors (InstancedMesh.setColorAt +
+  // material.vertexColors) render as solid black in this project's tested
+  // environment (verified: identical geometry/lighting with vertexColors
+  // off renders correctly-lit, and the effect persists with shadows off,
+  // lights boosted 3x, and postprocessing bypassed entirely — isolating it
+  // to the vertexColors+instancing path itself). To stay robust across
+  // renderers, each palette color gets its own small InstancedMesh with a
+  // plain `color`/`emissive` on the material instead of per-instance color.
+  const buckets: Record<PropType, THREE.Matrix4[][]> = {
     rock: [],
     crystal: [],
-    treeTrunk: [],
-    treeBranch: [],
-    mushroomStem: [],
+    treeTrunk: [[]],
+    treeBranch: [[]],
+    mushroomStem: [[]],
     mushroomCap: [],
   };
-  const rockColors: THREE.Color[] = [];
-  const crystalColors: THREE.Color[] = [];
-  const mushroomCapColors: THREE.Color[] = [];
 
-  const rockPalette = [0x8a8078, 0x6f665c, 0x9a8f7f, 0x746a5e].map((c) => new THREE.Color(c));
-  const crystalPalette = [0x6ad0ff, 0x8a5cff, 0x54ffb0, 0xff8a5c].map((c) => new THREE.Color(c));
-  const mushroomPalette = [0xff6bd6, 0x6adfff, 0xa4ff6b, 0xffb26a].map((c) => new THREE.Color(c));
+  // Palettes lightened/saturated slightly versus the original so they read
+  // clearly against both the grass turf and the mottled wild-skirt ground.
+  const rockPalette = [0xa39887, 0x8b8071, 0xaea192, 0x968a78].map((c) => new THREE.Color(c));
+  const crystalPalette = [0x7ad8ff, 0x9a6cff, 0x64ffbc, 0xff9a6c].map((c) => new THREE.Color(c));
+  const mushroomPalette = [0xff7bdc, 0x7ae4ff, 0xb0ff7b, 0xffbd7b].map((c) => new THREE.Color(c));
+  buckets.rock = rockPalette.map(() => []);
+  buckets.crystal = crystalPalette.map(() => []);
+  buckets.mushroomCap = mushroomPalette.map(() => []);
 
   for (const anchor of anchors) {
     const roll = rand();
@@ -129,11 +136,10 @@ export function createFoliage(grid: Grid): THREE.Group {
 
     if (roll < 0.4) {
       // Rock cluster: one boulder + occasional pebbles.
-      const s = 0.5 + rand() * 0.9 + anchor.outside * 0.3;
+      const s = 0.6 + rand() * 0.9 + anchor.outside * 0.3;
+      const colorIdx = Math.floor(rand() * rockPalette.length);
       pushTransform(
-        buckets.rock,
-        rockColors,
-        rockPalette[Math.floor(rand() * rockPalette.length)],
+        buckets.rock[colorIdx],
         anchor.x,
         groundY + s * 0.18,
         anchor.z,
@@ -148,11 +154,9 @@ export function createFoliage(grid: Grid): THREE.Group {
       for (let i = 0; i < pebbleCount; i++) {
         const ox = anchor.x + (rand() - 0.5) * 0.9;
         const oz = anchor.z + (rand() - 0.5) * 0.9;
-        const ps = 0.18 + rand() * 0.25;
+        const ps = 0.22 + rand() * 0.25;
         pushTransform(
-          buckets.rock,
-          rockColors,
-          rockPalette[Math.floor(rand() * rockPalette.length)],
+          buckets.rock[Math.floor(rand() * rockPalette.length)],
           ox,
           sampleTerrainHeight(grid, ox, oz) + ps * 0.18,
           oz,
@@ -167,35 +171,33 @@ export function createFoliage(grid: Grid): THREE.Group {
     } else if (roll < 0.58) {
       // Crystal shard cluster — elemental accent.
       const shardCount = 2 + Math.floor(rand() * 3);
-      const clusterColor = crystalPalette[Math.floor(rand() * crystalPalette.length)];
+      const colorIdx = Math.floor(rand() * crystalPalette.length);
       for (let i = 0; i < shardCount; i++) {
         const ox = anchor.x + (rand() - 0.5) * 0.5;
         const oz = anchor.z + (rand() - 0.5) * 0.5;
-        const h = 0.5 + rand() * 0.7;
+        const h = 0.6 + rand() * 0.75;
         const tilt = (rand() - 0.5) * 0.5;
         pushTransform(
-          buckets.crystal,
-          crystalColors,
-          clusterColor,
+          buckets.crystal[colorIdx],
           ox,
           sampleTerrainHeight(grid, ox, oz) + h * 0.42,
           oz,
           rand() * Math.PI * 2,
           tilt,
           tilt,
-          0.16 + rand() * 0.12,
+          0.2 + rand() * 0.14,
           h,
-          0.16 + rand() * 0.12,
+          0.2 + rand() * 0.14,
         );
       }
     } else if (roll < 0.8) {
-      // Dead tree — trunk + a few bare angled branches.
+      // Dead tree — trunk + a few bare angled branches. Thickened and
+      // lightened versus the original near-black sticks so the silhouette
+      // reads as a tree at gameplay distance instead of a dark scribble.
       const trunkH = 1.3 + rand() * 1.4;
       const lean = (rand() - 0.5) * 0.25;
       pushTransform(
-        buckets.treeTrunk,
-        null,
-        null,
+        buckets.treeTrunk[0],
         anchor.x,
         groundY + trunkH * 0.5,
         anchor.z,
@@ -216,44 +218,29 @@ export function createFoliage(grid: Grid): THREE.Group {
         const bx = anchor.x + Math.cos(bAngle) * bLen * 0.3;
         const bz = anchor.z + Math.sin(bAngle) * bLen * 0.3;
         pushTransform(
-          buckets.treeBranch,
-          null,
-          null,
+          buckets.treeBranch[0],
           bx,
           by,
           bz,
           bAngle,
           bTilt,
           0,
-          1.1 + rand() * 0.4,
+          1.5 + rand() * 0.5,
           bLen,
-          1.1 + rand() * 0.4,
+          1.5 + rand() * 0.5,
         );
       }
     } else {
       // Mushroom cluster — small glowing accents in shaded undergrowth.
       const count = 2 + Math.floor(rand() * 3);
-      const capColor = mushroomPalette[Math.floor(rand() * mushroomPalette.length)];
+      const colorIdx = Math.floor(rand() * mushroomPalette.length);
       for (let i = 0; i < count; i++) {
         const ox = anchor.x + (rand() - 0.5) * 0.7;
         const oz = anchor.z + (rand() - 0.5) * 0.7;
         const gy = sampleTerrainHeight(grid, ox, oz);
         const s = 0.5 + rand() * 0.8;
-        pushTransform(buckets.mushroomStem, null, null, ox, gy + 0.11 * s, oz, rand() * Math.PI * 2, 0, 0, s, s, s);
-        pushTransform(
-          buckets.mushroomCap,
-          mushroomCapColors,
-          capColor,
-          ox,
-          gy + 0.2 * s,
-          oz,
-          rand() * Math.PI * 2,
-          0,
-          0,
-          s,
-          s,
-          s,
-        );
+        pushTransform(buckets.mushroomStem[0], ox, gy + 0.11 * s, oz, rand() * Math.PI * 2, 0, 0, s, s, s);
+        pushTransform(buckets.mushroomCap[colorIdx], ox, gy + 0.2 * s, oz, rand() * Math.PI * 2, 0, 0, s, s, s);
       }
     }
   }
@@ -262,77 +249,61 @@ export function createFoliage(grid: Grid): THREE.Group {
   group.name = "foliage";
 
   const rockGeo = new THREE.DodecahedronGeometry(0.4, 0);
-  const rockMat = new THREE.MeshStandardMaterial({ roughness: 0.8, metalness: 0.05, vertexColors: true });
-  addInstanced(group, rockGeo, rockMat, buckets.rock, rockColors);
+  rockPalette.forEach((color, idx) => {
+    const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.75, metalness: 0.05 });
+    addInstanced(group, rockGeo, mat, buckets.rock[idx]);
+  });
 
   const crystalGeo = new THREE.OctahedronGeometry(0.22, 0);
-  const crystalMat = new THREE.MeshStandardMaterial({
-    roughness: 0.25,
-    metalness: 0.1,
-    vertexColors: true,
-    emissiveIntensity: 0.9,
-    emissive: new THREE.Color(0xffffff),
+  crystalPalette.forEach((color, idx) => {
+    const mat = new THREE.MeshStandardMaterial({
+      color,
+      roughness: 0.25,
+      metalness: 0.1,
+      emissive: color,
+      emissiveIntensity: 1.1,
+    });
+    addInstanced(group, crystalGeo, mat, buckets.crystal[idx]);
   });
-  crystalMat.onBeforeCompile = (shader) => {
-    // Cheap emissive-follows-albedo trick so each instance glows in its own hue
-    // without needing per-instance emissive attributes.
-    shader.fragmentShader = shader.fragmentShader.replace(
-      "#include <emissivemap_fragment>",
-      "#include <emissivemap_fragment>\n totalEmissiveRadiance = diffuseColor.rgb * 1.1;",
-    );
-  };
-  addInstanced(group, crystalGeo, crystalMat, buckets.crystal, crystalColors);
 
   const trunkGeo = new THREE.CylinderGeometry(0.06, 0.1, 1, 5);
-  const trunkMat = new THREE.MeshStandardMaterial({ color: 0x4a3a30, roughness: 0.9 });
-  addInstanced(group, trunkGeo, trunkMat, buckets.treeTrunk, null);
+  const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5c483a, roughness: 0.9 });
+  addInstanced(group, trunkGeo, trunkMat, buckets.treeTrunk[0]);
 
   const branchGeo = new THREE.CylinderGeometry(0.025, 0.05, 1, 4);
   branchGeo.translate(0, 0.5, 0);
   branchGeo.rotateX(Math.PI / 2);
-  const branchMat = new THREE.MeshStandardMaterial({ color: 0x3d3026, roughness: 0.9 });
-  addInstanced(group, branchGeo, branchMat, buckets.treeBranch, null);
+  const branchMat = new THREE.MeshStandardMaterial({ color: 0x4d3c2e, roughness: 0.9 });
+  addInstanced(group, branchGeo, branchMat, buckets.treeBranch[0]);
 
   const stemGeo = new THREE.CylinderGeometry(0.03, 0.045, 0.22, 6);
   const stemMat = new THREE.MeshStandardMaterial({ color: 0xe7ddc8, roughness: 0.8 });
-  addInstanced(group, stemGeo, stemMat, buckets.mushroomStem, null);
+  addInstanced(group, stemGeo, stemMat, buckets.mushroomStem[0]);
 
   const capGeo = new THREE.SphereGeometry(0.13, 8, 6, 0, Math.PI * 2, 0, Math.PI * 0.5);
   capGeo.translate(0, 0.11, 0);
-  const capMat = new THREE.MeshStandardMaterial({
-    roughness: 0.5,
-    metalness: 0,
-    vertexColors: true,
-    emissive: new THREE.Color(0xffffff),
-    emissiveIntensity: 0.6,
+  mushroomPalette.forEach((color, idx) => {
+    const mat = new THREE.MeshStandardMaterial({
+      color,
+      roughness: 0.5,
+      metalness: 0,
+      emissive: color,
+      emissiveIntensity: 0.7,
+    });
+    addInstanced(group, capGeo, mat, buckets.mushroomCap[idx]);
   });
-  capMat.onBeforeCompile = (shader) => {
-    shader.fragmentShader = shader.fragmentShader.replace(
-      "#include <emissivemap_fragment>",
-      "#include <emissivemap_fragment>\n totalEmissiveRadiance = diffuseColor.rgb * 0.7;",
-    );
-  };
-  addInstanced(group, capGeo, capMat, buckets.mushroomCap, mushroomCapColors);
 
   return group;
 }
 
-function addInstanced(
-  group: THREE.Group,
-  geometry: THREE.BufferGeometry,
-  material: THREE.Material,
-  matrices: THREE.Matrix4[],
-  colors: THREE.Color[] | null,
-) {
+function addInstanced(group: THREE.Group, geometry: THREE.BufferGeometry, material: THREE.Material, matrices: THREE.Matrix4[]) {
   if (matrices.length === 0) return;
   const mesh = new THREE.InstancedMesh(geometry, material, matrices.length);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
   for (let i = 0; i < matrices.length; i++) {
     mesh.setMatrixAt(i, matrices[i]);
-    if (colors) mesh.setColorAt(i, colors[i]);
   }
   mesh.instanceMatrix.needsUpdate = true;
-  if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
   group.add(mesh);
 }

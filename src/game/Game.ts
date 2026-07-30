@@ -96,6 +96,7 @@ export class Game {
 
   private tickables: THREE.Object3D[] = [];
   private cellMarkers: THREE.Mesh[] = [];
+  private buildRings: THREE.Mesh[] = [];
 
   private towers: TowerInstance[] = [];
   private enemies: EnemyInstance[] = [];
@@ -208,13 +209,20 @@ export class Game {
   // -------------------------------------------------------------------
 
   private addBuildableMarkers() {
+    // Rings default to hidden — with ~190 buildable cells on this map,
+    // showing every ring at all times reads as a wall-to-wall checkerboard
+    // that drowns out the path/terrain and makes towers/enemies harder to
+    // read in motion. Instead they only light up while a tower is armed for
+    // placement (see setBuildRingsVisible), matching the "show placement
+    // options on demand" convention most TD games use (Kingdom Rush, BTD6).
     const ringGeo = new THREE.RingGeometry(0.55, 0.7, 24);
     ringGeo.rotateX(-Math.PI / 2);
     const ringMat = new THREE.MeshBasicMaterial({
       color: 0xffd27a,
       transparent: true,
-      opacity: 0.35,
+      opacity: 0.55,
       side: THREE.DoubleSide,
+      depthWrite: false,
     });
 
     const hitGeo = new THREE.CircleGeometry(0.95, 16);
@@ -227,7 +235,9 @@ export class Game {
 
       const ring = new THREE.Mesh(ringGeo, ringMat);
       ring.position.set(wx, 0.06, wz);
+      ring.visible = false;
       this.scene.add(ring);
+      this.buildRings.push(ring);
 
       const hitArea = new THREE.Mesh(hitGeo, hitMat);
       hitArea.position.set(wx, 0.06, wz);
@@ -235,6 +245,10 @@ export class Game {
       this.scene.add(hitArea);
       this.cellMarkers.push(hitArea);
     }
+  }
+
+  private setBuildRingsVisible(visible: boolean) {
+    for (const ring of this.buildRings) ring.visible = visible;
   }
 
   // -------------------------------------------------------------------
@@ -245,10 +259,12 @@ export class Game {
     if (this.armedTowerDefId === tower.id) {
       this.armedTowerDefId = null;
       this.shop.setSelected(null);
+      this.setBuildRingsVisible(false);
       return;
     }
     this.armedTowerDefId = tower.id;
     this.shop.setSelected(tower.id);
+    this.setBuildRingsVisible(true);
     this.clearSelection();
   }
 
@@ -309,6 +325,7 @@ export class Game {
 
     this.armedTowerDefId = null;
     this.shop.setSelected(null);
+    this.setBuildRingsVisible(false);
   }
 
   private toggleTowerSelection(towerId: string) {
