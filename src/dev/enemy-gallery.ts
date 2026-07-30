@@ -106,6 +106,15 @@ const entries = ENEMY_REGISTRY.map((def, i) => {
   pivot.add(model.group);
   scene.add(pivot);
 
+  // The "targetHeight" we normalized to is a nominal figure — some models
+  // (e.g. a cloak that fans out much wider than the creature is tall) end
+  // up with a true rendered footprint bigger than that nominal height in
+  // some other axis. Measure the ACTUAL final bounding sphere so the focus
+  // camera backs off enough regardless of which axis turned out largest.
+  pivot.updateWorldMatrix(true, true);
+  box.setFromObject(pivot);
+  const boundingSphere = box.getBoundingSphere(new THREE.Sphere());
+
   const label = document.createElement("div");
   label.className = "label";
   label.textContent = `${def.name}${def.isBoss ? " (BOSS)" : ""}`;
@@ -121,6 +130,7 @@ const entries = ENEMY_REGISTRY.map((def, i) => {
     label,
     displayHeight: targetHeight,
     midHeight: 0.16 + actualHeight * 0.5,
+    boundingRadius: boundingSphere.radius,
   };
 });
 
@@ -152,9 +162,10 @@ overview();
 function focus(i: number) {
   const e = entries[i];
   if (!e) return;
-  const h = e.displayHeight;
-  const dist = h * 1.35 + 0.9;
-  camera.position.set(e.slotX + dist * 0.55, e.midHeight + h * 0.2, e.slotZ + dist * 0.85);
+  const r = e.boundingRadius;
+  const vFov = THREE.MathUtils.degToRad(camera.fov);
+  const dist = (r / Math.sin(vFov / 2)) * 1.1 + 0.3;
+  camera.position.set(e.slotX + dist * 0.55, e.midHeight + r * 0.25, e.slotZ + dist * 0.85);
   camera.lookAt(e.slotX, e.midHeight, e.slotZ);
 }
 

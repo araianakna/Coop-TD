@@ -529,13 +529,13 @@ function buildCinderling(): EnemyModel {
 
   const body = addPart(
     group,
-    new THREE.Mesh(jaggedIcosahedron(0.28, 1, 0.06, "cinderling-body"), rockMat),
+    new THREE.Mesh(jaggedIcosahedron(0.28, 1, 0.03, "cinderling-body"), rockMat),
     [0, 0.62, 0.02],
     [0.15, 0, 0],
   );
   const head = addPart(
     group,
-    new THREE.Mesh(jaggedIcosahedron(0.17, 1, 0.04, "cinderling-head"), rockMat),
+    new THREE.Mesh(jaggedIcosahedron(0.17, 1, 0.02, "cinderling-head"), rockMat),
     [0, 0.86, 0.16],
   );
 
@@ -543,12 +543,20 @@ function buildCinderling(): EnemyModel {
   addPart(group, new THREE.Mesh(hornGeo, rockMat), [0.08, 0.95, 0.1], [-0.3, 0, 0.2]);
   addPart(group, new THREE.Mesh(hornGeo, rockMat), [-0.08, 0.95, 0.1], [-0.3, 0, -0.2]);
 
-  const crackGeo = new THREE.BoxGeometry(0.045, 0.22, 0.045);
+  // Cracks are oriented along their own outward radial direction (instead
+  // of sharing one fixed tilt) so they read as fissures radiating from the
+  // body instead of crossing through each other into a starburst.
+  const crackGeo = new THREE.BoxGeometry(0.045, 0.2, 0.045);
   const cracks: THREE.Mesh[] = [];
+  const crackUp = new THREE.Vector3(0, 1, 0);
   for (let i = 0; i < 6; i++) {
     const a = (i / 6) * Math.PI * 2;
+    const outward = new THREE.Vector3(Math.sin(a), 0.35, Math.cos(a)).normalize();
     const c = new THREE.Mesh(crackGeo, crackMat);
-    addPart(group, c, [Math.sin(a) * 0.22, 0.55 + (i % 2) * 0.1, 0.02 + Math.cos(a) * 0.2], [0, a, Math.PI / 5]);
+    c.position.set(outward.x * 0.2, 0.55 + outward.y * 0.16, 0.02 + outward.z * 0.2);
+    c.quaternion.setFromUnitVectors(crackUp, outward);
+    c.castShadow = true;
+    group.add(c);
     cracks.push(c);
   }
 
@@ -618,6 +626,25 @@ function buildQuagbrute(): EnemyModel {
     lumps.push(lump);
   }
 
+  // Dedicated forward "head" lump so the face (eyes/maw below) has a
+  // predictable, mostly-spherical surface to sit on — anchoring a face
+  // directly to the heavily-jittered main ellipsoid buried it completely
+  // (its surface bulges in unpredictable places, and the face ended up
+  // well inside the solid, invisible).
+  const headLumpCenter = { x: 0, y: 0.6, z: 0.62 };
+  const headLumpR = 0.4;
+  const headLump = new THREE.Mesh(
+    jaggedIcosahedron(headLumpR, 1, 0.05, "quagbrute-headlump"),
+    oozeMat,
+  );
+  addPart(group, headLump, [headLumpCenter.x, headLumpCenter.y, headLumpCenter.z]);
+  lumps.push(headLump);
+  function onHeadLump(x: number, y: number): [number, number, number] {
+    const remaining = Math.max(0.05, headLumpR * headLumpR - x * x - y * y);
+    const z = headLumpCenter.z + Math.sqrt(remaining) + 0.02;
+    return [headLumpCenter.x + x, headLumpCenter.y + y, z];
+  }
+
   const sporeGeo = new THREE.SphereGeometry(0.035, 6, 6);
   const sporeMat = glowMat(0xc8ff6a, 0xc8ff6a, 1.6, { roughness: 0.6 });
   const spores: THREE.Mesh[] = [];
@@ -632,13 +659,14 @@ function buildQuagbrute(): EnemyModel {
 
   const eyeGeo = new THREE.SphereGeometry(0.06, 6, 6);
   const eyeMat = glowMat(0xff5a2f, 0xff5a2f, 1.9, { roughness: 0.4 });
-  addPart(group, new THREE.Mesh(eyeGeo, eyeMat), [0.16, 0.62, 0.62]);
-  addPart(group, new THREE.Mesh(eyeGeo, eyeMat), [-0.14, 0.6, 0.6]);
+  addPart(group, new THREE.Mesh(eyeGeo, eyeMat), onHeadLump(0.15, 0.1));
+  addPart(group, new THREE.Mesh(eyeGeo, eyeMat), onHeadLump(-0.15, 0.08));
 
+  const [mawX, mawY, mawZ] = onHeadLump(0, -0.12);
   const maw = addPart(
     group,
-    new THREE.Mesh(new THREE.TorusGeometry(0.14, 0.05, 8, 12, Math.PI), mawMat),
-    [0, 0.42, 0.68],
+    new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.045, 8, 12, Math.PI), mawMat),
+    [mawX, mawY, mawZ - 0.02],
     [0.15, 0, Math.PI],
   );
 
@@ -698,7 +726,10 @@ function buildSandveil(): EnemyModel {
   let currentParent: THREE.Object3D = tailRoot;
   for (let i = 0; i < 4; i++) {
     const pivot = new THREE.Group();
-    pivot.position.set(0, i === 0 ? 0.3 : 0.16, i === 0 ? -0.55 : -0.16);
+    // Inter-segment offsets are kept close to the sum of consecutive
+    // sphere radii so the tail reads as one continuous curl instead of
+    // separated floating beads.
+    pivot.position.set(0, i === 0 ? 0.3 : 0.1, i === 0 ? -0.55 : -0.1);
     const r = 0.09 - i * 0.015;
     const segMesh = new THREE.Mesh(new THREE.SphereGeometry(r, 6, 6), darkMat);
     pivot.add(segMesh);
@@ -736,7 +767,7 @@ function buildSandveil(): EnemyModel {
     segments.forEach((s, i) => (s.rotation.z = Math.sin(elapsed * 8 + i) * 0.06));
     claws.forEach((c, i) => (c.rotation.z = Math.sin(elapsed * 4 + i * 2) * 0.2));
     tailParts.forEach((p, i) => {
-      p.rotation.x = 0.3 + Math.sin(elapsed * 2 + i * 0.6) * 0.25;
+      p.rotation.x = 0.22 + Math.sin(elapsed * 2 + i * 0.6) * 0.14;
     });
     legs.forEach((l, i) => (l.rotation.z += Math.sin(elapsed * 10 + i) * 0.0001));
   }
@@ -754,7 +785,7 @@ function buildCindercolossus(): EnemyModel {
 
   const torso = addPart(
     group,
-    new THREE.Mesh(jaggedIcosahedron(1.3, 2, 0.16, "cindercolossus-torso"), obsidianMat),
+    new THREE.Mesh(jaggedIcosahedron(1.3, 2, 0.09, "cindercolossus-torso"), obsidianMat),
     [0, 1.75, 0],
     [0, 0, 0],
     [1, 1.15, 0.95],
@@ -765,17 +796,23 @@ function buildCindercolossus(): EnemyModel {
     [0, 1.75, 0.05],
   );
 
-  const crackGeo = new THREE.BoxGeometry(0.11, 0.6, 0.11);
+  // Short crack decals oriented along their own outward radial direction
+  // (like the shard/quills technique elsewhere) instead of sharing one
+  // fixed tilt — fixed-tilt cracks planted at different angles around a
+  // round torso converge and cross each other into an ugly starburst from
+  // most camera angles.
+  const crackGeo = new THREE.BoxGeometry(0.09, 0.3, 0.09);
   const cracks: THREE.Mesh[] = [];
+  const crackUp = new THREE.Vector3(0, 1, 0);
   for (let i = 0; i < 8; i++) {
     const a = (i / 8) * Math.PI * 2;
+    const yWobble = Math.cos(i * 1.7) * 0.3;
+    const outward = new THREE.Vector3(Math.sin(a) * 0.85, yWobble, Math.cos(a) * 0.75).normalize();
     const c = new THREE.Mesh(crackGeo, crackMat);
-    addPart(
-      group,
-      c,
-      [Math.sin(a) * 1.0, 1.75 + Math.cos(i * 1.7) * 0.3, Math.cos(a) * 0.9],
-      [0, a, Math.PI / 2.2],
-    );
+    c.position.set(outward.x * 0.85, 1.75 + outward.y * 0.35, outward.z * 0.75);
+    c.quaternion.setFromUnitVectors(crackUp, outward);
+    c.castShadow = true;
+    group.add(c);
     cracks.push(c);
   }
 
