@@ -115,8 +115,10 @@ const labelEls = placed.map((p) => {
 });
 
 // --- Exact default gameplay camera (see src/core/Camera.ts RtsCameraController defaults) ---
+// `dist` is an optional override for close-up debug inspection only — omit
+// it (the normal case) to judge towers at the real default zoom level.
 const FOV = 42;
-const DISTANCE = 34;
+const DISTANCE = Number(params.get("dist") ?? "34");
 const YAW = 0.12;
 const PITCH = 1.02;
 

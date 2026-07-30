@@ -31,8 +31,8 @@ export function buildFireIceTower(tier: 1 | 2 | 3): THREE.Group {
   base.position.y = 0.2;
   group.add(base);
 
-  const rim = shadowed(new THREE.Mesh(ringBand(baseR * 0.94, 0.045, 6, 20), iceCrystal));
-  rim.position.y = 0.34;
+  const rim = shadowed(new THREE.Mesh(ringBand(baseR * 1.12, 0.05, 6, 20), iceCrystal));
+  rim.position.y = 0.06;
   group.add(rim);
 
   // Crystal shell is deliberately short (60% of the total height) so the
@@ -125,7 +125,7 @@ export function buildFireNatureTower(tier: 1 | 2 | 3): THREE.Group {
   for (let i = 0; i < rootEmberCount; i++) {
     const a = (i / rootEmberCount) * Math.PI * 2 + 0.5;
     const ember = new THREE.Mesh(roughRock(0.07, 0, 0.4, i + 3), fireCore);
-    ember.position.set(Math.cos(a) * baseR * 0.8, 0.22, Math.sin(a) * baseR * 0.8);
+    ember.position.set(Math.cos(a) * baseR * 1.05, 0.2, Math.sin(a) * baseR * 1.05);
     applyMotion(ember, { bobAmp: 0.03, bobSpeed: 1.6 + i * 0.2, bobPhase: i });
     group.add(ember);
   }
@@ -174,7 +174,7 @@ export function buildFireEarthTower(tier: 1 | 2 | 3): THREE.Group {
   for (let i = 0; i < dropletCount; i++) {
     const a = (i / dropletCount) * Math.PI * 2 + 0.5;
     const droplet = new THREE.Mesh(roughRock(0.07, 0, 0.4, i + 4), fireCore);
-    droplet.position.set(Math.cos(a) * baseR * 0.82, 0.16, Math.sin(a) * baseR * 0.82);
+    droplet.position.set(Math.cos(a) * baseR * 1.05, 0.16, Math.sin(a) * baseR * 1.05);
     applyMotion(droplet, { bobAmp: 0.025, bobSpeed: 1.3 + i * 0.2, bobPhase: i });
     group.add(droplet);
   }
@@ -218,7 +218,7 @@ export function buildFireArcaneTower(tier: 1 | 2 | 3): THREE.Group {
   for (let i = 0; i < emberCount; i++) {
     const a = (i / emberCount) * Math.PI * 2 + 0.6;
     const ember = new THREE.Mesh(new THREE.IcosahedronGeometry(0.055, 0), fireCore);
-    ember.position.set(Math.cos(a) * discR * 0.85, 0.24, Math.sin(a) * discR * 0.85);
+    ember.position.set(Math.cos(a) * discR * 0.85, 0.2, Math.sin(a) * discR * 0.85);
     applyMotion(ember, { bobAmp: 0.03, bobSpeed: 1.6 + i * 0.2, bobPhase: i });
     group.add(ember);
   }
@@ -488,7 +488,7 @@ export function buildLightningEarthTower(tier: 1 | 2 | 3): THREE.Group {
   for (let i = 0; i < rubbleCount; i++) {
     const a = (i / rubbleCount) * Math.PI * 2 + 0.7;
     const rubble = shadowed(new THREE.Mesh(roughRock(0.12, 0, 0.4, i + 6), stone));
-    rubble.position.set(Math.cos(a) * baseR * 0.85, 0.14, Math.sin(a) * baseR * 0.85);
+    rubble.position.set(Math.cos(a) * baseR * 1.05, 0.14, Math.sin(a) * baseR * 1.05);
     group.add(rubble);
   }
 

@@ -28,25 +28,28 @@ export function buildFireTower(tier: 1 | 2 | 3): THREE.Group {
   base.position.y = 0.19;
   group.add(base);
 
-  const collar = shadowed(new THREE.Mesh(ringBand(baseR * 0.86, 0.045, 6, 20), metal));
-  collar.position.y = 0.3;
-  group.add(collar);
-
   const pillarHeight = 0.85 + tier * 0.17;
   const pillar = shadowed(new THREE.Mesh(plinth(0.17, 0.26, pillarHeight, 8), metal));
   pillar.position.y = 0.32 + pillarHeight / 2;
   group.add(pillar);
 
-  // Grounded ember cluster around the base rim — present from tier 1 so the
-  // pedestal already reads as "burning all over" instead of only the flame
-  // tuft at the very top carrying the whole read.
+  // Banded collar wrapping the pillar's foot (not the noisy rock base, so
+  // it's guaranteed to clear the silhouette instead of risking burial in a
+  // jagged-rock crevice).
+  const collar = shadowed(new THREE.Mesh(ringBand(0.29, 0.055, 6, 20), metal));
+  collar.position.y = 0.32 + pillarHeight * 0.22;
+  group.add(collar);
+
+  // Grounded ember cluster resting just outside the base rock — present
+  // from tier 1 so the pedestal already reads as "burning all over" instead
+  // of only the flame tuft at the very top carrying the whole read.
   const groundEmberCount = 3 + (tier - 1) * 2;
-  const groundEmberGeo = roughRock(0.065, 0, 0.4);
+  const groundEmberGeo = roughRock(0.07, 0, 0.4);
   for (let i = 0; i < groundEmberCount; i++) {
     const ember = new THREE.Mesh(groundEmberGeo, core);
     const a = (i / groundEmberCount) * Math.PI * 2 + 0.4;
-    const r = baseR * 0.82;
-    ember.position.set(Math.cos(a) * r, 0.24, Math.sin(a) * r);
+    const r = baseR * 1.04;
+    ember.position.set(Math.cos(a) * r, 0.2, Math.sin(a) * r);
     applyMotion(ember, { bobAmp: 0.03, bobSpeed: 1.4 + i * 0.2, bobPhase: i * 1.1 });
     group.add(ember);
   }
@@ -115,7 +118,7 @@ export function buildIceTower(tier: 1 | 2 | 3): THREE.Group {
   for (let i = 0; i < knuckleCount; i++) {
     const a = (i / knuckleCount) * Math.PI * 2 + 0.5;
     const knuckle = shadowed(new THREE.Mesh(crystalShard(0.1, 0.22 + (i % 2) * 0.06, 5), crystalMat));
-    knuckle.position.set(Math.cos(a) * baseR * 0.78, 0.2, Math.sin(a) * baseR * 0.78);
+    knuckle.position.set(Math.cos(a) * baseR * 1.18, 0.2, Math.sin(a) * baseR * 1.18);
     group.add(knuckle);
   }
 
@@ -156,8 +159,10 @@ export function buildLightningTower(tier: 1 | 2 | 3): THREE.Group {
   const finCount = 5;
   for (let i = 0; i < finCount; i++) {
     const a = (i / finCount) * Math.PI * 2;
-    const fin = shadowed(new THREE.Mesh(plinth(0.02, 0.11, 0.36, 3), metal));
-    fin.position.set(Math.cos(a) * baseR * 0.92, 0.18, Math.sin(a) * baseR * 0.92);
+    const fin = shadowed(new THREE.Mesh(plinth(0.02, 0.14, 0.4, 3), metal));
+    // Sit clear of the tapered base's outer profile (radiusBottom = baseR *
+    // 1.19) so the fins actually protrude instead of hiding inside it.
+    fin.position.set(Math.cos(a) * baseR * 1.32, 0.16, Math.sin(a) * baseR * 1.32);
     fin.rotation.y = -a;
     group.add(fin);
   }
@@ -217,7 +222,7 @@ export function buildNatureTower(tier: 1 | 2 | 3): THREE.Group {
     const a = (i / rootCount) * Math.PI * 2 + 0.3;
     const root = shadowed(new THREE.Mesh(roughRock(0.14, 0, 0.5, i + 2), wood));
     root.scale.set(1.6, 0.5, 0.9);
-    root.position.set(Math.cos(a) * baseR * 0.75, 0.16, Math.sin(a) * baseR * 0.75);
+    root.position.set(Math.cos(a) * baseR * 1.0, 0.16, Math.sin(a) * baseR * 1.0);
     root.rotation.y = -a;
     group.add(root);
   }
@@ -280,7 +285,7 @@ export function buildEarthTower(tier: 1 | 2 | 3): THREE.Group {
   for (let i = 0; i < rubbleCount; i++) {
     const a = (i / rubbleCount) * Math.PI * 2 + 0.6;
     const rubble = shadowed(new THREE.Mesh(roughRock(0.13, 0, 0.5, i + 6), stone));
-    rubble.position.set(Math.cos(a) * baseR * 0.82, 0.14, Math.sin(a) * baseR * 0.82);
+    rubble.position.set(Math.cos(a) * baseR * 1.05, 0.14, Math.sin(a) * baseR * 1.05);
     group.add(rubble);
     const crack = new THREE.Mesh(roughRock(0.13 * 1.05, 0, 0.5, i + 6), core);
     crack.position.copy(rubble.position);
