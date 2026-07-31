@@ -1021,6 +1021,10 @@ const earthArcaneTower: TowerDef = {
 // Costs step up sharply from a single fusion (tier-1 ~250-280 for a base
 // fusion vs. ~600-660 here) to reflect that a Grand Fusion consumes a whole
 // fusion tower plus a base tower's worth of investment.
+//
+// As of the third curation pass (see further down this section) all 20 of
+// the C(6,3) = 20 possible element triads have a Grand Fusion tower defined.
+// The matrix is combinatorially complete — there is no 21st triad to add.
 // ---------------------------------------------------------------------------
 
 const fireIceLightningTower: TowerDef = {
@@ -1499,6 +1503,327 @@ const fireNatureArcaneTower: TowerDef = {
 };
 
 // ---------------------------------------------------------------------------
+// Grand Fusion towers, third curation pass — the final 8 triads, completing
+// all C(6,3) = 20 possible element combinations. Same conventions throughout
+// (buildTiers/makeAbility, isFusion: true, `element` set to the PARENT
+// fusion's pair, id/vfx ids joined in ELEMENTS order). See
+// GrandFusionMatrix.ts for the parent-fusion+third-element path chosen for
+// each of these 8, and why.
+// ---------------------------------------------------------------------------
+
+const fireIceEarthTower: TowerDef = {
+  id: "tower_fire_ice_earth",
+  name: "Cinderglass Crucible",
+  element: "ice+earth",
+  isFusion: true,
+  flavorText:
+    "The glacier bastion's frozen heart has cracked open around a molten crucible — rock, ice, and fire fused into scalding cinderglass that never fully cools.",
+  tiers: buildTiers(
+    { damage: 48, range: 5.2, fireRateMs: 1300, projectileSpeed: 11, splashRadius: 2.15 },
+    [650, 1340, 2650],
+    [1, 1.25, 1.55],
+    [
+      "A crack has split the rampart's ice core, molten crucible-glass pooling within the fracture.",
+      "The fracture has widened into a true crucible, glowing cinderglass fused seamlessly with rock and ice.",
+      "A colossal cinderglass crucible — glacier, stone, and molten fire locked in one scalding, unmelting mass.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "cinderglass_crucible_ashglass_rupture",
+      name: "Ashglass Rupture",
+      description:
+        "Grand Fusion capstone. Shatters molten cinderglass across the target, chilling it as jagged fire-glass shards embed and burn deep.",
+      cooldownMs: 9200,
+      vfxId: "vfx.fire_ice_earth.ability_ashglass_rupture",
+      statusKind: "chill",
+      statusMagnitude: 0.4,
+      statusDurationMs: 3200,
+      bonusDamage: 52,
+      damageElement: "fire",
+    }),
+  ],
+  targeting: "strongest",
+  projectileVfx: "vfx.fire_ice_earth.projectile",
+  impactVfx: "vfx.fire_ice_earth.impact",
+  idleVfx: "vfx.fire_ice_earth.idle",
+  modelId: "tower_fire_ice_earth",
+};
+
+const fireIceArcaneTower: TowerDef = {
+  id: "tower_fire_ice_arcane",
+  name: "Scaldweave Reliquary",
+  element: "ice+arcane",
+  isFusion: true,
+  flavorText:
+    "The frostweave loom's threads have been rewoven with captive flame — a floating reliquary where scalding fire, living ice, and rune-light twist through each other in eternal contradiction.",
+  tiers: buildTiers(
+    { damage: 28, range: 7.0, fireRateMs: 620, projectileSpeed: 24, critChance: 0.32, critMultiplier: 2.35 },
+    [660, 1360, 2690],
+    [1, 1.22, 1.5],
+    [
+      "A single burning thread now runs through the loom's woven ice, glowing faintly amid the frost.",
+      "Flame has spread through half the weave, scalding light bleeding through cracked ice threads.",
+      "A true reliquary of contradiction — fire, ice, and rune-light woven into one incandescent, unmelting tapestry.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "scaldweave_reliquary_unweaving_flare",
+      name: "Unweaving Flare",
+      description:
+        "Grand Fusion capstone. Unravels the target's defenses into silence, then scalds it with a burst of the reliquary's captive fire.",
+      cooldownMs: 8800,
+      vfxId: "vfx.fire_ice_arcane.ability_unweaving_flare",
+      statusKind: "silence",
+      statusMagnitude: 1,
+      statusDurationMs: 2800,
+      bonusDamage: 48,
+      damageElement: "fire",
+    }),
+  ],
+  targeting: "first",
+  projectileVfx: "vfx.fire_ice_arcane.projectile",
+  impactVfx: "vfx.fire_ice_arcane.impact",
+  idleVfx: "vfx.fire_ice_arcane.idle",
+  modelId: "tower_fire_ice_arcane",
+};
+
+const fireLightningNatureTower: TowerDef = {
+  id: "tower_fire_lightning_nature",
+  name: "Thornfire Maelstrom",
+  element: "fire+nature",
+  isFusion: true,
+  flavorText:
+    "The wildfire warden's burning boughs have been seized by a storm of their own making — thorned branches lash with lightning even as they burn, a maelstrom that never consumes itself.",
+  tiers: buildTiers(
+    { damage: 32, range: 6.2, fireRateMs: 460, projectileSpeed: 17, splashRadius: 1.5 },
+    [625, 1290, 2560],
+    [1, 1.24, 1.53],
+    [
+      "A single storm-thorn has sprouted from the burning trunk, sparking amid the flame.",
+      "Lightning now chases the fire up every burning branch, thorns snapping with static discharge.",
+      "A maelstrom given living shape — every burning branch a torch, every thorn a lightning rod.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "thornfire_maelstrom_thornstrike_inferno",
+      name: "Thornstrike Inferno",
+      description:
+        "Grand Fusion capstone. Lashes the target with burning storm-thorns, igniting it before a heavy lightning surge detonates through the burn.",
+      cooldownMs: 9700,
+      vfxId: "vfx.fire_lightning_nature.ability_thornstrike_inferno",
+      statusKind: "burn",
+      statusMagnitude: 9,
+      statusDurationMs: 4200,
+      bonusDamage: 46,
+      damageElement: "lightning",
+    }),
+  ],
+  targeting: "strongest",
+  projectileVfx: "vfx.fire_lightning_nature.projectile",
+  impactVfx: "vfx.fire_lightning_nature.impact",
+  idleVfx: "vfx.fire_lightning_nature.idle",
+  modelId: "tower_fire_lightning_nature",
+};
+
+const fireEarthArcaneTower: TowerDef = {
+  id: "tower_fire_earth_arcane",
+  name: "Moltenglyph Cauldron",
+  element: "fire+earth",
+  isFusion: true,
+  flavorText:
+    "The magma forge's molten heart has been bound inside a rune-carved cauldron — arcane glyphs channel the boiling rock into a controlled, ever-hungry brew of liquid stone and fire.",
+  tiers: buildTiers(
+    { damage: 50, range: 5.2, fireRateMs: 1250, projectileSpeed: 12, splashRadius: 2.2 },
+    [645, 1330, 2630],
+    [1, 1.27, 1.58],
+    [
+      "A single glyph now rings the molten boulder stack, faintly containing its glow.",
+      "Two glyph rings channel the boiling rock into a cauldron shape, runes bright against the magma.",
+      "A true rune-cauldron — molten stone churns endlessly within a lattice of blazing arcane containment.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "moltenglyph_cauldron_sigilbound_boil",
+      name: "Sigilbound Boil",
+      description:
+        "Grand Fusion capstone. Cracks the target's defenses with a sundering rune-shockwave, then floods the wound with boiling arcane-charged magma.",
+      cooldownMs: 10200,
+      vfxId: "vfx.fire_earth_arcane.ability_sigilbound_boil",
+      statusKind: "sunder",
+      statusMagnitude: 0.34,
+      statusDurationMs: 4500,
+      bonusDamage: 60,
+      damageElement: "earth",
+    }),
+  ],
+  targeting: "strongest",
+  projectileVfx: "vfx.fire_earth_arcane.projectile",
+  impactVfx: "vfx.fire_earth_arcane.impact",
+  idleVfx: "vfx.fire_earth_arcane.idle",
+  modelId: "tower_fire_earth_arcane",
+};
+
+const iceLightningNatureTower: TowerDef = {
+  id: "tower_ice_lightning_nature",
+  name: "Rimethorn Cyclone",
+  element: "lightning+nature",
+  isFusion: true,
+  flavorText:
+    "The thornstorm totem's living storm cloud has curdled into a cyclone of ice — frozen thorns spark and arc within a whirling shell of frost and static.",
+  tiers: buildTiers(
+    { damage: 22, range: 6.4, fireRateMs: 340, projectileSpeed: 26 },
+    [610, 1260, 2500],
+    [1, 1.23, 1.5],
+    [
+      "A thin rime has crept over the totem's sparking thorns, frost and static crackling together.",
+      "A whirling shell of ice has formed around the totem, thorns arcing visibly beneath it.",
+      "A full cyclone of frost and current — every thorn frozen, sparking, and locked in ceaseless whirling motion.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "rimethorn_cyclone_hoarfrost_torrent",
+      name: "Hoarfrost Torrent",
+      description:
+        "Grand Fusion capstone. Locks the target in a whirling shell of ice, then drives a lightning surge through the frozen cage.",
+      cooldownMs: 8600,
+      vfxId: "vfx.ice_lightning_nature.ability_hoarfrost_torrent",
+      statusKind: "freeze",
+      statusMagnitude: 1,
+      statusDurationMs: 2100,
+      bonusDamage: 36,
+      damageElement: "lightning",
+    }),
+  ],
+  targeting: "closest",
+  projectileVfx: "vfx.ice_lightning_nature.projectile",
+  impactVfx: "vfx.ice_lightning_nature.impact",
+  idleVfx: "vfx.ice_lightning_nature.idle",
+  modelId: "tower_ice_lightning_nature",
+};
+
+const iceLightningEarthTower: TowerDef = {
+  id: "tower_ice_lightning_earth",
+  name: "Glacequake Redoubt",
+  element: "lightning+earth",
+  isFusion: true,
+  flavorText:
+    "The seismic coil's fault-cracked pillar has frozen solid mid-tremor — each quake now shatters through solid ice in cascading, storm-charged shockwaves from this glacial redoubt.",
+  tiers: buildTiers(
+    { damage: 40, range: 5.4, fireRateMs: 880, projectileSpeed: 14, splashRadius: 2.0 },
+    [640, 1320, 2610],
+    [1, 1.26, 1.56],
+    [
+      "Frost has crept into the pillar's fault-lines, ice creaking against the coil's current.",
+      "The whole pillar has frozen mid-tremor, cracks of ice and lightning locked together.",
+      "A glacial redoubt — a frozen seismic pillar that shatters ice in every direction with each thunderous quake.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "glacequake_redoubt_shattering_upheaval",
+      name: "Shattering Upheaval",
+      description:
+        "Grand Fusion capstone. Cracks the earth beneath the target in a frozen shockwave, sundering its armor and driving jagged ice shrapnel through the wound.",
+      cooldownMs: 9800,
+      vfxId: "vfx.ice_lightning_earth.ability_shattering_upheaval",
+      statusKind: "sunder",
+      statusMagnitude: 0.33,
+      statusDurationMs: 4300,
+      bonusDamage: 54,
+      damageElement: "ice",
+    }),
+  ],
+  targeting: "strongest",
+  projectileVfx: "vfx.ice_lightning_earth.projectile",
+  impactVfx: "vfx.ice_lightning_earth.impact",
+  idleVfx: "vfx.ice_lightning_earth.idle",
+  modelId: "tower_ice_lightning_earth",
+};
+
+const iceEarthArcaneTower: TowerDef = {
+  id: "tower_ice_earth_arcane",
+  name: "Frostbound Ossuary",
+  element: "earth+arcane",
+  isFusion: true,
+  flavorText:
+    "The runeforge monolith has been sealed in eternal frost — an ossuary of rune-riveted stone where ancient forge-glyphs glow faintly beneath a shell of unmelting ice.",
+  tiers: buildTiers(
+    { damage: 44, range: 6.0, fireRateMs: 900, projectileSpeed: 16, critChance: 0.26, critMultiplier: 2.2 },
+    [635, 1310, 2600],
+    [1, 1.25, 1.55],
+    [
+      "A thin rime has crept across the slab's glyphs, ice creeping into every rivet.",
+      "The slab is now half-sheathed in ice, glyphs glowing dimly beneath the frozen shell.",
+      "A true ossuary of frost and rune — the monolith fully sealed in ice, ancient glyphs still burning on beneath it.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "frostbound_ossuary_glacial_epitaph",
+      name: "Glacial Epitaph",
+      description:
+        "Grand Fusion capstone. Seals the target in rune-warded ice, freezing it solid as arcane force gouges through the crystalline shell.",
+      cooldownMs: 9300,
+      vfxId: "vfx.ice_earth_arcane.ability_glacial_epitaph",
+      statusKind: "freeze",
+      statusMagnitude: 1,
+      statusDurationMs: 2400,
+      bonusDamage: 38,
+      damageElement: "earth",
+    }),
+  ],
+  targeting: "last",
+  projectileVfx: "vfx.ice_earth_arcane.projectile",
+  impactVfx: "vfx.ice_earth_arcane.impact",
+  idleVfx: "vfx.ice_earth_arcane.idle",
+  modelId: "tower_ice_earth_arcane",
+};
+
+const lightningNatureArcaneTower: TowerDef = {
+  id: "tower_lightning_nature_arcane",
+  name: "Bramblecharge Conclave",
+  element: "lightning+arcane",
+  isFusion: true,
+  flavorText:
+    "The arcflux spire's sleek conduit has been consumed by storm-charged bramble — living vines conduct the current now, gathering into a conclave where lightning and living wood are inseparable.",
+  tiers: buildTiers(
+    { damage: 24, range: 6.8, fireRateMs: 300, projectileSpeed: 27, critChance: 0.26, critMultiplier: 2.1 },
+    [655, 1350, 2670],
+    [1, 1.24, 1.52],
+    [
+      "A single living bramble has taken root at the spire's base, sparking faintly where vine meets metal.",
+      "Brambles now climb half the spire, storm-charged thorns replacing the coil rings entirely.",
+      "A true conclave — the spire fully consumed by living, storm-charged bramble, current and growth inseparable.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "bramblecharge_conclave_wyldcurrent_snare",
+      name: "Wyldcurrent Snare",
+      description:
+        "Grand Fusion capstone. Binds the target in storm-charged brambles, rooting it in place while raw current arcs through the living vines.",
+      cooldownMs: 8900,
+      vfxId: "vfx.lightning_nature_arcane.ability_wyldcurrent_snare",
+      statusKind: "root",
+      statusMagnitude: 1,
+      statusDurationMs: 3000,
+      bonusDamage: 34,
+      damageElement: "lightning",
+    }),
+  ],
+  targeting: "weakest",
+  projectileVfx: "vfx.lightning_nature_arcane.projectile",
+  impactVfx: "vfx.lightning_nature_arcane.impact",
+  idleVfx: "vfx.lightning_nature_arcane.idle",
+  modelId: "tower_lightning_nature_arcane",
+};
+
+// ---------------------------------------------------------------------------
 // Public registry
 // ---------------------------------------------------------------------------
 
@@ -1536,6 +1861,14 @@ const ALL_TOWERS: TowerDef[] = [
   natureEarthArcaneTower,
   lightningNatureEarthTower,
   fireNatureArcaneTower,
+  fireIceEarthTower,
+  fireIceArcaneTower,
+  fireLightningNatureTower,
+  fireEarthArcaneTower,
+  iceLightningNatureTower,
+  iceLightningEarthTower,
+  iceEarthArcaneTower,
+  lightningNatureArcaneTower,
 ];
 
 export const TOWER_REGISTRY: Map<string, TowerDef> = new Map(ALL_TOWERS.map((t) => [t.id, t]));

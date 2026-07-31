@@ -25,16 +25,24 @@ import {
   buildNatureEarthTower,
 } from "./models/fusionModels";
 import {
+  buildFireEarthArcaneTower,
+  buildFireIceArcaneTower,
+  buildFireIceEarthTower,
   buildFireIceLightningTower,
   buildFireIceNatureTower,
   buildFireLightningArcaneTower,
   buildFireLightningEarthTower,
+  buildFireLightningNatureTower,
   buildFireNatureArcaneTower,
   buildFireNatureEarthTower,
+  buildIceEarthArcaneTower,
   buildIceLightningArcaneTower,
+  buildIceLightningEarthTower,
+  buildIceLightningNatureTower,
   buildIceNatureArcaneTower,
   buildIceNatureEarthTower,
   buildLightningEarthArcaneTower,
+  buildLightningNatureArcaneTower,
   buildLightningNatureEarthTower,
   buildNatureEarthArcaneTower,
 } from "./models/grandFusionModels";
@@ -92,6 +100,19 @@ const MODEL_BUILDERS: Record<string, ModelBuilder> = {
   tower_nature_earth_arcane: buildNatureEarthArcaneTower,
   tower_lightning_nature_earth: buildLightningNatureEarthTower,
   tower_fire_nature_arcane: buildFireNatureArcaneTower,
+
+  // Grand Fusion towers, third curation pass — the final 8 triads,
+  // completing all C(6,3) = 20 possible element combinations (see
+  // GrandFusionMatrix.ts and TowerRegistry.ts's Grand Fusion section for the
+  // recipes/rationale).
+  tower_fire_ice_earth: buildFireIceEarthTower,
+  tower_fire_ice_arcane: buildFireIceArcaneTower,
+  tower_fire_lightning_nature: buildFireLightningNatureTower,
+  tower_fire_earth_arcane: buildFireEarthArcaneTower,
+  tower_ice_lightning_nature: buildIceLightningNatureTower,
+  tower_ice_lightning_earth: buildIceLightningEarthTower,
+  tower_ice_earth_arcane: buildIceEarthArcaneTower,
+  tower_lightning_nature_arcane: buildLightningNatureArcaneTower,
 };
 
 /**
