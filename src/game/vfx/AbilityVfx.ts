@@ -557,7 +557,7 @@ export class AbilityVfx {
     const pal = ELEMENT_PALETTES.lightning;
     const center = v3(pos);
     seq.addFlash(new Flash(this.scene, pos, pal.core, pal.rim, 0.7, 0.12));
-    addArcWeb(this.scene, seq, center, pal.core, 6, 1.1, pos[1], 0.32);
+    addArcWeb(this.scene, seq, center, pal.core, 6, 1.1, pos[1], 0.55);
     const sparks = new ParticleSystem(this.scene, {
       colorStart: pal.core,
       colorEnd: pal.mid,
@@ -720,7 +720,7 @@ export class AbilityVfx {
     const center = v3(pos);
     const hot = pa.core.clone().lerp(pb.core, 0.4);
     seq.addFlash(new Flash(this.scene, pos, hot, pb.rim, 0.85, 0.14));
-    addArcWeb(this.scene, seq, center, hot, 5, 1.3, pos[1], 0.3);
+    addArcWeb(this.scene, seq, center, hot, 5, 1.3, pos[1], 0.55);
     const embers = new ParticleSystem(this.scene, {
       colorStart: pa.core,
       colorEnd: pa.edge,
@@ -937,7 +937,7 @@ export class AbilityVfx {
     seq.addRing(new ExpandingRing(this.scene, pos, pa.mid, 1.1, 0.4, 0.7));
     seq.scheduleAt(0.32, () => {
       seq.addFlash(new Flash(this.scene, pos, pb.core, pb.rim, 0.9, 0.12));
-      addArcWeb(this.scene, seq, center, pb.core, 6, 1.2, pos[1], 0.24);
+      addArcWeb(this.scene, seq, center, pb.core, 6, 1.2, pos[1], 0.5);
       const shatter = new ParticleSystem(this.scene, {
         colorStart: pb.core,
         colorEnd: pa.core,
@@ -1129,7 +1129,7 @@ export class AbilityVfx {
         const end = new THREE.Vector3(center.x + Math.cos(angle) * dist, pos[1] + 0.4, center.z + Math.sin(angle) * dist);
         const ctrl = center.clone().lerp(end, 0.5).add(new THREE.Vector3(0, 0.5, 0));
         const pts = curvePoints(center, ctrl, end, 8);
-        seq.addEffect(new LineFx(this.scene, pts, blend, { growDuration: 0.06, holdDuration: 0.05, fadeDuration: 0.18, opacity: 0.95, colorMultiplier: 2.0 }));
+        seq.addEffect(new LineFx(this.scene, pts, blend, { growDuration: 0.09, holdDuration: 0.16, fadeDuration: 0.3, opacity: 0.95, colorMultiplier: 2.0 }));
         const tip = new ParticleSystem(this.scene, {
           colorStart: pa.core,
           colorEnd: pb.mid,
