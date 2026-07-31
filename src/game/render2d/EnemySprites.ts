@@ -213,14 +213,26 @@ function line(pc: PixelCanvas, x0: number, y0: number, x1: number, y1: number, c
 function dotEyes(pc: PixelCanvas, cx: number, cy: number, gap: number, r: number, color: string, glow?: string) {
   // Clamp the gap so two eyes never merge into one big blob regardless of
   // what a caller passes — this was a real bug (tiny gap + a wide glow box
-  // rendered as one giant square "visor" instead of two eyes). The glow
-  // halo is alpha-blended (soft aura), not a second flat-color square, so a
-  // bright pupil still reads as a pupil instead of a solid "TV screen".
+  // rendered as one giant square "visor" instead of two eyes). Round pupils
+  // (not flat squares) with an alpha-blended soft halo read as an actual
+  // glowing eye instead of a solid screen-like block.
   gap = Math.max(gap, r + 2.5);
   for (const s of [-1, 1]) {
-    const ex = cx + s * gap;
-    if (glow) pc.rect(ex - r - 1, cy - r - 1, r * 2 + 3, r * 2 + 3, toRgba(glow, 0.45));
-    pc.rect(ex - r, cy - r, r * 2 + 1, r * 2 + 1, color);
+    const ex = Math.round(cx + s * gap);
+    const ey = Math.round(cy);
+    if (glow) {
+      const gr = r + 1;
+      for (let y = -gr; y <= gr; y++) {
+        for (let x = -gr; x <= gr; x++) {
+          if (x * x + y * y <= gr * gr + 0.2) pc.px(ex + x, ey + y, toRgba(glow, 0.5));
+        }
+      }
+    }
+    for (let y = -r; y <= r; y++) {
+      for (let x = -r; x <= r; x++) {
+        if (x * x + y * y <= r * r + 0.2) pc.px(ex + x, ey + y, color);
+      }
+    }
   }
 }
 
@@ -339,8 +351,10 @@ function drawVoltling(pc: PixelCanvas, size: number, frame: 0 | 1, v: EnemyVisua
   const at: Tones = makeTones({ ...v, body: v.accent, bodyDark: darken(v.accent, 0.3) });
   const cx = size / 2;
   const jitter = frame === 1 ? 1 : -1;
-  const cy = size * 0.56;
-  const r = size * 0.15;
+  // deliberately the smallest silhouette in the roster (leaves real empty
+  // margin in the frame) — it's a tiny fast swarmer, not a scaled body
+  const cy = size * 0.6;
+  const r = size * 0.115;
   const spikes: [number, number][] = [
     [cx, cy - r * 1.9],
     [cx - r * 1.7, cy - r * 0.5],
@@ -349,7 +363,7 @@ function drawVoltling(pc: PixelCanvas, size: number, frame: 0 | 1, v: EnemyVisua
     [cx + r * 1.3, cy + r * 1.2],
   ];
   for (const [sx, sy] of spikes) {
-    spike(pc, cx + (sx - cx) * 0.35, cy + (sy - cy) * 0.35, sx + jitter, sy, size * 0.045, at);
+    spike(pc, cx + (sx - cx) * 0.35, cy + (sy - cy) * 0.35, sx + jitter, sy, size * 0.04, at);
   }
   shadedCircle(pc, cx, cy, r, t);
   pc.px(cx, cy - 1, at.shine);
@@ -582,8 +596,11 @@ function drawHollowglacier(pc: PixelCanvas, size: number, frame: 0 | 1, v: Enemy
     }
   }
   shadedEllipse(pc, cx, bodyCy, size * 0.27, size * 0.25, t);
-  // hollow glowing chest core
-  shadedCircle(pc, cx, bodyCy + size * 0.03, size * 0.08, at);
+  // hollow glowing chest core — a dark void ring around a bright pinprick
+  // center so it actually reads as "hollow", not just another highlight
+  shadedCircle(pc, cx, bodyCy + size * 0.04, size * 0.1, { ...t, hi: t.deep, base: t.deep, sh: t.deep, deep: t.deep });
+  pc.rect(cx - 1, bodyCy + size * 0.04 - 1, 3, 3, at.hi);
+  pc.px(cx, bodyCy + size * 0.04, "#ffffff");
   // icicle crown
   for (const s of [-2, -1, 0, 1, 2]) {
     const bx = cx + s * size * 0.06;
