@@ -621,20 +621,12 @@
   100% { filter: brightness(1); }
 }
 
+/* While no gamepad is connected, P2's reticle would otherwise sit as a
+   static ghost cursor dead-center of the playfield, obstructing the view
+   during solo play — so hide it entirely rather than just fading it. It
+   reappears the instant InputManager detects a gamepad. */
 .rw-cursor-p2.rw-cursor-inactive {
-  color: #6b6478;
-  opacity: 0.85;
-}
-.rw-cursor-p2.rw-cursor-inactive .rw-cursor-glyph {
-  filter: none;
-  opacity: 0.5;
-}
-.rw-cursor-p2.rw-cursor-inactive .rw-cursor-glyph path,
-.rw-cursor-p2.rw-cursor-inactive .rw-cursor-glyph circle {
-  stroke-dasharray: 4 3;
-}
-.rw-cursor-p2.rw-cursor-inactive .rw-cursor-tag {
-  background: rgba(10, 6, 16, 0.75);
+  display: none;
 }
 
 .rw-cursor-hint {
@@ -650,10 +642,6 @@
   color: #b9b2c4;
   box-shadow: inset 0 0 0 1px rgba(107, 100, 120, 0.6);
   display: none;
-}
-.rw-cursor-p2.rw-cursor-inactive .rw-cursor-hint {
-  display: block;
-  animation: rw-hint-fade 2.4s ease-in-out infinite;
 }
 @keyframes rw-hint-fade {
   0%, 100% { opacity: 0.55; }
@@ -1052,6 +1040,11 @@
     gap: 8px;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
+    /* Hand horizontal swipes on the strip to the browser's native scroll
+       instead of the page-wide touch-action:none default (see style.css) —
+       paired with the RtsCameraController target filter, this stops the
+       camera from panning underneath while browsing towers. */
+    touch-action: pan-x;
   }
 
   .rw-shop-card {

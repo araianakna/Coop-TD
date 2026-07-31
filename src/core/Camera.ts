@@ -82,6 +82,14 @@ export class RtsCameraController {
 
   private onTouchStart(e: TouchEvent) {
     for (const t of Array.from(e.changedTouches)) {
+      // Touches that land on an interactive UI panel (shop strip, inspector,
+      // fusion panel...) must not also drive the camera underneath — e.g.
+      // swiping the shop list to scroll it would otherwise pan the world at
+      // the same time. Those panels sit inside a pointer-events:none overlay
+      // that only re-enables hit-testing on the panels themselves, so a
+      // touch's target lands inside #rw-ui-root only when it's really over
+      // UI; empty overlay area passes through to the canvas as usual.
+      if (t.target instanceof Element && t.target.closest("#rw-ui-root")) continue;
       this.touches.set(t.identifier, { x: t.clientX, y: t.clientY });
     }
     this.lastPanPoint = null;

@@ -160,6 +160,7 @@ export class Game {
 
     // --- UI layer -----------------------------------------------------
     const uiRoot = document.createElement("div");
+    uiRoot.id = "rw-ui-root";
     uiRoot.style.position = "absolute";
     uiRoot.style.inset = "0";
     uiRoot.style.pointerEvents = "none";
