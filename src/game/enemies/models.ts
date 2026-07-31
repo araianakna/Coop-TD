@@ -775,6 +775,221 @@ function buildSandveil(): EnemyModel {
   return { group, update };
 }
 
+// --- Wave 21+ additions ------------------------------------------------------
+
+function buildWraithguard(): EnemyModel {
+  const group = new THREE.Group();
+  const hullMat = matteMat(0x3a3d47, 0.5, 0.55);
+  const plateMat = matteMat(0x22252f, 0.4, 0.6);
+  const coreMat = glowMat(0x6fe0ff, 0x8fefff, 1.3, { roughness: 0.3, metalness: 0.35 });
+  const eyeMat = glowMat(0xb98fff, 0xb98fff, 2.3, { roughness: 0.3 });
+
+  const torso = addPart(
+    group,
+    new THREE.Mesh(jitter(new THREE.BoxGeometry(0.5, 0.62, 0.34, 3, 3, 2), 0.04, "wraithguard-torso"), hullMat),
+    [0, 1.0, 0],
+  );
+  // Kept small relative to the torso — this is a chest-core glimpsed
+  // through a gap in the plating, not the whole silhouette.
+  const core = addPart(group, new THREE.Mesh(new THREE.IcosahedronGeometry(0.1, 1), coreMat), [0, 1.02, 0.18]);
+  const frontPlate = addPart(
+    group,
+    new THREE.Mesh(jitter(new THREE.BoxGeometry(0.4, 0.5, 0.06, 2, 2, 1), 0.02, "wraithguard-plate-f"), plateMat),
+    [0, 1.05, 0.2],
+    [0.15, 0, 0],
+  );
+  const backPlate = addPart(
+    group,
+    new THREE.Mesh(jitter(new THREE.BoxGeometry(0.42, 0.5, 0.06, 2, 2, 1), 0.02, "wraithguard-plate-b"), plateMat),
+    [0, 1.0, -0.2],
+    [-0.1, 0, 0],
+  );
+
+  const head = addPart(
+    group,
+    new THREE.Mesh(jitter(new THREE.BoxGeometry(0.24, 0.2, 0.22, 2, 2, 2), 0.02, "wraithguard-head"), hullMat),
+    [0, 1.42, 0.05],
+  );
+  const visorGeo = new THREE.BoxGeometry(0.16, 0.03, 0.02);
+  addPart(group, new THREE.Mesh(visorGeo, eyeMat), [0, 1.44, 0.16]);
+
+  // Shoulder pauldrons: bulk that reads as armor plating rather than
+  // musculature, distinguishing this flyer's silhouette from skitterwing's
+  // thin wisp-core.
+  const pauldronGeo = jaggedIcosahedron(0.14, 1, 0.03, "wraithguard-pauldron");
+  const pauldrons: THREE.Mesh[] = [];
+  for (const x of [0.32, -0.32]) {
+    const p = new THREE.Mesh(pauldronGeo, plateMat);
+    addPart(group, p, [x, 1.22, 0], [0, 0, 0], [1, 0.8, 1]);
+    pauldrons.push(p);
+  }
+
+  // Rigid armored hover-vanes (not membrane wings): four angular plates on
+  // pivots arranged like a fan, base-anchored at the torso ring so they
+  // read as mounted machinery rather than flapping flesh.
+  const vaneShape = new THREE.Shape();
+  vaneShape.moveTo(0, 0);
+  vaneShape.lineTo(0.06, 0.5);
+  vaneShape.lineTo(0.22, 0.62);
+  vaneShape.lineTo(0.3, 0.42);
+  vaneShape.lineTo(0.16, 0.1);
+  vaneShape.closePath();
+  const vaneGeo = new THREE.ShapeGeometry(vaneShape);
+  const vaneMat = glowMat(0x2a3040, 0x6fe0ff, 1.2, {
+    roughness: 0.35,
+    metalness: 0.5,
+    transparent: true,
+    opacity: 0.85,
+    side: THREE.DoubleSide,
+  });
+  const vanes: { pivot: THREE.Group; mesh: THREE.Mesh }[] = [];
+  for (let i = 0; i < 4; i++) {
+    const pivot = new THREE.Group();
+    const a = (i / 4) * Math.PI * 2;
+    pivot.position.set(Math.sin(a) * 0.18, 1.05, Math.cos(a) * 0.18);
+    pivot.rotation.y = a;
+    const vane = new THREE.Mesh(vaneGeo, vaneMat);
+    vane.rotation.x = -Math.PI / 2 + 0.15;
+    vane.castShadow = true;
+    pivot.add(vane);
+    group.add(pivot);
+    vanes.push({ pivot, mesh: vane });
+  }
+
+  // Folded clawed legs, dangling — a flyer that doesn't need to run.
+  const legGeo = baseCone(0.035, 0.28, 4);
+  const legPivots: THREE.Group[] = [];
+  for (const x of [0.12, -0.12]) {
+    const pivot = new THREE.Group();
+    pivot.position.set(x, 0.68, 0.05);
+    const leg = new THREE.Mesh(legGeo, hullMat);
+    leg.rotation.x = Math.PI;
+    pivot.add(leg);
+    group.add(pivot);
+    legPivots.push(pivot);
+  }
+
+  function update(_dt: number, elapsed: number) {
+    // Small hover bob only — the model's real height is already baked into
+    // the part positions above (torso/head/etc. sit at their absolute
+    // world-ish y), matching skitterwing's convention. Setting an absolute
+    // ~0.9 offset here (instead of a small delta) previously double-counted
+    // on top of those part heights and launched the whole model upward.
+    group.position.y = Math.sin(elapsed * 1.1) * 0.09;
+    group.rotation.y = Math.sin(elapsed * 0.5) * 0.12;
+    vanes.forEach(({ pivot, mesh }, i) => {
+      pivot.rotation.y += 0.006 + i * 0.0002;
+      mesh.rotation.x = -Math.PI / 2 + 0.15 + Math.sin(elapsed * 2 + i) * 0.08;
+    });
+    (core.material as THREE.MeshStandardMaterial).emissiveIntensity = 1.1 + Math.sin(elapsed * 3) * 0.4;
+    legPivots.forEach((p, i) => (p.rotation.z = Math.sin(elapsed * 1.5 + i) * 0.08));
+    head.rotation.y = Math.sin(elapsed * 0.8) * 0.1;
+    void torso;
+    void frontPlate;
+    void backPlate;
+    void pauldrons;
+  }
+
+  return { group, update };
+}
+
+function buildRuneshell(): EnemyModel {
+  const group = new THREE.Group();
+  const stoneMat = matteMat(0x5a5f6b, 0.75, 0.15);
+  const darkStoneMat = matteMat(0x3a3e47, 0.75, 0.15);
+  const runeMat = glowMat(0x8a6fff, 0xb08fff, 2.0, { roughness: 0.35, metalness: 0.25 });
+  const eyeMat = glowMat(0xd6b8ff, 0xd6b8ff, 2.2, { roughness: 0.3 });
+
+  const legGeo = new THREE.CylinderGeometry(0.09, 0.11, 0.36, 6);
+  const legPivots: THREE.Group[] = [];
+  for (const [x, z] of [
+    [0.22, 0.18],
+    [-0.22, 0.18],
+    [0.22, -0.18],
+    [-0.22, -0.18],
+  ] as [number, number][]) {
+    const pivot = new THREE.Group();
+    pivot.position.set(x, 0.36, z);
+    const leg = new THREE.Mesh(legGeo, darkStoneMat);
+    leg.position.y = -0.18;
+    leg.castShadow = true;
+    pivot.add(leg);
+    group.add(pivot);
+    legPivots.push(pivot);
+  }
+
+  const torso = addPart(
+    group,
+    new THREE.Mesh(jitter(new THREE.BoxGeometry(0.62, 0.5, 0.5, 3, 3, 3), 0.05, "runeshell-torso"), stoneMat),
+    [0, 0.72, 0],
+  );
+  const head = addPart(
+    group,
+    new THREE.Mesh(jitter(new THREE.BoxGeometry(0.26, 0.2, 0.24, 2, 2, 2), 0.02, "runeshell-head"), darkStoneMat),
+    [0, 1.06, 0.06],
+  );
+  const eyeGeo = new THREE.BoxGeometry(0.2, 0.035, 0.02);
+  addPart(group, new THREE.Mesh(eyeGeo, eyeMat), [0, 1.08, 0.19]);
+
+  const pauldronGeo = jitter(new THREE.BoxGeometry(0.22, 0.2, 0.24, 2, 2, 2), 0.02, "runeshell-pauldron");
+  const pauldrons: THREE.Mesh[] = [];
+  for (const x of [0.4, -0.4]) {
+    const p = new THREE.Mesh(pauldronGeo, darkStoneMat);
+    addPart(group, p, [x, 0.92, 0]);
+    pauldrons.push(p);
+  }
+
+  const armGeo = new THREE.CylinderGeometry(0.07, 0.08, 0.34, 6);
+  const armPivots: THREE.Group[] = [];
+  for (const x of [0.4, -0.4]) {
+    const pivot = new THREE.Group();
+    pivot.position.set(x, 0.78, 0);
+    const arm = new THREE.Mesh(armGeo, stoneMat);
+    arm.position.y = -0.17;
+    arm.castShadow = true;
+    pivot.add(arm);
+    group.add(pivot);
+    armPivots.push(pivot);
+  }
+
+  // Ward-sigil plates: small emissive quads oriented along their own
+  // outward normal (same technique as the crack decals elsewhere in this
+  // file) so they read as inscriptions wrapping the shell instead of a
+  // single decal slapped flat on one face.
+  const runeGeo = new THREE.BoxGeometry(0.1, 0.1, 0.015);
+  const runeUp = new THREE.Vector3(0, 0, 1);
+  const runeSpecs: [number, number, number, number, number, number][] = [
+    [0, 0.78, 0.26, 0, 0, 1],
+    [0.18, 0.78, 0.2, 0.6, 0, 0.6],
+    [-0.18, 0.78, 0.2, -0.6, 0, 0.6],
+    [0, 0.6, -0.26, 0, 0, -1],
+    [0.32, 0.92, 0.13, 1, 0, 0.2],
+    [-0.32, 0.92, 0.13, -1, 0, 0.2],
+  ];
+  const runes: THREE.Mesh[] = [];
+  for (const [x, y, z, nx, ny, nz] of runeSpecs) {
+    const rune = new THREE.Mesh(runeGeo, runeMat);
+    rune.position.set(x, y, z);
+    rune.quaternion.setFromUnitVectors(runeUp, new THREE.Vector3(nx, ny, nz).normalize());
+    group.add(rune);
+    runes.push(rune);
+  }
+
+  function update(_dt: number, elapsed: number) {
+    const stomp = Math.abs(Math.sin(elapsed * 1.6));
+    group.position.y = stomp * 0.025;
+    legPivots.forEach((p, i) => (p.rotation.x = Math.sin(elapsed * 1.6 + i * Math.PI * 0.5) * 0.1));
+    armPivots.forEach((p, i) => (p.rotation.x = Math.sin(elapsed * 1.6 + i * Math.PI + Math.PI) * 0.08));
+    head.rotation.y = Math.sin(elapsed * 0.5) * 0.08;
+    const pulse = 1.5 + Math.sin(elapsed * 2.2) * 0.9;
+    for (const r of runes) (r.material as THREE.MeshStandardMaterial).emissiveIntensity = pulse;
+    void torso;
+    void pauldrons;
+  }
+
+  return { group, update };
+}
+
 // --- Bosses -----------------------------------------------------------------
 
 function buildCindercolossus(): EnemyModel {
@@ -966,6 +1181,198 @@ function buildHollowglacier(): EnemyModel {
   return { group, update };
 }
 
+function buildStormsovereign(): EnemyModel {
+  const group = new THREE.Group();
+  const stormMat = glowMat(0x1c1830, 0x2a1550, 0.4, { roughness: 0.5, metalness: 0.3 });
+  const veinMat = glowMat(0x7fd9ff, 0x9fe8ff, 2.6, { roughness: 0.35, metalness: 0.3 });
+  const wingMat = glowMat(0x5a3fbf, 0x8a5fff, 1.3, {
+    roughness: 0.3,
+    metalness: 0.35,
+    transparent: true,
+    opacity: 0.55,
+    side: THREE.DoubleSide,
+  });
+  const eyeMat = glowMat(0xd6f0ff, 0xd6f0ff, 2.8, { roughness: 0.2 });
+  const boltMat = glowMat(0xbfe8ff, 0xffffff, 3.0, { roughness: 0.2, metalness: 0.1 });
+
+  // Torso deliberately outsizes both existing bosses' (cindercolossus
+  // radius 1.3, hollowglacier head 0.55) — this is the campaign capstone
+  // and should read as bigger/heavier at a glance, not just tankier on
+  // the healthbar.
+  const torso = addPart(
+    group,
+    new THREE.Mesh(jaggedIcosahedron(1.4, 2, 0.1, "stormsovereign-torso"), stormMat),
+    [0, 3.1, 0],
+    [0, 0, 0],
+    [1, 1.2, 0.9],
+  );
+
+  const veinGeo = new THREE.BoxGeometry(0.08, 0.34, 0.08);
+  const veins: THREE.Mesh[] = [];
+  const veinUp = new THREE.Vector3(0, 1, 0);
+  for (let i = 0; i < 10; i++) {
+    const a = (i / 10) * Math.PI * 2;
+    const yWobble = Math.cos(i * 1.9) * 0.35;
+    const outward = new THREE.Vector3(Math.sin(a) * 0.9, yWobble, Math.cos(a) * 0.8).normalize();
+    const v = new THREE.Mesh(veinGeo, veinMat);
+    v.position.set(outward.x * 0.95, 3.1 + outward.y * 0.4, outward.z * 0.8);
+    v.quaternion.setFromUnitVectors(veinUp, outward);
+    v.castShadow = true;
+    group.add(v);
+    veins.push(v);
+  }
+
+  const head = addPart(
+    group,
+    new THREE.Mesh(jaggedIcosahedron(0.6, 1, 0.09, "stormsovereign-head"), stormMat),
+    [0, 4.6, 0.25],
+  );
+  const eyeGeo = new THREE.SphereGeometry(0.09, 8, 8);
+  const eye = addPart(group, new THREE.Mesh(eyeGeo, eyeMat), [0, 4.65, 0.82]);
+
+  // Storm-crown: spikes oriented outward-and-up by quaternion (same
+  // radiating-decal technique as the crack/vein decals) so they fan into
+  // a crown instead of colliding into a starburst.
+  const crownGeo = baseCone(0.09, 0.5, 4);
+  const crownSpikes: THREE.Mesh[] = [];
+  const crownUp = new THREE.Vector3(0, 1, 0);
+  for (let i = 0; i < 7; i++) {
+    const a = (i / 7) * Math.PI * 2;
+    const outward = new THREE.Vector3(Math.sin(a) * 0.6, 1, Math.cos(a) * 0.6).normalize();
+    const spike = new THREE.Mesh(crownGeo, stormMat);
+    spike.position.set(Math.sin(a) * 0.35, 4.95, 0.15 + Math.cos(a) * 0.3);
+    spike.quaternion.setFromUnitVectors(crownUp, outward);
+    spike.scale.setScalar(0.8 + (i % 2) * 0.2);
+    spike.castShadow = true;
+    group.add(spike);
+    crownSpikes.push(spike);
+  }
+
+  // Wide jagged wings (wider silhouette than hollowglacier's cloak) so the
+  // finale reads as having genuine wingspan/presence at a glance.
+  const wingShape = new THREE.Shape();
+  wingShape.moveTo(0, 0);
+  wingShape.lineTo(0.4, 0.5);
+  wingShape.lineTo(0.9, 0.35);
+  wingShape.lineTo(1.3, 0.8);
+  wingShape.lineTo(1.7, 0.3);
+  wingShape.lineTo(1.5, -0.15);
+  wingShape.lineTo(1.0, -0.05);
+  wingShape.lineTo(0.6, -0.3);
+  wingShape.lineTo(0.25, -0.1);
+  wingShape.closePath();
+  const wingGeo = new THREE.ShapeGeometry(wingShape);
+  const wingPivotL = new THREE.Group();
+  const wingPivotR = new THREE.Group();
+  wingPivotL.position.set(0.6, 3.3, -0.1);
+  wingPivotR.position.set(-0.6, 3.3, -0.1);
+  const wingL = new THREE.Mesh(wingGeo, wingMat);
+  const wingR = new THREE.Mesh(wingGeo, wingMat);
+  wingR.rotation.y = Math.PI;
+  wingPivotL.add(wingL);
+  wingPivotR.add(wingR);
+  group.add(wingPivotL, wingPivotR);
+
+  // Orbiting lightning-shard ring — neither existing boss has orbiting
+  // geometry, so this is a deliberate new "wow" beat reserved for the
+  // capstone: a halo of shards continuously circling the torso.
+  const shardOrbit = new THREE.Group();
+  shardOrbit.position.set(0, 3.1, 0);
+  group.add(shardOrbit);
+  const orbitShardGeo = baseCone(0.13, 0.65, 4);
+  const orbitShards: THREE.Mesh[] = [];
+  const ORBIT_COUNT = 6;
+  for (let i = 0; i < ORBIT_COUNT; i++) {
+    const holder = new THREE.Group();
+    const a = (i / ORBIT_COUNT) * Math.PI * 2;
+    holder.position.set(Math.sin(a) * 1.75, Math.sin(i * 1.3) * 0.4, Math.cos(a) * 1.75);
+    const shard = new THREE.Mesh(orbitShardGeo, veinMat);
+    shard.rotation.x = Math.PI / 2;
+    shard.castShadow = true;
+    holder.add(shard);
+    shardOrbit.add(holder);
+    orbitShards.push(shard);
+  }
+
+  // Long clawed arms with crackling spike-claws.
+  const armGeo = new THREE.CylinderGeometry(0.24, 0.3, 1.5, 6);
+  const armPivots: THREE.Group[] = [];
+  for (const x of [1.55, -1.55]) {
+    const pivot = new THREE.Group();
+    pivot.position.set(x, 3.55, 0);
+    const arm = new THREE.Mesh(armGeo, stormMat);
+    arm.rotation.z = Math.sign(x) * 0.2;
+    arm.position.y = -0.68;
+    arm.castShadow = true;
+    pivot.add(arm);
+    const claw = new THREE.Mesh(jaggedIcosahedron(0.36, 1, 0.09, `stormsovereign-claw-${x}`), stormMat);
+    claw.position.y = -1.45;
+    claw.castShadow = true;
+    pivot.add(claw);
+    for (let c = 0; c < 3; c++) {
+      const spike = new THREE.Mesh(baseCone(0.05, 0.24, 4), veinMat);
+      spike.position.set((c - 1) * 0.12, -1.65, 0.15);
+      spike.rotation.x = -0.3;
+      spike.castShadow = true;
+      pivot.add(spike);
+    }
+    group.add(pivot);
+    armPivots.push(pivot);
+  }
+
+  // Trailing storm-bolt tendrils beneath the body (a flying boss has no
+  // legs, mirroring hollowglacier's tendril treatment) but built from
+  // discrete flickering bolt segments instead of continuous mist, for a
+  // genuinely different "lightning discharge" animation beat.
+  const boltSegGeo = new THREE.CylinderGeometry(0.03, 0.05, 0.5, 4);
+  const bolts: THREE.Mesh[] = [];
+  const boltRand = mulberry32(hashString("stormsovereign-bolts"));
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * Math.PI * 2;
+    const bolt = new THREE.Mesh(boltSegGeo, boltMat);
+    addPart(
+      group,
+      bolt,
+      [Math.sin(a) * 0.5, 1.6 - i * 0.15, Math.cos(a) * 0.5],
+      [(boltRand() - 0.5) * 0.5, a, (boltRand() - 0.5) * 0.5],
+    );
+    bolts.push(bolt);
+  }
+  const boltPhases = bolts.map(() => boltRand() * 20);
+
+  const storm = createEmberField(20, 0x9fe0ff, 2.6, 3.6, "stormsovereign-motes");
+  storm.group.position.y = 0.6;
+  group.add(storm.group);
+
+  group.scale.setScalar(1.25);
+
+  function update(dt: number, elapsed: number) {
+    group.position.y = Math.sin(elapsed * 0.7) * 0.1;
+    group.rotation.y = Math.sin(elapsed * 0.3) * 0.08;
+    const heartbeat = 2.0 + Math.pow(Math.max(0, Math.sin(elapsed * 1.6)), 3) * 1.0;
+    for (const v of veins) (v.material as THREE.MeshStandardMaterial).emissiveIntensity = heartbeat;
+    (eye.material as THREE.MeshStandardMaterial).emissiveIntensity = 2.4 + Math.sin(elapsed * 4) * 0.4;
+    head.rotation.y = Math.sin(elapsed * 0.5) * 0.08;
+    crownSpikes.forEach((s, i) => (s.rotation.y += 0.002 * (i % 2 === 0 ? 1 : -1)));
+    const flap = Math.sin(elapsed * 1.1) * 0.25 + 0.1;
+    wingPivotL.rotation.z = flap;
+    wingPivotR.rotation.z = -flap;
+    shardOrbit.rotation.y = elapsed * 0.6;
+    orbitShards.forEach((s, i) => {
+      (s.material as THREE.MeshStandardMaterial).emissiveIntensity = 1.8 + Math.sin(elapsed * 5 + i) * 0.8;
+    });
+    armPivots.forEach((p, i) => (p.rotation.x = Math.sin(elapsed * 0.7 + i * Math.PI) * 0.12));
+    bolts.forEach((b, i) => {
+      const flicker = Math.sin(elapsed * 9 + boltPhases[i]) > 0.4 ? 1 : 0.15;
+      (b.material as THREE.MeshStandardMaterial).emissiveIntensity = flicker * 3.0;
+    });
+    storm.update(dt, elapsed);
+    void torso;
+  }
+
+  return { group, update };
+}
+
 // ---------------------------------------------------------------------------
 // Registry
 // ---------------------------------------------------------------------------
@@ -981,6 +1388,9 @@ const BUILDERS: Record<string, () => EnemyModel> = {
   sandveil: buildSandveil,
   cindercolossus: buildCindercolossus,
   hollowglacier: buildHollowglacier,
+  wraithguard: buildWraithguard,
+  runeshell: buildRuneshell,
+  stormsovereign: buildStormsovereign,
 };
 
 /** Builds a fresh, independently-animatable model for the given enemy
