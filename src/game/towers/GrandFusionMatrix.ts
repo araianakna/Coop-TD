@@ -9,11 +9,13 @@ import type { Element } from "@/game/types";
  * this file answers "which fusion + which 3rd element makes this capstone".
  *
  * Unlike FusionMatrix.ts this is a curated list, not an exhaustive
- * enumeration — there are C(6,3) = 20 possible element triads, and only 6
- * of them have a Grand Fusion tower defined (see TowerRegistry.ts's Grand
- * Fusion section for why these 6 were chosen). Looking up an
- * (fusion, element) pair with no curated recipe returns undefined; there is
- * no synthesized fallback.
+ * enumeration — there are C(6,3) = 20 possible element triads, and 12 of
+ * them have a Grand Fusion tower defined: the original 6 (see
+ * TowerRegistry.ts's Grand Fusion section for why those were chosen) plus a
+ * second curation pass of 6 more (see the "second curation pass" comment
+ * further down that same section). Looking up an (fusion, element) pair
+ * with no curated recipe returns undefined; there is no synthesized
+ * fallback — 8 triads remain uncovered by design.
  */
 export interface GrandFusionRecipe {
   /** TowerDef.id of the 2-element fusion tower being merged. */
@@ -39,6 +41,30 @@ export const GRAND_FUSION_RECIPES: GrandFusionRecipe[] = [
     resultTowerId: "tower_fire_lightning_arcane",
   },
   { parentFusionTowerId: "tower_ice_earth", thirdElement: "nature", resultTowerId: "tower_ice_nature_earth" },
+
+  // Second curation pass — 6 more of the remaining 14 uncovered triads.
+  { parentFusionTowerId: "tower_fire_ice", thirdElement: "nature", resultTowerId: "tower_fire_ice_nature" },
+  {
+    parentFusionTowerId: "tower_ice_lightning",
+    thirdElement: "arcane",
+    resultTowerId: "tower_ice_lightning_arcane",
+  },
+  {
+    parentFusionTowerId: "tower_lightning_earth",
+    thirdElement: "fire",
+    resultTowerId: "tower_fire_lightning_earth",
+  },
+  {
+    parentFusionTowerId: "tower_nature_earth",
+    thirdElement: "arcane",
+    resultTowerId: "tower_nature_earth_arcane",
+  },
+  {
+    parentFusionTowerId: "tower_lightning_nature",
+    thirdElement: "earth",
+    resultTowerId: "tower_lightning_nature_earth",
+  },
+  { parentFusionTowerId: "tower_fire_arcane", thirdElement: "nature", resultTowerId: "tower_fire_nature_arcane" },
 ];
 
 function recipeKey(parentFusionTowerId: string, thirdElement: Element): string {

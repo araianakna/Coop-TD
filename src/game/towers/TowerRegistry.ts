@@ -1256,6 +1256,249 @@ const iceNatureEarthTower: TowerDef = {
 };
 
 // ---------------------------------------------------------------------------
+// Grand Fusion towers, second curation pass — 6 more triads added on top of
+// the original 6 above. Same conventions throughout (buildTiers/makeAbility,
+// isFusion: true, `element` set to the PARENT fusion's pair per the decision
+// documented above, id/vfx ids joined in ELEMENTS order). See
+// GrandFusionMatrix.ts for why these particular 6 of the remaining 14
+// uncovered triads were chosen.
+// ---------------------------------------------------------------------------
+
+const fireIceNatureTower: TowerDef = {
+  id: "tower_fire_ice_nature",
+  name: "Verdant Geyser",
+  element: "fire+ice",
+  isFusion: true,
+  flavorText:
+    "A crystalline vent overtaken by living jungle growth — scalding steam feeds a canopy that blooms even as it scalds.",
+  tiers: buildTiers(
+    { damage: 30, range: 6.2, fireRateMs: 680, projectileSpeed: 14, splashRadius: 1.65 },
+    [625, 1290, 2560],
+    [1, 1.24, 1.54],
+    [
+      "Steam-slick vines have taken root around the crystal vent, first blossoms unfurling in the scalding mist.",
+      "The vent is now half-swallowed by jungle growth, thick blossoms glowing amid roiling clouds of vapor.",
+      "A living geyser — a canopy of scald-blooming flora erupts continuously from a core of screaming steam and ice.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "verdant_geyser_scalding_bloom",
+      name: "Scalding Bloom",
+      description:
+        "Grand Fusion capstone. Vents a burst of spore-laden steam that scalds the target and leaves festering spores to poison it long after.",
+      cooldownMs: 9000,
+      vfxId: "vfx.fire_ice_nature.ability_scalding_bloom",
+      statusKind: "poison",
+      statusMagnitude: 7,
+      statusDurationMs: 4800,
+      bonusDamage: 34,
+      damageElement: "fire",
+    }),
+  ],
+  targeting: "strongest",
+  projectileVfx: "vfx.fire_ice_nature.projectile",
+  impactVfx: "vfx.fire_ice_nature.impact",
+  idleVfx: "vfx.fire_ice_nature.idle",
+  modelId: "tower_fire_ice_nature",
+};
+
+const iceLightningArcaneTower: TowerDef = {
+  id: "tower_ice_lightning_arcane",
+  name: "Stormglass Oracle",
+  element: "ice+lightning",
+  isFusion: true,
+  flavorText:
+    "A lightning-veined ice shard turned seer's lens — every facet shows a flicker of the future it's about to strike.",
+  tiers: buildTiers(
+    { damage: 26, range: 6.6, fireRateMs: 440, projectileSpeed: 26, critChance: 0.27, critMultiplier: 2.25 },
+    [615, 1270, 2510],
+    [1, 1.23, 1.5],
+    [
+      "A single ice shard crackles with trapped lightning; one faint glyph now orbits within its cracks.",
+      "The shard has split into a fan of crystal facets, two glyph rings drifting through the arcing light.",
+      "A towering stormglass lens — glyph rings spin through a lattice of lightning-shot ice, each facet flickering with foresight.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "stormglass_oracle_fateshard_fracture",
+      name: "Fateshard Fracture",
+      description:
+        "Grand Fusion capstone. Freezes the target within a lightning-veined shard that violently fractures, shocking it and unravelling its defenses.",
+      cooldownMs: 9000,
+      vfxId: "vfx.ice_lightning_arcane.ability_fateshard",
+      statusKind: "freeze",
+      statusMagnitude: 1,
+      statusDurationMs: 1900,
+      bonusDamage: 30,
+      damageElement: "arcane",
+    }),
+  ],
+  targeting: "first",
+  projectileVfx: "vfx.ice_lightning_arcane.projectile",
+  impactVfx: "vfx.ice_lightning_arcane.impact",
+  idleVfx: "vfx.ice_lightning_arcane.idle",
+  modelId: "tower_ice_lightning_arcane",
+};
+
+const fireLightningEarthTower: TowerDef = {
+  id: "tower_fire_lightning_earth",
+  name: "Fulgurite Forge",
+  element: "lightning+earth",
+  isFusion: true,
+  flavorText:
+    "Where the coil's tremors call down lightning, the struck stone melts and fuses into glassy fulgurite — a forge that arms itself.",
+  tiers: buildTiers(
+    { damage: 44, range: 5.2, fireRateMs: 940, projectileSpeed: 12, splashRadius: 1.95 },
+    [645, 1330, 2630],
+    [1, 1.27, 1.6],
+    [
+      "The coiled pillar now runs molten at its fault-lines, the first veins of glassy fulgurite fusing where lightning struck stone.",
+      "Fulgurite veins spread across the whole pillar, glowing white-gold where coil and cracked magma meet.",
+      "A forge given seismic violence — glassy lightning-glass veins net a molten, coil-bound pillar that never stops trembling.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "fulgurite_forge_cataclysmic_strike",
+      name: "Cataclysmic Strike",
+      description:
+        "Grand Fusion capstone. Calls down a molten lightning bolt that fuses the ground to glass, sundering the target's armor and detonating for severe fire damage.",
+      cooldownMs: 10500,
+      vfxId: "vfx.fire_lightning_earth.ability_cataclysmic_strike",
+      statusKind: "sunder",
+      statusMagnitude: 0.34,
+      statusDurationMs: 4200,
+      bonusDamage: 58,
+      damageElement: "fire",
+    }),
+  ],
+  targeting: "strongest",
+  projectileVfx: "vfx.fire_lightning_earth.projectile",
+  impactVfx: "vfx.fire_lightning_earth.impact",
+  idleVfx: "vfx.fire_lightning_earth.idle",
+  modelId: "tower_fire_lightning_earth",
+};
+
+const natureEarthArcaneTower: TowerDef = {
+  id: "tower_nature_earth_arcane",
+  name: "Wardroot Sentinel",
+  element: "nature+earth",
+  isFusion: true,
+  flavorText:
+    "A moss-bound colossus raised further by rings of guardian rune-light, standing eternal watch over the roots it protects.",
+  tiers: buildTiers(
+    { damage: 40, range: 5.6, fireRateMs: 1150, projectileSpeed: 11, splashRadius: 1.7, critChance: 0.2, critMultiplier: 2.15 },
+    [605, 1250, 2490],
+    [1, 1.28, 1.6],
+    [
+      "A single moss-boulder now carries one faint ward-glyph, rune-light threading through its cracks.",
+      "Two boulders stack beneath a ring of guardian glyphs, vines and stone bound tighter by arcane will.",
+      "A true sentinel colossus — thorned root, ancient stone, and twin glyph rings fused into one unmoving guardian.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "wardroot_sentinel_ancient_ward",
+      name: "Ancient Ward",
+      description:
+        "Grand Fusion capstone. Binds the target beneath crushing roots warded by old rune-magic, rooting it in place while arcane force gouges through its defenses.",
+      cooldownMs: 10000,
+      vfxId: "vfx.nature_earth_arcane.ability_ancient_ward",
+      statusKind: "root",
+      statusMagnitude: 1,
+      statusDurationMs: 3200,
+      bonusDamage: 36,
+      damageElement: "arcane",
+    }),
+  ],
+  targeting: "last",
+  projectileVfx: "vfx.nature_earth_arcane.projectile",
+  impactVfx: "vfx.nature_earth_arcane.impact",
+  idleVfx: "vfx.nature_earth_arcane.idle",
+  modelId: "tower_nature_earth_arcane",
+};
+
+const lightningNatureEarthTower: TowerDef = {
+  id: "tower_lightning_nature_earth",
+  name: "Stormroot Monument",
+  element: "lightning+nature",
+  isFusion: true,
+  flavorText:
+    "A storm-thorn totem anchored in raw bedrock, roots deep enough to draw lightning up out of the stone itself.",
+  tiers: buildTiers(
+    { damage: 26, range: 5.6, fireRateMs: 520, projectileSpeed: 15, splashRadius: 1.35 },
+    [655, 1350, 2660],
+    [1, 1.25, 1.55],
+    [
+      "The young totem's roots have cracked into surrounding bedrock, one boulder already humming with static.",
+      "Boulders now ring the totem's base, storm-charged roots binding stone and thorn together.",
+      "A monument of stone and living thorn, lightning arcing continuously between root, rock, and sky.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "stormroot_monument_thunderroot_upheaval",
+      name: "Thunderroot Upheaval",
+      description:
+        "Grand Fusion capstone. Roots crack up through the earth around the target, shocking and pinning it as the ground itself convulses.",
+      cooldownMs: 9500,
+      vfxId: "vfx.lightning_nature_earth.ability_thunderroot",
+      statusKind: "shock",
+      statusMagnitude: 1,
+      statusDurationMs: 2400,
+      bonusDamage: 30,
+      damageElement: "lightning",
+    }),
+  ],
+  targeting: "closest",
+  projectileVfx: "vfx.lightning_nature_earth.projectile",
+  impactVfx: "vfx.lightning_nature_earth.impact",
+  idleVfx: "vfx.lightning_nature_earth.idle",
+  modelId: "tower_lightning_nature_earth",
+};
+
+const fireNatureArcaneTower: TowerDef = {
+  id: "tower_fire_nature_arcane",
+  name: "Emberroot Sigil",
+  element: "fire+arcane",
+  isFusion: true,
+  flavorText:
+    "Living roots have cracked through the obsidian sigil, drawing the bound flame into every burning vine that grows from it.",
+  tiers: buildTiers(
+    { damage: 34, range: 6.4, fireRateMs: 820, projectileSpeed: 17, critChance: 0.3, critMultiplier: 2.3 },
+    [635, 1310, 2590],
+    [1, 1.26, 1.53],
+    [
+      "Obsidian glyphs crack as the first burning vine roots into the sigil's stone.",
+      "Ember-vines now wrap the whole obelisk, glyph rings glowing through a lattice of living growth.",
+      "A sigil consumed by its own captive fire and roots alike — glyphs, vine, and flame grown into one inseparable brand.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "emberroot_sigil_verdant_hellmark",
+      name: "Verdant Hellmark",
+      description:
+        "Grand Fusion capstone. Brands the target with a living sigil of root and flame, poisoning it with burning sap before a final searing detonation.",
+      cooldownMs: 9000,
+      vfxId: "vfx.fire_nature_arcane.ability_hellmark",
+      statusKind: "poison",
+      statusMagnitude: 6,
+      statusDurationMs: 4500,
+      bonusDamage: 42,
+      damageElement: "fire",
+    }),
+  ],
+  targeting: "weakest",
+  projectileVfx: "vfx.fire_nature_arcane.projectile",
+  impactVfx: "vfx.fire_nature_arcane.impact",
+  idleVfx: "vfx.fire_nature_arcane.idle",
+  modelId: "tower_fire_nature_arcane",
+};
+
+// ---------------------------------------------------------------------------
 // Public registry
 // ---------------------------------------------------------------------------
 
@@ -1287,6 +1530,12 @@ const ALL_TOWERS: TowerDef[] = [
   lightningEarthArcaneTower,
   fireLightningArcaneTower,
   iceNatureEarthTower,
+  fireIceNatureTower,
+  iceLightningArcaneTower,
+  fireLightningEarthTower,
+  natureEarthArcaneTower,
+  lightningNatureEarthTower,
+  fireNatureArcaneTower,
 ];
 
 export const TOWER_REGISTRY: Map<string, TowerDef> = new Map(ALL_TOWERS.map((t) => [t.id, t]));

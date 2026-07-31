@@ -2,7 +2,16 @@ import * as THREE from "three";
 import { createElementCoreMaterial } from "@/game/towers/shaders/coreMaterial";
 import { createStructureMaterial } from "@/game/towers/shaders/structureMaterial";
 import { applyMotion } from "./motion";
-import { crystalShard, flameLick, glyphRing, plinth, ringBand, roughRock, spiralTube } from "./primitives";
+import {
+  crystalShard,
+  flameLick,
+  glyphRing,
+  obelisk as obeliskGeo,
+  plinth,
+  ringBand,
+  roughRock,
+  spiralTube,
+} from "./primitives";
 
 /**
  * Grand Fusion tower models — the visual "merge tier 2" step up from the
@@ -489,5 +498,501 @@ export function buildIceNatureEarthTower(tier: 1 | 2 | 3): THREE.Group {
     icicle.rotation.x = Math.PI;
     group.add(icicle);
   }
+  return group;
+}
+
+// ---------------------------------------------------------------------------
+// Second curation pass — 6 more Grand Fusion models, same conventions as the
+// six above (parent silhouette carried forward + extra mass + the third
+// element given its own unmistakable geometry/material, never just a
+// recolored accent).
+// ---------------------------------------------------------------------------
+
+/**
+ * Verdant Geyser — fire + ice + nature (Steamcaller + nature).
+ * The same ice-crystal vent and fire core as Steamcaller, now taller and
+ * wrapped in a single continuous living vine that climbs the whole shell and
+ * blooms into a full canopy of scald-blossoms above the steam column —
+ * nature reads as grown INTO the geyser's structure, not bolted onto its top.
+ */
+export function buildFireIceNatureTower(tier: 1 | 2 | 3): THREE.Group {
+  const group = new THREE.Group();
+  const iceCrystal = createStructureMaterial("ice", "crystal", tier);
+  const wood = createStructureMaterial("nature", "wood", tier);
+  const fireCore = createElementCoreMaterial("fire", tier, { scale: 2.3 });
+  const iceCoreMat = createElementCoreMaterial("ice", tier, { scale: 1.6, intensity: 1.15 });
+  const bloomCore = createElementCoreMaterial("nature", tier, { scale: 2.6, intensity: 1.15 });
+
+  const baseR = 0.78 + tier * 0.05;
+  const base = shadowed(new THREE.Mesh(plinth(baseR, baseR * 1.1, 0.44, 7), iceCrystal));
+  base.position.y = 0.22;
+  group.add(base);
+
+  const rim = shadowed(new THREE.Mesh(ringBand(baseR * 1.13, 0.06, 7, 22), iceCrystal));
+  rim.position.y = 0.07;
+  group.add(rim);
+
+  const towerH = 1.1 + tier * 0.36;
+  const shellH = towerH * 0.62;
+
+  // A single continuous vine spirals the full crystal shell, present from
+  // tier 1 — nature reads as structurally woven in (the same technique
+  // Wildfrost Bastion uses), rather than only decorating the crown.
+  const vine = shadowed(new THREE.Mesh(spiralTube(baseR * 1.02, shellH + 0.34, 2.8 + tier * 0.5, 0.045), wood));
+  vine.position.y = 0.28;
+  group.add(vine);
+
+  const outerShell = shadowed(new THREE.Mesh(crystalShard(0.42, shellH, 7), iceCrystal));
+  outerShell.position.y = 0.44;
+  group.add(outerShell);
+  const innerShell = shadowed(new THREE.Mesh(crystalShard(0.28, shellH * 0.86, 7), iceCrystal));
+  innerShell.position.y = 0.44;
+  applyMotion(innerShell, { spinSpeed: -0.12 });
+  group.add(innerShell);
+
+  const ventCore = new THREE.Mesh(flameLick(0.24 + tier * 0.035, towerH * 0.82), fireCore);
+  ventCore.position.y = 0.44 + shellH + towerH * 0.24;
+  applyMotion(ventCore, { bobAmp: 0.06, bobSpeed: 3.2 });
+  group.add(ventCore);
+
+  const puffCount = tier + 3;
+  for (let i = 0; i < puffCount; i++) {
+    const a = (i / puffCount) * Math.PI * 2;
+    const puff = new THREE.Mesh(new THREE.IcosahedronGeometry(0.1 + (i % 2) * 0.035, 0), iceCoreMat);
+    puff.position.set(Math.cos(a) * 0.42, 0.44 + shellH + i * 0.09, Math.sin(a) * 0.42);
+    applyMotion(puff, { bobAmp: 0.08, bobSpeed: 1.1 + i * 0.2, bobPhase: i * 1.5, spinSpeed: 0.35 });
+    group.add(puff);
+  }
+
+  // Blossom canopy grown from the vine's tip — nature's own clearly
+  // legible silhouette crowning the geyser, distinct in both shape and
+  // material from the ice puffs and the fire vent.
+  const canopyY = 0.44 + shellH + 0.16;
+  const blossomCount = 4 + tier * 2;
+  for (let i = 0; i < blossomCount; i++) {
+    const a = (i / blossomCount) * Math.PI * 2;
+    const r = 0.3 + (i % 2) * 0.08;
+    const stem = shadowed(new THREE.Mesh(spiralTube(0.05, 0.22, 1.2, 0.02), wood));
+    stem.position.set(Math.cos(a) * r, canopyY - 0.1, Math.sin(a) * r);
+    group.add(stem);
+
+    const bud = new THREE.Mesh(new THREE.IcosahedronGeometry(0.07 + (i % 2) * 0.02, 0), bloomCore);
+    bud.position.set(Math.cos(a) * r, canopyY + 0.08, Math.sin(a) * r);
+    applyMotion(bud, { bobAmp: 0.03, bobSpeed: 2.2 + i * 0.2, bobPhase: i });
+    group.add(bud);
+  }
+
+  const crownBloom = new THREE.Mesh(new THREE.IcosahedronGeometry(0.16 + tier * 0.03, 1), bloomCore);
+  crownBloom.position.y = canopyY + 0.28 + tier * 0.05;
+  applyMotion(crownBloom, { spinSpeed: 0.4, bobAmp: 0.05, bobSpeed: 1.6 });
+  group.add(crownBloom);
+
+  return group;
+}
+
+/**
+ * Stormglass Oracle — ice + lightning + arcane (Frostshock Pylon + arcane).
+ * The same lightning-veined ice-shard cluster as Frostshock Pylon, now
+ * ringed by a full set of orbiting arcane ward-glyphs and crowned by a
+ * faceted scrying lens — arcane gets its own crystal-purple structure and
+ * glow, not just a tint on the existing ice/lightning parts.
+ */
+export function buildIceLightningArcaneTower(tier: 1 | 2 | 3): THREE.Group {
+  const group = new THREE.Group();
+  const iceCrystal = createStructureMaterial("ice", "crystal", tier);
+  const metal = createStructureMaterial("lightning", "metal", tier);
+  const crystalMat = createStructureMaterial("arcane", "crystal", tier);
+  const boltCore = createElementCoreMaterial("lightning", tier, { scale: 3.2 });
+  const arcaneCore = createElementCoreMaterial("arcane", tier, { scale: 1.6, intensity: 1.3 });
+
+  const baseR = 0.7 + tier * 0.045;
+  const coilBase = shadowed(new THREE.Mesh(plinth(baseR, baseR * 1.16, 0.36, 9), metal));
+  coilBase.position.y = 0.18;
+  group.add(coilBase);
+  const coil = shadowed(new THREE.Mesh(spiralTube(baseR * 0.92, 0.3, 3.2 + tier, 0.028), metal));
+  coil.position.y = 0.2;
+  group.add(coil);
+
+  // Arcane ward-band rim sits right above the coil base — the oracle's
+  // containment ring, present from tier 1.
+  const wardRim = shadowed(new THREE.Mesh(ringBand(baseR * 1.1, 0.045, 8, 26), crystalMat));
+  wardRim.position.y = 0.06;
+  group.add(wardRim);
+
+  const centerH = 1.25 + tier * 0.42;
+  const shard = shadowed(new THREE.Mesh(crystalShard(0.34, centerH, 6), iceCrystal));
+  shard.position.y = 0.38;
+  group.add(shard);
+
+  const boltShard = new THREE.Mesh(crystalShard(0.2, centerH * 0.86, 6), boltCore);
+  boltShard.position.y = 0.38;
+  applyMotion(boltShard, { spinSpeed: -0.3 });
+  group.add(boltShard);
+
+  const spikeCount = tier + 4;
+  for (let i = 0; i < spikeCount; i++) {
+    const a = (i / spikeCount) * Math.PI * 2;
+    const h = 0.4 + (i % 2) * 0.18;
+    const spike = shadowed(new THREE.Mesh(crystalShard(0.09, h, 5), iceCrystal));
+    spike.position.set(Math.cos(a) * 0.56, 0.36, Math.sin(a) * 0.56);
+    spike.rotation.z = Math.cos(a) * 0.4;
+    spike.rotation.x = -Math.sin(a) * 0.4;
+    group.add(spike);
+
+    const arc = new THREE.Mesh(new THREE.IcosahedronGeometry(0.07, 0), boltCore);
+    arc.position.set(Math.cos(a) * 0.62, 0.36 + h * 0.6, Math.sin(a) * 0.62);
+    applyMotion(arc, { bobAmp: 0.02, bobSpeed: 8 + i, bobPhase: i * 3 });
+    group.add(arc);
+  }
+
+  // Arcane ward-glyph rings — the oracle's own halo, concentric at the
+  // shard's upper reach so it reads as a lens gazing outward rather than a
+  // scattered accent (same Saturn-rings technique as Elderfrost Sanctum).
+  const ringCount = tier + 1;
+  for (let i = 0; i < ringCount; i++) {
+    const ring = glyphRing(0.5 + i * 0.15, 6 + i * 2, 0.13, arcaneCore);
+    ring.position.y = 0.38 + centerH * 0.72;
+    ring.rotation.x = (i % 2) * 0.24;
+    applyMotion(ring, { spinSpeed: (i % 2 === 0 ? 1 : -1) * (0.4 + i * 0.14) });
+    group.add(ring);
+  }
+
+  // Faceted scrying-lens crystal capping the whole structure.
+  const lens = shadowed(new THREE.Mesh(crystalShard(0.2 + tier * 0.03, 0.32 + tier * 0.06, 8), crystalMat));
+  lens.position.y = 0.38 + centerH + 0.08;
+  applyMotion(lens, { spinSpeed: 0.5 });
+  group.add(lens);
+  const lensCore = new THREE.Mesh(new THREE.IcosahedronGeometry(0.13 + tier * 0.025, 1), arcaneCore);
+  lensCore.position.y = 0.38 + centerH + 0.24;
+  applyMotion(lensCore, { spinSpeed: -0.8, bobAmp: 0.04, bobSpeed: 1.7 });
+  group.add(lensCore);
+
+  return group;
+}
+
+/**
+ * Fulgurite Forge — fire + lightning + earth (Seismic Coil + fire).
+ * The same coil-wrapped rock pillar as Seismic Coil, now running molten
+ * along a full outer shell and topped by a proper flame vent — fire is a
+ * distinct glowing skin over the whole pillar, not a small accent.
+ */
+export function buildFireLightningEarthTower(tier: 1 | 2 | 3): THREE.Group {
+  const group = new THREE.Group();
+  const stone = createStructureMaterial("earth", "stone", tier);
+  const metal = createStructureMaterial("lightning", "metal", tier);
+  const boltCore = createElementCoreMaterial("lightning", tier, { scale: 3.1 });
+  const fireCore = createElementCoreMaterial("fire", tier, { scale: 2.2 });
+
+  const baseR = 0.86 + tier * 0.055;
+  const base = shadowed(new THREE.Mesh(roughRock(baseR, 1, 0.32, tier), stone));
+  base.scale.y = 0.42;
+  base.position.y = 0.21;
+  group.add(base);
+
+  const crack = new THREE.Mesh(roughRock(baseR * 1.02, 1, 0.32, tier), boltCore);
+  crack.scale.copy(base.scale);
+  crack.position.copy(base.position);
+  group.add(crack);
+
+  // Molten pools ringing the base, present from tier 1 — fire's own
+  // ground-level presence, mirroring how the parent's rubble sits at the base.
+  const poolCount = 4;
+  for (let i = 0; i < poolCount; i++) {
+    const a = (i / poolCount) * Math.PI * 2 + 0.4;
+    const pool = new THREE.Mesh(roughRock(0.09, 0, 0.4, i + 4), fireCore);
+    pool.position.set(Math.cos(a) * baseR * 1.08, 0.16, Math.sin(a) * baseR * 1.08);
+    applyMotion(pool, { bobAmp: 0.025, bobSpeed: 1.4 + i * 0.2, bobPhase: i });
+    group.add(pool);
+  }
+
+  const pillarH = 1.2 + tier * 0.4;
+  const pillar = shadowed(new THREE.Mesh(plinth(0.28, 0.38, pillarH, 9), stone));
+  pillar.position.y = 0.4 + pillarH / 2;
+  group.add(pillar);
+
+  // Molten shell wraps the full pillar height, a hair proud of the stone
+  // surface — fire gets a continuous, unmistakable skin rather than a patch.
+  const moltenShell = new THREE.Mesh(plinth(0.285, 0.386, pillarH, 9), fireCore);
+  moltenShell.position.copy(pillar.position);
+  group.add(moltenShell);
+
+  const coil = shadowed(new THREE.Mesh(spiralTube(0.36, pillarH * 0.92, 3.4 + tier, 0.03), metal));
+  coil.position.y = 0.4;
+  group.add(coil);
+
+  const orbitCount = tier + 1;
+  for (let i = 0; i < orbitCount; i++) {
+    const holder = new THREE.Group();
+    holder.position.set(0, 0.44 + pillarH * (0.4 + i * 0.22), 0);
+    const chunk = shadowed(new THREE.Mesh(roughRock(0.11, 0, 0.4, i + 4), stone));
+    chunk.position.set(0.52, 0, 0);
+    holder.add(chunk);
+    const moltenChunk = new THREE.Mesh(roughRock(0.113, 0, 0.4, i + 4), fireCore);
+    moltenChunk.position.set(0.52, 0, 0);
+    holder.add(moltenChunk);
+    const arc = new THREE.Mesh(new THREE.IcosahedronGeometry(0.04, 0), boltCore);
+    arc.position.set(0.52, 0.08, 0);
+    holder.add(arc);
+    applyMotion(holder, { spinSpeed: (i % 2 === 0 ? 1 : -1) * (0.5 + i * 0.15) });
+    group.add(holder);
+  }
+
+  const ventTop = new THREE.Mesh(flameLick(0.2 + tier * 0.03, 0.56 + tier * 0.18), fireCore);
+  ventTop.position.y = 0.42 + pillarH + 0.1;
+  applyMotion(ventTop, { bobAmp: 0.05, bobSpeed: 2.4 });
+  group.add(ventTop);
+
+  const boltCrown = new THREE.Mesh(new THREE.IcosahedronGeometry(0.12 + tier * 0.025, 1), boltCore);
+  boltCrown.position.y = 0.42 + pillarH + 0.06;
+  applyMotion(boltCrown, { spinSpeed: -1.0 });
+  group.add(boltCrown);
+
+  return group;
+}
+
+/**
+ * Wardroot Sentinel — nature + earth + arcane (Overgrowth Colossus + arcane).
+ * The same moss-veined boulder stack as Overgrowth Colossus, grown taller
+ * and now haloed by a full set of orbiting ward-glyph rings plus a
+ * rune-etched crown boulder — arcane reads as a distinct crystalline glyph
+ * system layered on top, separate from the mossy speckle that already
+ * carries nature.
+ */
+export function buildNatureEarthArcaneTower(tier: 1 | 2 | 3): THREE.Group {
+  const group = new THREE.Group();
+  const stone = createStructureMaterial("earth", "stone", tier);
+  const wood = createStructureMaterial("nature", "wood", tier);
+  const mossCore = createElementCoreMaterial("nature", tier, { scale: 7.2, intensity: 0.85 });
+  const vineCore = createElementCoreMaterial("nature", tier, { scale: 2.2 });
+  const arcaneCore = createElementCoreMaterial("arcane", tier, { scale: 1.6, intensity: 1.25 });
+
+  const baseR = 0.86 + tier * 0.055;
+  const base = shadowed(new THREE.Mesh(roughRock(baseR, 1, 0.3, tier), stone));
+  base.scale.y = 0.44;
+  base.position.y = 0.22;
+  group.add(base);
+
+  const boulderCount = tier + 2;
+  let y = 0.38;
+  for (let i = 0; i < boulderCount; i++) {
+    const r = 0.52 - i * 0.075;
+    const boulder = shadowed(new THREE.Mesh(roughRock(r, 1, 0.3, i * 2.5), stone));
+    boulder.position.y = y + r * 0.7;
+    group.add(boulder);
+
+    const moss = new THREE.Mesh(roughRock(r * 1.02, 1, 0.3, i * 2.5), mossCore);
+    moss.position.copy(boulder.position);
+    group.add(moss);
+    y += r * 1.2;
+  }
+
+  // Vine radius hugs the boulder stack itself (matched to boulder radii,
+  // not the wider base) so it reads as wrapped growth rather than a
+  // free-floating ring — and gets a solid wood structural layer plus a
+  // thin glow overlay instead of one large blazing tube, so it doesn't
+  // wash out the stone underneath.
+  const vineRadius = 0.5 + tier * 0.02;
+  const vineWrap = shadowed(new THREE.Mesh(spiralTube(vineRadius, y * 0.82, 2.4 + tier * 0.4, 0.045), wood));
+  vineWrap.position.y = 0.26;
+  group.add(vineWrap);
+  const vineGlow = new THREE.Mesh(spiralTube(vineRadius * 1.03, y * 0.82, 2.4 + tier * 0.4, 0.018), vineCore);
+  vineGlow.position.y = 0.26;
+  group.add(vineGlow);
+
+  const leafCount = 3 + tier * 2;
+  for (let i = 0; i < leafCount; i++) {
+    const a = (i / leafCount) * Math.PI * 2;
+    const leaf = shadowed(new THREE.Mesh(roughRock(0.12, 0, 0.3, i), wood));
+    leaf.scale.set(1.4, 0.5, 1);
+    leaf.position.set(Math.cos(a) * 0.5, 0.34 + (i % 3) * (y / 3), Math.sin(a) * 0.5);
+    group.add(leaf);
+  }
+
+  // Rune-etched crown shell over the topmost boulder — arcane's own
+  // crackling glyph pattern, distinct from the mossy speckle beneath it.
+  const crownR = 0.52 - (boulderCount - 1) * 0.075;
+  const crownGlyphShell = new THREE.Mesh(roughRock(crownR * 1.05, 1, 0.3, boulderCount * 2.5), arcaneCore);
+  crownGlyphShell.position.y = y - crownR * 1.2 + crownR * 0.7;
+  group.add(crownGlyphShell);
+
+  // Orbiting ward-glyph halo above the whole colossus — present from tier 1,
+  // the guardian's watching rings.
+  const ringCount = tier;
+  for (let i = 0; i < ringCount; i++) {
+    const ring = glyphRing(0.58 + i * 0.18, 6 + i * 2, 0.14, arcaneCore);
+    ring.position.y = y + 0.16;
+    ring.rotation.x = (i % 2) * 0.24;
+    applyMotion(ring, { spinSpeed: (i % 2 === 0 ? 1 : -1) * (0.32 + i * 0.1) });
+    group.add(ring);
+  }
+
+  const wardOrb = new THREE.Mesh(new THREE.IcosahedronGeometry(0.15 + tier * 0.03, 1), arcaneCore);
+  wardOrb.position.y = y + 0.34 + tier * 0.06;
+  applyMotion(wardOrb, { spinSpeed: 0.55, bobAmp: 0.05, bobSpeed: 1.5 });
+  group.add(wardOrb);
+
+  return group;
+}
+
+/**
+ * Stormroot Monument — lightning + nature + earth (Thornstorm Totem +
+ * earth). The same coil-wrapped storm-thorn totem as Thornstorm Totem, now
+ * rooted in a full ring of anchoring bedrock boulders with a stone collar
+ * fused partway up the trunk — earth gets real structural mass at both the
+ * base and mid-height, not just ground clutter.
+ */
+export function buildLightningNatureEarthTower(tier: 1 | 2 | 3): THREE.Group {
+  const group = new THREE.Group();
+  const wood = createStructureMaterial("nature", "wood", tier);
+  const stone = createStructureMaterial("earth", "stone", tier);
+  const metal = createStructureMaterial("lightning", "metal", tier);
+  const boltCore = createElementCoreMaterial("lightning", tier, { scale: 3.3 });
+
+  const baseR = 0.86 + tier * 0.055;
+  const base = shadowed(new THREE.Mesh(roughRock(baseR, 1, 0.3, tier), stone));
+  base.scale.y = 0.4;
+  base.position.y = 0.2;
+  group.add(base);
+
+  // Anchoring boulders ring the base, present from tier 1 — earth's own
+  // ground-level mass, distinct from the wood trunk rising through the center.
+  const anchorCount = 4;
+  for (let i = 0; i < anchorCount; i++) {
+    const a = (i / anchorCount) * Math.PI * 2 + 0.3;
+    const anchor = shadowed(new THREE.Mesh(roughRock(0.16, 0, 0.36, i + 3), stone));
+    anchor.position.set(Math.cos(a) * baseR * 1.05, 0.18, Math.sin(a) * baseR * 1.05);
+    group.add(anchor);
+
+    const spark = new THREE.Mesh(new THREE.IcosahedronGeometry(0.045, 0), boltCore);
+    spark.position.set(Math.cos(a) * baseR * 1.05, 0.32, Math.sin(a) * baseR * 1.05);
+    applyMotion(spark, { bobAmp: 0.02, bobSpeed: 7 + i, bobPhase: i * 2 });
+    group.add(spark);
+  }
+
+  const trunkH = 1.15 + tier * 0.34;
+  const trunk = shadowed(new THREE.Mesh(plinth(0.18, 0.26, trunkH, 8), wood));
+  trunk.position.y = 0.36 + trunkH / 2;
+  group.add(trunk);
+
+  // Stone collar fused partway up the trunk — the totem's roots have
+  // grown deep enough to pull bedrock up with them.
+  const collarH = trunkH * 0.3;
+  const collar = shadowed(new THREE.Mesh(plinth(0.26, 0.3, collarH, 8), stone));
+  collar.position.y = 0.4 + trunkH * 0.24;
+  group.add(collar);
+
+  const coil = shadowed(new THREE.Mesh(spiralTube(0.28, trunkH * 0.95, 2.4 + tier * 0.5, 0.034), metal));
+  coil.position.y = 0.38;
+  group.add(coil);
+
+  const crownY = 0.4 + trunkH;
+  const thornCount = 5 + tier * 2;
+  for (let i = 0; i < thornCount; i++) {
+    const a = (i / thornCount) * Math.PI * 2;
+    const thorn = shadowed(new THREE.Mesh(plinth(0.004, 0.032, 0.3, 5), metal));
+    thorn.position.set(Math.cos(a) * 0.3, crownY, Math.sin(a) * 0.3);
+    thorn.rotation.z = Math.cos(a) * 1.2;
+    thorn.rotation.x = -Math.sin(a) * 1.2;
+    group.add(thorn);
+
+    const tip = new THREE.Mesh(new THREE.IcosahedronGeometry(0.04, 0), boltCore);
+    tip.position.set(Math.cos(a) * 0.46, crownY + 0.1, Math.sin(a) * 0.46);
+    applyMotion(tip, { bobAmp: 0.02, bobSpeed: 6 + i, bobPhase: i * 2 });
+    group.add(tip);
+  }
+
+  // Boulder cairn crowning the totem — earth reaching all the way to the
+  // top, not just anchoring the base.
+  const crownBoulder = shadowed(new THREE.Mesh(roughRock(0.2 + tier * 0.02, 1, 0.32, 12), stone));
+  crownBoulder.position.y = crownY + 0.22;
+  group.add(crownBoulder);
+
+  const orb = new THREE.Mesh(new THREE.IcosahedronGeometry(0.18 + tier * 0.028, 1), boltCore);
+  orb.position.y = crownY + 0.4;
+  applyMotion(orb, { spinSpeed: 1.15 });
+  group.add(orb);
+
+  return group;
+}
+
+/**
+ * Emberroot Sigil — fire + nature + arcane (Hellfire Sigil + nature).
+ * The same obsidian obelisk and captive-flame core as Hellfire Sigil, now
+ * climbed by a full living vine lattice that blooms into ember-lit buds
+ * near the crown — nature gets its own wood structure AND its own green
+ * core glow, distinct from the fire core hidden inside the obelisk.
+ */
+export function buildFireNatureArcaneTower(tier: 1 | 2 | 3): THREE.Group {
+  const group = new THREE.Group();
+  const crystalMat = createStructureMaterial("arcane", "crystal", tier);
+  const wood = createStructureMaterial("nature", "wood", tier);
+  const fireCore = createElementCoreMaterial("fire", tier, { scale: 2.3 });
+  const vineCore = createElementCoreMaterial("nature", tier, { scale: 2.4, intensity: 1.05 });
+
+  const discR = 0.72 + tier * 0.04;
+  const disc = shadowed(new THREE.Mesh(plinth(discR, discR * 0.88, 0.2, 9), crystalMat));
+  disc.position.y = 0.4;
+  applyMotion(disc, { bobAmp: 0.03, bobSpeed: 1 });
+  group.add(disc);
+
+  // Roots have cracked up through the disc's rim, present from tier 1 —
+  // nature's ground-level presence, mirroring how embers sit at the base of
+  // the parent Hellfire Sigil.
+  const rootCount = 4;
+  for (let i = 0; i < rootCount; i++) {
+    const a = (i / rootCount) * Math.PI * 2 + 0.6;
+    const root = shadowed(new THREE.Mesh(spiralTube(0.05, 0.22, 1.3, 0.025), wood));
+    root.position.set(Math.cos(a) * discR * 0.82, 0.2, Math.sin(a) * discR * 0.82);
+    group.add(root);
+
+    const bud = new THREE.Mesh(new THREE.IcosahedronGeometry(0.05, 0), vineCore);
+    bud.position.set(Math.cos(a) * discR * 0.82, 0.36, Math.sin(a) * discR * 0.82);
+    applyMotion(bud, { bobAmp: 0.03, bobSpeed: 1.6 + i * 0.2, bobPhase: i });
+    group.add(bud);
+  }
+
+  const obeliskH = 1.35 + tier * 0.44;
+  const pillar = shadowed(new THREE.Mesh(obeliskGeo(0.08, 0.27, obeliskH), crystalMat));
+  pillar.position.y = 0.4 + obeliskH / 2;
+  group.add(pillar);
+
+  const flameCoreMesh = new THREE.Mesh(obeliskGeo(0.032, 0.14, obeliskH * 0.94), fireCore);
+  flameCoreMesh.position.copy(pillar.position);
+  applyMotion(flameCoreMesh, { spinSpeed: 0.4 });
+  group.add(flameCoreMesh);
+
+  // Vine lattice climbs the full obelisk face — nature's own clearly
+  // legible geometry, structurally wrapping the stone rather than sitting
+  // only at the base or crown.
+  const vineWrap = shadowed(new THREE.Mesh(spiralTube(0.3, obeliskH * 0.94, 2.6 + tier * 0.5, 0.04), wood));
+  vineWrap.position.y = 0.4;
+  group.add(vineWrap);
+  const vineGlow = new THREE.Mesh(spiralTube(0.31, obeliskH * 0.94, 2.6 + tier * 0.5, 0.018), vineCore);
+  vineGlow.position.y = 0.4;
+  group.add(vineGlow);
+
+  const ringCount = tier;
+  for (let i = 0; i < ringCount; i++) {
+    const ring = glyphRing(0.46 + i * 0.17, 5 + i * 2, 0.17, fireCore);
+    ring.position.y = 0.56 + i * 0.34;
+    applyMotion(ring, { spinSpeed: (i % 2 === 0 ? 1 : -1) * (0.35 + i * 0.1), bobAmp: 0.03, bobSpeed: 1.2 });
+    group.add(ring);
+  }
+
+  // Living crown of ember-lit blossoms grown from the vine's topmost reach.
+  const blossomCount = 3 + tier * 2;
+  for (let i = 0; i < blossomCount; i++) {
+    const a = (i / blossomCount) * Math.PI * 2;
+    const blossom = new THREE.Mesh(new THREE.IcosahedronGeometry(0.08 + (i % 2) * 0.02, 0), vineCore);
+    blossom.position.set(Math.cos(a) * 0.22, 0.44 + obeliskH - 0.1, Math.sin(a) * 0.22);
+    applyMotion(blossom, { bobAmp: 0.03, bobSpeed: 2.4 + i * 0.25, bobPhase: i });
+    group.add(blossom);
+  }
+
+  const tip = new THREE.Mesh(flameLick(0.16 + tier * 0.026, 0.5), fireCore);
+  tip.position.y = 0.44 + obeliskH;
+  applyMotion(tip, { bobAmp: 0.05, bobSpeed: 2.2 });
+  group.add(tip);
+
   return group;
 }

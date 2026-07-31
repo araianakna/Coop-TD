@@ -26,11 +26,17 @@ import {
 } from "./models/fusionModels";
 import {
   buildFireIceLightningTower,
+  buildFireIceNatureTower,
   buildFireLightningArcaneTower,
+  buildFireLightningEarthTower,
+  buildFireNatureArcaneTower,
   buildFireNatureEarthTower,
+  buildIceLightningArcaneTower,
   buildIceNatureArcaneTower,
   buildIceNatureEarthTower,
   buildLightningEarthArcaneTower,
+  buildLightningNatureEarthTower,
+  buildNatureEarthArcaneTower,
 } from "./models/grandFusionModels";
 
 export { animateTowerModel } from "./models/motion";
@@ -77,6 +83,15 @@ const MODEL_BUILDERS: Record<string, ModelBuilder> = {
   tower_lightning_earth_arcane: buildLightningEarthArcaneTower,
   tower_fire_lightning_arcane: buildFireLightningArcaneTower,
   tower_ice_nature_earth: buildIceNatureEarthTower,
+
+  // Grand Fusion towers, second curation pass (see GrandFusionMatrix.ts and
+  // TowerRegistry.ts's Grand Fusion section for the recipes/rationale)
+  tower_fire_ice_nature: buildFireIceNatureTower,
+  tower_ice_lightning_arcane: buildIceLightningArcaneTower,
+  tower_fire_lightning_earth: buildFireLightningEarthTower,
+  tower_nature_earth_arcane: buildNatureEarthArcaneTower,
+  tower_lightning_nature_earth: buildLightningNatureEarthTower,
+  tower_fire_nature_arcane: buildFireNatureArcaneTower,
 };
 
 /**
