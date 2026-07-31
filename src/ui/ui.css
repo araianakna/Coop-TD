@@ -1012,3 +1012,146 @@
   font-size: 13px;
   padding: 9px 10px;
 }
+
+/* -------------------------------------------------------------------------
+   Phone/tablet layout — the desktop UI (a tall vertical shop list pinned to
+   one corner, a bottom-right inspector) doesn't fit a narrow viewport
+   without either covering most of the game board or running off-screen.
+   Below this breakpoint the shop becomes a full-width horizontal strip
+   along the bottom (thumb-reachable, standard mobile-game convention), and
+   the inspector moves up out of its way. Tap targets are also bumped
+   toward the ~44px minimum comfortable touch size.
+   ------------------------------------------------------------------------- */
+
+@media (max-width: 820px) {
+  .rw-anchor-shop {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+  }
+
+  .rw-shop-panel {
+    width: 100%;
+    max-height: none;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .rw-shop-panel .rw-panel-header {
+    padding: 8px 14px 6px;
+  }
+
+  .rw-shop-panel .rw-panel-body {
+    padding: 8px 10px calc(10px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .rw-shop-list {
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    gap: 8px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+
+  .rw-shop-card {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+    justify-items: center;
+    flex: none;
+    width: 76px;
+    min-height: 44px;
+    padding: 8px 6px 7px;
+    text-align: center;
+  }
+
+  /* Icon-first compact card: name shrinks to one line, epithet/description
+     drop entirely (there's no room, and cost + icon + name identify a tower
+     well enough for a quick tap-to-arm interaction). */
+  .rw-shop-card-name-row {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .rw-shop-card-name {
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 68px;
+  }
+
+  .rw-shop-card-epithet,
+  .rw-shop-card-desc {
+    display: none;
+  }
+
+  .rw-shop-card-cost {
+    font-size: 12px;
+  }
+
+  .rw-anchor-inspector {
+    top: calc(72px + env(safe-area-inset-top, 0px));
+    right: 10px;
+    bottom: auto;
+  }
+
+  .rw-inspector {
+    width: min(240px, 62vw);
+  }
+
+  .rw-anchor-fusion {
+    width: min(380px, 92vw);
+  }
+
+  .rw-fusion-panel {
+    width: 100%;
+  }
+
+  .rw-hud {
+    top: calc(8px + env(safe-area-inset-top, 0px));
+  }
+
+  .rw-hud-stat {
+    padding: 2px 10px;
+  }
+
+  .rw-btn {
+    padding: 11px 20px;
+    font-size: 15px;
+  }
+}
+
+/* -------------------------------------------------------------------------
+   Portrait hint — this game's map is a wide landscape composition; in a
+   tall/narrow window there's much less usable board visible. Non-blocking:
+   informational only, never intercepts taps, and disappears the instant the
+   device (or window) goes landscape since it's driven purely by the media
+   query re-evaluating.
+   ------------------------------------------------------------------------- */
+
+.rw-rotate-hint {
+  display: none;
+  position: absolute;
+  top: env(safe-area-inset-top, 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+  pointer-events: none;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(20, 12, 34, 0.75);
+  border: 1px solid rgba(255, 210, 122, 0.3);
+  color: var(--rw-gold-100);
+  font-family: var(--rw-font-body);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  backdrop-filter: blur(6px);
+}
+
+@media (orientation: portrait) and (max-aspect-ratio: 3/4) {
+  .rw-rotate-hint {
+    display: block;
+  }
+}

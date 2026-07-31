@@ -166,6 +166,11 @@ export class Game {
     uiRoot.style.zIndex = "10";
     host.appendChild(uiRoot);
 
+    const rotateHint = document.createElement("div");
+    rotateHint.className = "rw-rotate-hint";
+    rotateHint.textContent = "↻ Rotate for a wider view";
+    uiRoot.appendChild(rotateHint);
+
     this.hud = createHUD(this.economy);
     uiRoot.appendChild(this.hud.el);
 
