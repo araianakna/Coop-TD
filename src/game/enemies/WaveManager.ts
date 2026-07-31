@@ -29,9 +29,23 @@
 // breather/staging wave (39) exactly like wave 19 was for wave 20, backed
 // by the largest mixed escort in the campaign.
 
-import type { WaveDef } from "@/game/types";
+import type { WaveDef, WaveSpawnEntry } from "@/game/types";
 
-export const WAVES: WaveDef[] = [
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
+// ---------------------------------------------------------------------------
+// Difficulty tuning
+// ---------------------------------------------------------------------------
+// Applied uniformly over the hand-authored curve below rather than by
+// re-editing every one of the 40 wave blocks: waves run busier (more
+// concurrent enemies) but each enemy is a bit softer, so the net per-wave
+// threat is down a notch even though there's more on screen.
+const WAVE_SIZE_FACTOR = 1.2; // ~20% more enemies per wave
+const DIFFICULTY_HEALTH_FACTOR = 0.78; // ~22% less health, before the size bump
+
+const RAW_WAVES: WaveDef[] = [
   // 1 — tutorial trickle
   {
     index: 1,
@@ -429,8 +443,68 @@ export const WAVES: WaveDef[] = [
   },
 ];
 
-export function getWave(index: number): WaveDef | undefined {
-  return WAVES.find((w) => w.index === index);
+// The hand-authored campaign, with the difficulty tuning above applied.
+export const WAVES: WaveDef[] = RAW_WAVES.map((wave) => ({
+  ...wave,
+  spawns: wave.spawns.map((s) => ({
+    ...s,
+    count: Math.max(1, Math.round(s.count * WAVE_SIZE_FACTOR)),
+    healthMultiplier:
+      s.healthMultiplier !== undefined ? round2(s.healthMultiplier * DIFFICULTY_HEALTH_FACTOR) : undefined,
+  })),
+}));
+
+// Number of hand-authored campaign waves (the fixed 40-wave story, finale
+// boss included). Endless mode picks up procedurally right after this.
+export const TOTAL_WAVES: number = WAVES.length;
+
+// ---------------------------------------------------------------------------
+// Endless mode — procedurally generated waves past the campaign finale
+// ---------------------------------------------------------------------------
+// Reuses the same 10 regular enemy ids and cycles the 3 existing bosses
+// every 5th endless wave, so no new content is required. Health keeps
+// climbing geometrically from wave 40's tuned baseline, composition widens
+// a little further, and swarm spacing keeps tightening — the same shape the
+// hand-authored curve was already following, just continued indefinitely.
+const ENDLESS_ENEMY_IDS = [
+  "thornling",
+  "voltling",
+  "cinderling",
+  "cragback",
+  "sandveil",
+  "frostfang",
+  "skitterwing",
+  "quagbrute",
+  "wraithguard",
+  "runeshell",
+];
+const ENDLESS_BOSS_IDS = ["cindercolossus", "hollowglacier", "stormsovereign"];
+
+const ENDLESS_BASE_HEALTH_MULT = WAVES[WAVES.length - 1]?.spawns[0]?.healthMultiplier ?? 8.2;
+
+function generateEndlessWave(index: number): WaveDef {
+  const n = index - TOTAL_WAVES; // 1, 2, 3, ... waves past the campaign
+  const healthMultiplier = round2(ENDLESS_BASE_HEALTH_MULT * Math.pow(1.05, n));
+  const typeCount = Math.min(ENDLESS_ENEMY_IDS.length, 4 + Math.floor(n / 3));
+
+  const spawns: WaveSpawnEntry[] = [];
+  for (let i = 0; i < typeCount; i++) {
+    const enemyId = ENDLESS_ENEMY_IDS[(n + i) % ENDLESS_ENEMY_IDS.length];
+    const count = Math.max(4, Math.round(((10 + n * 1.3) * WAVE_SIZE_FACTOR) / typeCount + 4));
+    const intervalMs = Math.max(70, Math.round(240 - n * 2.5));
+    spawns.push({ enemyId, count, intervalMs, healthMultiplier });
+  }
+
+  const bossId = n % 5 === 0 ? ENDLESS_BOSS_IDS[(n / 5 - 1) % ENDLESS_BOSS_IDS.length] : undefined;
+  return { index, spawns, bossId };
 }
 
-export const TOTAL_WAVES: number = WAVES.length;
+/** Looks up a hand-authored wave, or synthesizes one procedurally past the
+ * campaign finale (see "Endless mode" above) — the game never runs out of
+ * waves. */
+export function getWave(index: number): WaveDef | undefined {
+  const found = WAVES.find((w) => w.index === index);
+  if (found) return found;
+  if (index > TOTAL_WAVES) return generateEndlessWave(index);
+  return undefined;
+}

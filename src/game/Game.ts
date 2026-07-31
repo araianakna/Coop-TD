@@ -18,6 +18,7 @@ import type {
   FusionElementPair,
   GridCoord,
   StatusEffect,
+  StatusEffectKind,
   TowerAbility,
   TowerAbilityContext,
   TowerDef,
@@ -46,12 +47,45 @@ import { AudioSystem } from "@/audio";
 
 export type MapChoice = "map01" | "map02";
 
-const STARTING_GOLD = 220;
+const STARTING_GOLD = 260;
 const STARTING_LIVES = 20;
 const FIRST_WAVE_DELAY_SECONDS = 3;
-const BETWEEN_WAVE_DELAY_SECONDS = 4;
+const BETWEEN_WAVE_DELAY_SECONDS = 3;
 const FUSION_COST_FACTOR = 0.5; // fusing "recycles" both source towers, so it's cheaper than buying the fusion outright
 const SELL_REFUND_FACTOR = 0.5;
+const BOUNTY_MULTIPLIER = 1.35; // gold-per-kill boost, layered on top of busier waves for a richer economy
+const WAVE_CLEAR_BONUS_BASE = 25;
+const WAVE_CLEAR_BONUS_PER_WAVE = 3;
+/**
+ * Global sim-speed multiplier: scales the dt fed into wave scheduling, tower
+ * cooldowns/projectiles, enemy movement, status-effect ticking, and VFX —
+ * everything that makes the game "play out" — while the camera controller
+ * still gets real, unscaled dt so touch/mouse panning stays responsive
+ * instead of feeling twitchy.
+ */
+const GAME_SPEED = 1.35;
+
+/**
+ * Signature secondary effect each element has a chance to apply on every
+ * regular (non-ability) hit, layered on top of the towers' existing
+ * periodic special abilities (Ignite, Deep Chill, Overcharge, ...) — so an
+ * element's identity comes through on ordinary attacks too, not just once
+ * every several seconds. Fusion/grand-fusion towers alternate which
+ * element fires each shot (see `altShot` in `fireProjectile`), so they
+ * naturally roll procs from both/all of their parent elements over time
+ * with no per-tower-id table needed here.
+ */
+const ON_HIT_PROC: Record<
+  Element,
+  { chance: number; kind: StatusEffectKind; magnitude: number; durationMs: number }
+> = {
+  fire: { chance: 0.3, kind: "burn", magnitude: 4, durationMs: 2200 },
+  ice: { chance: 0.35, kind: "chill", magnitude: 0.22, durationMs: 1400 },
+  lightning: { chance: 0.25, kind: "shock", magnitude: 0.5, durationMs: 700 },
+  nature: { chance: 0.3, kind: "poison", magnitude: 3, durationMs: 2500 },
+  earth: { chance: 0.3, kind: "sunder", magnitude: 0.15, durationMs: 2500 },
+  arcane: { chance: 0.2, kind: "silence", magnitude: 1, durationMs: 1200 },
+};
 
 interface TowerInstance {
   id: string;
@@ -117,6 +151,7 @@ export class Game {
   private nextWaveAtElapsed: number | null = FIRST_WAVE_DELAY_SECONDS;
   private gameOver = false;
   private victory = false;
+  private campaignCompleteAnnounced = false;
 
   private hud: ReturnType<typeof createHUD>;
   private shop: ShopPanel;
@@ -620,13 +655,21 @@ export class Game {
       this.enemies.length === 0 &&
       this.nextWaveAtElapsed === null
     ) {
-      if (this.waveIndex >= TOTAL_WAVES) {
-        this.victory = true;
-        this.victoryScreen.show(this.waveIndex);
+      this.economy.earn(Math.round(WAVE_CLEAR_BONUS_BASE + this.waveIndex * WAVE_CLEAR_BONUS_PER_WAVE));
+
+      // The hand-authored campaign ends at TOTAL_WAVES, but the game itself
+      // doesn't stop there — endless mode (WaveManager.getWave) keeps
+      // synthesizing waves past it. Celebrate clearing the campaign once
+      // with the existing victory overlay, then auto-dismiss it and keep
+      // playing instead of hard-stopping the sim (never set `this.victory`).
+      if (this.waveIndex === TOTAL_WAVES && !this.campaignCompleteAnnounced) {
+        this.campaignCompleteAnnounced = true;
         this.audio.music.victory();
-      } else {
-        this.nextWaveAtElapsed = this.elapsed + BETWEEN_WAVE_DELAY_SECONDS;
+        this.victoryScreen.show(this.waveIndex);
+        setTimeout(() => this.victoryScreen.hide(), 4000);
       }
+
+      this.nextWaveAtElapsed = this.elapsed + BETWEEN_WAVE_DELAY_SECONDS;
     }
   }
 
@@ -743,13 +786,34 @@ export class Game {
 
     let speedMult = 1;
     for (const effect of enemy.statusEffects) {
-      if (effect.kind === "chill") speedMult *= 1 - effect.magnitude;
+      if (effect.kind === "chill" || effect.kind === "shock") speedMult *= 1 - effect.magnitude;
       if (effect.kind === "freeze" || effect.kind === "root") speedMult = 0;
       if (effect.kind === "burn" || effect.kind === "poison") {
         enemy.health -= effect.magnitude * dtSeconds;
       }
     }
     enemy.speedMultiplier = Math.max(0, speedMult);
+  }
+
+  /** Shared by ability triggers and on-hit procs: replaces any existing
+   * effect of the same kind rather than stacking duplicates. */
+  private applyStatusToEnemy(enemy: EnemyInstance, effect: StatusEffect) {
+    if (!this.enemies.includes(enemy)) return;
+    enemy.statusEffects = enemy.statusEffects.filter((e) => e.kind !== effect.kind);
+    enemy.statusEffects.push(effect);
+  }
+
+  private tryApplyOnHitProc(enemy: EnemyInstance, tower: TowerInstance, element: Element) {
+    const proc = ON_HIT_PROC[element];
+    if (Math.random() >= proc.chance) return;
+    this.applyStatusToEnemy(enemy, {
+      kind: proc.kind,
+      magnitude: proc.magnitude,
+      durationMs: proc.durationMs,
+      appliedAt: Date.now(),
+      sourceTowerId: tower.id,
+    });
+    this.playThrottled(`status:${proc.kind}`, 350, () => this.audio.combat.statusApplied(proc.kind, element));
   }
 
   private effectiveArmor(enemy: EnemyInstance): number {
@@ -763,7 +827,7 @@ export class Game {
   }
 
   private killEnemy(enemy: EnemyInstance) {
-    this.economy.earn(enemy.def.bounty);
+    this.economy.earn(Math.round(enemy.def.bounty * BOUNTY_MULTIPLIER));
     this.removeEnemy(enemy);
     this.audio.combat.enemyDeath(enemy.def.isBoss ?? false);
   }
@@ -894,6 +958,7 @@ export class Game {
 
     if (this.enemies.includes(target)) {
       this.applyDamage(target, baseDamage, elA, critChance, critMultiplier);
+      this.tryApplyOnHitProc(target, tower, elA);
     }
 
     if (elB) {
@@ -936,8 +1001,7 @@ export class Game {
       position: tower.coord,
       applyStatus: (_targetId: string, effect: StatusEffect) => {
         if (!this.enemies.includes(target)) return;
-        target.statusEffects = target.statusEffects.filter((e) => e.kind !== effect.kind);
-        target.statusEffects.push(effect);
+        this.applyStatusToEnemy(target, effect);
         this.audio.combat.statusApplied(effect.kind, this.towerElements(tower)[0]);
       },
       dealDamage: (_targetId: string, dmg: DamageInstance) => {
@@ -1005,11 +1069,12 @@ export class Game {
   }
 
   private loop = () => {
-    const dt = Math.min(this.clock.getDelta(), 0.05);
+    const rawDt = Math.min(this.clock.getDelta(), 0.05);
+    const dt = rawDt * GAME_SPEED;
     this.elapsed += dt;
 
     this.input.update();
-    this.cameraController.update(dt);
+    this.cameraController.update(rawDt);
 
     if (!this.gameOver && !this.victory) {
       this.updateWaves();
