@@ -24,6 +24,7 @@ import type {
 } from "@/game/types";
 import { getTowerDef, listBaseTowers } from "@/game/towers/TowerRegistry";
 import { getFusionRecipe } from "@/game/towers/FusionMatrix";
+import { getGrandFusionRecipe } from "@/game/towers/GrandFusionMatrix";
 import {
   animateTowerModel,
   createTowerModel,
@@ -296,6 +297,23 @@ export class Game {
     this.clearSelection();
   }
 
+  /**
+   * A tower's visual model can have gaps/hollows at the exact tile center
+   * (rings of accent rocks, floating discs, etc.), so raycasting against the
+   * model geometry alone can miss a click dead-center on a placed tower —
+   * the same class of bug as the buildable-tile ring markers earlier. This
+   * adds an invisible full-footprint cylinder so tower selection is always
+   * hit-testable regardless of the model's actual silhouette.
+   */
+  private addSelectionHitArea(group: THREE.Group) {
+    const hit = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.95, 0.95, 2, 12),
+      new THREE.MeshBasicMaterial({ visible: false }),
+    );
+    hit.position.y = 1;
+    group.add(hit);
+  }
+
   private tryPlaceTower(coord: GridCoord, def: TowerDef) {
     const cost = def.tiers[0].cost;
     if (!this.economy.canAfford(cost)) return;
@@ -309,6 +327,7 @@ export class Game {
     const [wx, wz] = this.map.grid.gridToWorld(coord);
     group.position.set(wx, 0, wz);
     group.userData.towerId = id;
+    this.addSelectionHitArea(group);
     this.scene.add(group);
 
     this.towers.push({
@@ -384,11 +403,42 @@ export class Game {
   private getFusionCandidatePairs(): FusionCandidatePair[] {
     if (this.selectedTowerIds.length !== 2) return [];
     const [towerA, towerB] = this.selectedTowerIds.map((id) => this.towers.find((t) => t.id === id));
-    if (!towerA || !towerB || towerA.def.isFusion || towerB.def.isFusion) return [];
+    if (!towerA || !towerB) return [];
 
-    const elA = towerA.def.element as Element;
-    const elB = towerB.def.element as Element;
-    const recipe = getFusionRecipe(elA, elB);
+    // Base + base -> a standard 2-element fusion (the original 15 recipes).
+    if (!towerA.def.isFusion && !towerB.def.isFusion) {
+      const elA = towerA.def.element as Element;
+      const elB = towerB.def.element as Element;
+      const recipe = getFusionRecipe(elA, elB);
+      if (!recipe) return [];
+      const resultDef = getTowerDef(recipe.resultTowerId);
+      if (!resultDef) return [];
+
+      const cost = Math.round(resultDef.tiers[0].cost * FUSION_COST_FACTOR);
+      return [
+        {
+          id: recipe.resultTowerId,
+          towerA: { id: towerA.id, name: towerA.def.name, element: elA },
+          towerB: { id: towerB.id, name: towerB.def.name, element: elB },
+          resultName: resultDef.name,
+          resultElementPair: resultDef.element as FusionElementPair,
+          flavorText: resultDef.flavorText,
+          cost,
+          affordable: this.economy.canAfford(cost),
+        },
+      ];
+    }
+
+    // Fusion + base (a third, distinct element) -> a curated Grand Fusion.
+    const fusionTower = towerA.def.isFusion ? towerA : towerB.def.isFusion ? towerB : null;
+    const baseTower = fusionTower === towerA ? towerB : towerA;
+    if (!fusionTower || baseTower.def.isFusion) return [];
+
+    const [fA, fB] = this.towerElements(fusionTower);
+    const thirdElement = baseTower.def.element as Element;
+    if (!fB || thirdElement === fA || thirdElement === fB) return [];
+
+    const recipe = getGrandFusionRecipe(fusionTower.def.id, thirdElement);
     if (!recipe) return [];
     const resultDef = getTowerDef(recipe.resultTowerId);
     if (!resultDef) return [];
@@ -397,8 +447,8 @@ export class Game {
     return [
       {
         id: recipe.resultTowerId,
-        towerA: { id: towerA.id, name: towerA.def.name, element: elA },
-        towerB: { id: towerB.id, name: towerB.def.name, element: elB },
+        towerA: { id: fusionTower.id, name: fusionTower.def.name, element: fA },
+        towerB: { id: baseTower.id, name: baseTower.def.name, element: thirdElement },
         resultName: resultDef.name,
         resultElementPair: resultDef.element as FusionElementPair,
         flavorText: resultDef.flavorText,
@@ -436,6 +486,7 @@ export class Game {
     const [wx, wz] = this.map.grid.gridToWorld(coord);
     group.position.set(wx, 0, wz);
     group.userData.towerId = id;
+    this.addSelectionHitArea(group);
     this.scene.add(group);
 
     this.towers.push({
@@ -477,6 +528,7 @@ export class Game {
     const [wx, wz] = this.map.grid.gridToWorld(tower.coord);
     group.position.set(wx, 0, wz);
     group.userData.towerId = tower.id;
+    this.addSelectionHitArea(group);
     this.scene.add(group);
     tower.group = group;
 
@@ -746,6 +798,7 @@ export class Game {
       }
 
       for (const ability of tower.def.abilities) {
+        if (tower.tier < (ability.minTier ?? 1)) continue;
         const remaining = tower.abilityCooldowns.get(ability.id) ?? 0;
         const updated = remaining - dtMs;
         if (updated <= 0 && target) {
@@ -846,16 +899,8 @@ export class Game {
     ability.onTrigger(ctx);
   }
 
-  private emitAbilityVfx(tower: TowerInstance, vfxId: string, worldPos: [number, number, number]) {
-    const token = vfxId.split(".")[1];
-    const [elA, elB] = this.towerElements(tower);
-    if (elB) {
-      this.vfx.impacts.triggerFusion(elA, elB, worldPos);
-      return;
-    }
-    const isElement = (s: string): s is Element =>
-      s === "fire" || s === "ice" || s === "lightning" || s === "nature" || s === "earth" || s === "arcane";
-    this.vfx.impacts.trigger(isElement(token) ? token : elA, worldPos);
+  private emitAbilityVfx(_tower: TowerInstance, vfxId: string, worldPos: [number, number, number]) {
+    this.vfx.emitVfx(vfxId, worldPos);
   }
 
   // -------------------------------------------------------------------
