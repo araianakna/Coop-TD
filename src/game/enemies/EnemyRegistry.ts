@@ -121,6 +121,51 @@ export const ENEMY_REGISTRY: EnemyDef[] = [
   },
 
   // ---------------------------------------------------------------------
+  // Wave 21+ additions
+  // ---------------------------------------------------------------------
+  // Gap filled: every existing flyer (skitterwing) is a fast glass cannon,
+  // so anti-air investment tops out as "a little splash/DPS is enough."
+  // Wraithguard is the roster's first *armored, tanky* flyer — slow for a
+  // flyer but with cragback-tier health and the highest armor of any
+  // non-boss enemy, forcing players who leaned on light anti-air to
+  // actually commit sustained damage into the sky lane. Its
+  // resistance/weakness spread deliberately inverts skitterwing's (which
+  // resists arcane/lightning and fears ice) so the two flyers create real
+  // targeting tension instead of reading as reskins of each other.
+  {
+    id: "wraithguard",
+    name: "Wraithguard Sentinel",
+    baseHealth: 300,
+    baseSpeed: 1.9,
+    armor: 13,
+    movement: "flying",
+    resistances: { arcane: 0.45, ice: 0.75 },
+    weaknesses: { lightning: 1.55, nature: 1.2 },
+    bounty: 24,
+    modelId: "wraithguard",
+  },
+  // Gap filled: quagbrute is the roster's only "resist several elements"
+  // puzzle unit, but it still has an obvious, single hard counter (fire
+  // 1.65x) and modest armor (10). Runeshell Warden pushes that archetype
+  // further into genuine late-game puzzle territory: FOUR resisted
+  // elements (fire/earth/nature/ice) and the roster's highest armor, with
+  // damage only really landing through arcane or lightning. It reads as a
+  // ward-inscribed golem rather than a beast, giving the back half of the
+  // campaign an enemy that punishes a mono-element defense outright.
+  {
+    id: "runeshell",
+    name: "Runeshell Warden",
+    baseHealth: 260,
+    baseSpeed: 1.6,
+    armor: 16,
+    movement: "ground",
+    resistances: { fire: 0.6, earth: 0.6, nature: 0.7, ice: 0.8 },
+    weaknesses: { arcane: 1.7, lightning: 1.3 },
+    bounty: 22,
+    modelId: "runeshell",
+  },
+
+  // ---------------------------------------------------------------------
   // Bosses
   // ---------------------------------------------------------------------
   {
@@ -147,6 +192,28 @@ export const ENEMY_REGISTRY: EnemyDef[] = [
     weaknesses: { fire: 1.7, lightning: 1.2 },
     bounty: 240,
     modelId: "hollowglacier",
+    isBoss: true,
+  },
+  // Wave 40 campaign finale. Emberback (fire, weak to ice/arcane) and The
+  // Hollow Glacier (ice, weak to fire/lightning) already cover two thirds
+  // of the wheel; Thal'vor is the arcane+storm force behind both, so it
+  // fittingly *resists* the arcane/lightning damage that shredded the
+  // midgame boss and the previous finale, and is only brought down by the
+  // "grounding" elements (earth/nature) — a genuinely different answer
+  // than either prior boss demanded, so a deck tuned for waves 10/20 alone
+  // cannot coast through 40. Highest health/armor/bounty in the game by a
+  // wide margin, per the capstone brief.
+  {
+    id: "stormsovereign",
+    name: "Thal'vor, the Stormbound Sovereign",
+    baseHealth: 9500,
+    baseSpeed: 1.35,
+    armor: 24,
+    movement: "flying",
+    resistances: { arcane: 0.35, lightning: 0.4 },
+    weaknesses: { earth: 1.6, nature: 1.3 },
+    bounty: 420,
+    modelId: "stormsovereign",
     isBoss: true,
   },
 ];

@@ -814,6 +814,150 @@
 }
 
 /* -------------------------------------------------------------------------
+   Start screen (pre-game map select)
+   ------------------------------------------------------------------------- */
+
+.rw-startscreen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.rw-startscreen-hidden {
+  display: none;
+}
+
+.rw-startscreen-backdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(65% 60% at 50% 38%, rgba(197, 140, 255, 0.16), transparent 70%),
+    radial-gradient(120% 120% at 50% 50%, rgba(23, 15, 36, 0.85), rgba(6, 4, 10, 0.97));
+}
+
+.rw-startscreen-panel {
+  position: relative;
+  width: min(92vw, 720px);
+}
+
+.rw-startscreen-content {
+  opacity: 0;
+  transform: translateY(14px) scale(0.98);
+}
+
+.rw-startscreen-content.rw-startscreen-anim {
+  animation: rw-startscreen-in 0.55s cubic-bezier(0.2, 0.8, 0.25, 1) forwards;
+}
+
+@keyframes rw-startscreen-in {
+  0% { opacity: 0; transform: translateY(18px) scale(0.97); }
+  60% { opacity: 1; }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.rw-startscreen-subtitle {
+  margin: 2px 4px 16px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: rgba(255, 233, 199, 0.7);
+  text-align: center;
+}
+
+.rw-map-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.rw-map-card {
+  --rw-map-accent: var(--rw-gold-300);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: 22px 18px 18px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--rw-map-accent) 30%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--rw-map-accent) 10%, transparent), rgba(0, 0, 0, 0.2));
+  cursor: pointer;
+  font-family: var(--rw-font-body);
+  color: var(--rw-gold-100);
+  transition: transform 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease, background 0.14s ease;
+}
+
+.rw-map-card:hover,
+.rw-map-card:focus-visible {
+  transform: translateY(-3px);
+  border-color: var(--rw-map-accent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--rw-map-accent) 55%, transparent),
+    0 10px 26px rgba(0, 0, 0, 0.45),
+    0 0 24px color-mix(in srgb, var(--rw-map-accent) 35%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--rw-map-accent) 18%, transparent), rgba(0, 0, 0, 0.18));
+}
+
+.rw-map-card:active {
+  transform: translateY(-1px);
+}
+
+.rw-map-card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  color: var(--rw-map-accent);
+  background:
+    radial-gradient(65% 65% at 35% 28%, color-mix(in srgb, var(--rw-map-accent) 30%, white 10%), transparent 70%),
+    rgba(0, 0, 0, 0.25);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--rw-map-accent) 55%, transparent),
+    0 0 18px color-mix(in srgb, var(--rw-map-accent) 40%, transparent);
+}
+
+.rw-map-card-icon svg {
+  width: 30px;
+  height: 30px;
+}
+
+.rw-map-card-name {
+  margin: 4px 0 0;
+  font-family: var(--rw-font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--rw-gold-100);
+  text-shadow: 0 0 12px color-mix(in srgb, var(--rw-map-accent) 45%, transparent);
+}
+
+.rw-map-card-desc {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: rgba(255, 233, 199, 0.72);
+  min-height: 3.2em;
+}
+
+.rw-map-card-cta {
+  margin-top: 6px;
+  padding: 7px 18px;
+  border-radius: 999px;
+  font-family: var(--rw-font-display);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #1a1024;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--rw-map-accent) 85%, white 15%), var(--rw-map-accent));
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--rw-map-accent) 55%, black 35%), 0 4px 10px rgba(0, 0, 0, 0.35);
+}
+
+/* -------------------------------------------------------------------------
    Tower inspector (upgrade/sell mini-panel for a single selected tower)
    ------------------------------------------------------------------------- */
 
