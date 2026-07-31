@@ -29,11 +29,18 @@ export function createRenderer(
     stencil: false,
     depth: true,
   });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  // Touch/coarse-pointer devices (phones, tablets) tend to have weaker GPUs
+  // relative to their pixel density than desktops, so cap resolution lower
+  // there to keep the HDR bloom/SSAA pipeline affordable.
+  const isCoarsePointer = window.matchMedia?.("(pointer: coarse)").matches ?? false;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, isCoarsePointer ? 1.5 : 2));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.NoToneMapping; // handled by postprocessing ToneMappingEffect
   renderer.outputColorSpace = THREE.SRGBColorSpace;
+  // Hand touch gestures entirely to our own pan/pinch/rotate handlers
+  // (RtsCameraController) instead of the browser's native scroll/zoom.
+  renderer.domElement.style.touchAction = "none";
   canvasHost.appendChild(renderer.domElement);
 
   const composer = new EffectComposer(renderer, {

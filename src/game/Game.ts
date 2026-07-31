@@ -160,11 +160,17 @@ export class Game {
 
     // --- UI layer -----------------------------------------------------
     const uiRoot = document.createElement("div");
+    uiRoot.id = "rw-ui-root";
     uiRoot.style.position = "absolute";
     uiRoot.style.inset = "0";
     uiRoot.style.pointerEvents = "none";
     uiRoot.style.zIndex = "10";
     host.appendChild(uiRoot);
+
+    const rotateHint = document.createElement("div");
+    rotateHint.className = "rw-rotate-hint";
+    rotateHint.textContent = "↻ Rotate for a wider view";
+    uiRoot.appendChild(rotateHint);
 
     this.hud = createHUD(this.economy);
     uiRoot.appendChild(this.hud.el);
