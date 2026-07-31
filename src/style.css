@@ -1,0 +1,48 @@
+@font-face {
+  font-family: "system-ui-fallback";
+  src: local("system-ui");
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #120a1f;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+#app {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+}
+
+#app canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.hud {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 22px;
+  color: #ffe9c7;
+  background: rgba(20, 12, 34, 0.6);
+  border: 1px solid rgba(255, 210, 122, 0.35);
+  border-radius: 10px;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+  user-select: none;
+}

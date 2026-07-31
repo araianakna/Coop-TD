@@ -1,0 +1,65 @@
+import type { Element } from "@/game/types";
+
+/**
+ * Maps a "merge tier 2" recipe — an existing fusion tower plus a third base
+ * element it doesn't already contain — to the resulting Grand Fusion tower
+ * id. Kept separate from FusionMatrix.ts (which only handles the base 15
+ * two-element recipes) so the two lookup tables stay easy to reason about
+ * independently: FusionMatrix answers "which 2 elements make this fusion",
+ * this file answers "which fusion + which 3rd element makes this capstone".
+ *
+ * Unlike FusionMatrix.ts this is a curated list, not an exhaustive
+ * enumeration — there are C(6,3) = 20 possible element triads, and only 6
+ * of them have a Grand Fusion tower defined (see TowerRegistry.ts's Grand
+ * Fusion section for why these 6 were chosen). Looking up an
+ * (fusion, element) pair with no curated recipe returns undefined; there is
+ * no synthesized fallback.
+ */
+export interface GrandFusionRecipe {
+  /** TowerDef.id of the 2-element fusion tower being merged. */
+  parentFusionTowerId: string;
+  /** The third base element merged in, distinct from both elements already in the parent fusion. */
+  thirdElement: Element;
+  /** TowerDef.id of the resulting Grand Fusion tower. */
+  resultTowerId: string;
+}
+
+export const GRAND_FUSION_RECIPES: GrandFusionRecipe[] = [
+  { parentFusionTowerId: "tower_fire_ice", thirdElement: "lightning", resultTowerId: "tower_fire_ice_lightning" },
+  { parentFusionTowerId: "tower_fire_earth", thirdElement: "nature", resultTowerId: "tower_fire_nature_earth" },
+  { parentFusionTowerId: "tower_ice_nature", thirdElement: "arcane", resultTowerId: "tower_ice_nature_arcane" },
+  {
+    parentFusionTowerId: "tower_earth_arcane",
+    thirdElement: "lightning",
+    resultTowerId: "tower_lightning_earth_arcane",
+  },
+  {
+    parentFusionTowerId: "tower_fire_lightning",
+    thirdElement: "arcane",
+    resultTowerId: "tower_fire_lightning_arcane",
+  },
+  { parentFusionTowerId: "tower_ice_earth", thirdElement: "nature", resultTowerId: "tower_ice_nature_earth" },
+];
+
+function recipeKey(parentFusionTowerId: string, thirdElement: Element): string {
+  return `${parentFusionTowerId}+${thirdElement}`;
+}
+
+const GRAND_FUSION_LOOKUP = new Map<string, GrandFusionRecipe>(
+  GRAND_FUSION_RECIPES.map((r) => [recipeKey(r.parentFusionTowerId, r.thirdElement), r]),
+);
+
+/** Look up the Grand Fusion recipe for a parent fusion tower id + third element. Returns undefined if this triad has no curated Grand Fusion. */
+export function getGrandFusionRecipe(parentFusionTowerId: string, thirdElement: Element): GrandFusionRecipe | undefined {
+  return GRAND_FUSION_LOOKUP.get(recipeKey(parentFusionTowerId, thirdElement));
+}
+
+/** Resolve the resulting Grand Fusion tower id for a parent fusion tower id + third element, or undefined if there is no such recipe. */
+export function getGrandFusionTowerId(parentFusionTowerId: string, thirdElement: Element): string | undefined {
+  return getGrandFusionRecipe(parentFusionTowerId, thirdElement)?.resultTowerId;
+}
+
+/** All base fusion tower ids that participate in at least one curated Grand Fusion recipe. */
+export function listGrandFusionParentIds(): string[] {
+  return Array.from(new Set(GRAND_FUSION_RECIPES.map((r) => r.parentFusionTowerId)));
+}

@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Runeward UI Gallery</title>
+    <link rel="icon" href="data:," />
+    <style>
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        padding: 0;
+        background: #0f0818;
+        font-family: system-ui, sans-serif;
+        color: #eee;
+      }
+      #gallery {
+        display: flex;
+        flex-direction: column;
+        gap: 28px;
+        padding: 28px;
+      }
+      .gallery-section {
+        border: 1px dashed rgba(255, 255, 255, 0.15);
+        border-radius: 10px;
+        padding: 16px;
+      }
+      .gallery-section h2 {
+        margin: 0 0 12px;
+        font-size: 13px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #aaa;
+        font-weight: 600;
+      }
+      .gallery-stage {
+        position: relative;
+        min-height: 140px;
+        border-radius: 8px;
+        overflow: hidden;
+        /* stands in for the WebGL canvas */
+        background:
+          radial-gradient(60% 90% at 30% 0%, #2a1d40, transparent),
+          radial-gradient(50% 70% at 90% 100%, #1a2d30, transparent),
+          #150c22;
+      }
+      .gallery-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        align-items: flex-start;
+      }
+      .gallery-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 14px;
+      }
+      .gallery-toolbar button {
+        font-family: system-ui, sans-serif;
+        font-size: 12px;
+        padding: 6px 12px;
+        border-radius: 6px;
+        border: 1px solid #444;
+        background: #221a30;
+        color: #ddd;
+        cursor: pointer;
+      }
+      .gallery-toolbar button:hover { background: #332545; }
+      .gallery-caption {
+        font-size: 11px;
+        color: #888;
+        margin-top: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="gallery"></div>
+    <script type="module" src="/src/dev/ui-gallery.ts"></script>
+  </body>
+</html>
