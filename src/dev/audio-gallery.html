@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Runeward Audio Gallery</title>
+    <link rel="icon" href="data:," />
+    <style>
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        padding: 0;
+        background: #0f0818;
+        font-family: system-ui, sans-serif;
+        color: #eee;
+      }
+      #gallery {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        padding: 24px;
+        max-width: 1100px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 18px;
+        margin: 0 0 4px;
+      }
+      .lede {
+        color: #a89bc4;
+        font-size: 13px;
+        margin: 0 0 8px;
+        line-height: 1.5;
+      }
+      .unlock-bar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 16px;
+        border-radius: 10px;
+        background: #241a36;
+        border: 1px solid #3a2c54;
+      }
+      .unlock-bar button {
+        font-family: inherit;
+        font-size: 14px;
+        font-weight: 600;
+        padding: 10px 18px;
+        border-radius: 8px;
+        border: none;
+        background: #c58cff;
+        color: #1a0f2b;
+        cursor: pointer;
+      }
+      .unlock-bar button:hover { background: #d6aaff; }
+      #status {
+        font-size: 12px;
+        color: #8ee6a0;
+      }
+      #status.locked { color: #ff9a8b; }
+      .mixer {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 18px;
+        padding: 12px 16px;
+        border-radius: 10px;
+        background: #1a1326;
+        border: 1px solid #2c2140;
+        font-size: 12px;
+      }
+      .mixer label {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        color: #cfc4e8;
+      }
+      section {
+        border: 1px dashed rgba(255, 255, 255, 0.15);
+        border-radius: 10px;
+        padding: 16px;
+      }
+      section h2 {
+        margin: 0 0 4px;
+        font-size: 13px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #aaa;
+        font-weight: 600;
+      }
+      section p.note {
+        margin: 0 0 12px;
+        font-size: 12px;
+        color: #8a7ea6;
+        line-height: 1.5;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 8px;
+      }
+      .grid button {
+        font-family: inherit;
+        font-size: 12px;
+        padding: 10px 10px;
+        border-radius: 8px;
+        border: 1px solid #443260;
+        background: #221a30;
+        color: #ede6fa;
+        cursor: pointer;
+        text-align: left;
+        transition: background 0.1s, transform 0.05s;
+      }
+      .grid button:hover { background: #34254a; }
+      .grid button:active { transform: scale(0.97); }
+      .grid button:disabled { opacity: 0.4; cursor: not-allowed; }
+      .swatch {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin-right: 6px;
+      }
+      .toggle-on {
+        background: #2f5c3a !important;
+        border-color: #4ea365 !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="gallery">
+      <div>
+        <h1>Runeward Audio Gallery</h1>
+        <p class="lede">
+          Manual QA harness for src/audio/* — every synthesized sound, one button each, grouped by category.
+          Click "Unlock Audio" first (browser autoplay policy blocks sound until a real gesture); everything
+          below is inert until then.
+        </p>
+      </div>
+      <div class="unlock-bar">
+        <button id="unlock-btn" type="button">Unlock Audio</button>
+        <span id="status" class="locked">locked — click Unlock Audio</span>
+      </div>
+      <div class="mixer">
+        <label>Master <input id="vol-master" type="range" min="0" max="1" step="0.01" value="0.9" /></label>
+        <label>SFX <input id="vol-sfx" type="range" min="0" max="1" step="0.01" value="1" /></label>
+        <label>Music <input id="vol-music" type="range" min="0" max="1" step="0.01" value="0.55" /></label>
+        <label>UI <input id="vol-ui" type="range" min="0" max="1" step="0.01" value="0.8" /></label>
+      </div>
+      <!-- Sections are populated by audio-gallery.ts -->
+    </div>
+    <script type="module" src="/src/dev/audio-gallery.ts"></script>
+  </body>
+</html>
