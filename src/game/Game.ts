@@ -7,7 +7,8 @@ import { createSkybox } from "@/game/world/Skybox";
 import { createTerrain } from "@/game/world/Terrain";
 import { createFoliage } from "@/game/world/Foliage";
 import { createAtmosphereFx } from "@/game/world/AtmosphereFx";
-import { buildMap01 } from "@/game/world/Map01";
+import { buildMap01, type MapDef } from "@/game/world/Map01";
+import { buildMap02 } from "@/game/world/Map02";
 import { Economy } from "@/game/economy/Economy";
 import { InputManager, type CursorState, type PlayerSlot } from "@/game/input/InputManager";
 import type {
@@ -41,6 +42,8 @@ import { createFusionPanel, type FusionCandidatePair, type FusionPanelApi } from
 import { createTowerInspector, type TowerInspector } from "@/ui/TowerInspector";
 import { createCursorIndicators, type CursorIndicators } from "@/ui/CursorIndicators";
 import { createVictoryScreen, createDefeatScreen, type EndScreen } from "@/ui/EndScreens";
+
+export type MapChoice = "map01" | "map02";
 
 const STARTING_GOLD = 220;
 const STARTING_LIVES = 20;
@@ -91,7 +94,7 @@ export class Game {
   private input: InputManager;
   private raycaster = new THREE.Raycaster();
 
-  private map = buildMap01();
+  private map: MapDef;
   private economy = new Economy(STARTING_GOLD, STARTING_LIVES);
   private vfx: VfxManager;
 
@@ -121,7 +124,8 @@ export class Game {
   private victoryScreen: EndScreen;
   private defeatScreen: EndScreen;
 
-  constructor(host: HTMLElement) {
+  constructor(host: HTMLElement, mapId: MapChoice = "map01") {
+    this.map = mapId === "map02" ? buildMap02() : buildMap01();
     this.scene.background = new THREE.Color(0x120a1f);
 
     const skybox = createSkybox();
