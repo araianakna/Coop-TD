@@ -42,6 +42,7 @@ import { createFusionPanel, type FusionCandidatePair, type FusionPanelApi } from
 import { createTowerInspector, type TowerInspector } from "@/ui/TowerInspector";
 import { createCursorIndicators, type CursorIndicators } from "@/ui/CursorIndicators";
 import { createVictoryScreen, createDefeatScreen, type EndScreen } from "@/ui/EndScreens";
+import { AudioSystem } from "@/audio";
 
 export type MapChoice = "map01" | "map02";
 
@@ -97,6 +98,7 @@ export class Game {
   private map: MapDef;
   private economy = new Economy(STARTING_GOLD, STARTING_LIVES);
   private vfx: VfxManager;
+  private audio = new AudioSystem();
 
   private tickables: THREE.Object3D[] = [];
   private cellMarkers: THREE.Mesh[] = [];
@@ -126,6 +128,12 @@ export class Game {
 
   constructor(host: HTMLElement, mapId: MapChoice = "map01") {
     this.map = mapId === "map02" ? buildMap02() : buildMap01();
+    // Game is only ever constructed from inside the StartScreen's map-select
+    // click handler, so this synchronous call satisfies the browser's
+    // autoplay-gesture requirement.
+    void this.audio.unlock().then((ok) => {
+      if (ok) this.audio.music.startAmbient();
+    });
     this.scene.background = new THREE.Color(0x120a1f);
 
     const skybox = createSkybox();
@@ -265,12 +273,18 @@ export class Game {
       this.armedTowerDefId = null;
       this.shop.setSelected(null);
       this.setBuildRingsVisible(false);
+      this.audio.ui.click();
+      return;
+    }
+    if (!this.economy.canAfford(tower.tiers[0].cost)) {
+      this.audio.ui.denied();
       return;
     }
     this.armedTowerDefId = tower.id;
     this.shop.setSelected(tower.id);
     this.setBuildRingsVisible(true);
     this.clearSelection();
+    this.audio.ui.select();
   }
 
   private performInteractionAt(ndcX: number, ndcY: number) {
@@ -349,6 +363,7 @@ export class Game {
     this.armedTowerDefId = null;
     this.shop.setSelected(null);
     this.setBuildRingsVisible(false);
+    this.audio.combat.towerPlaced();
   }
 
   private toggleTowerSelection(towerId: string) {
@@ -506,6 +521,7 @@ export class Game {
     });
 
     this.vfx.impacts.triggerFusion(candidate.towerA.element, candidate.towerB.element, [wx, 0.8, wz]);
+    this.audio.combat.fusionComplete();
 
     this.selectedTowerIds = [];
     this.fusion.close();
@@ -521,7 +537,10 @@ export class Game {
     if (!tower || tower.tier >= 3) return;
     const tiers: TowerTierDef[] = tower.def.tiers;
     const nextTierDef = tiers[tower.tier];
-    if (!this.economy.canAfford(nextTierDef.cost)) return;
+    if (!this.economy.canAfford(nextTierDef.cost)) {
+      this.audio.ui.denied();
+      return;
+    }
 
     this.economy.spend(nextTierDef.cost);
     tower.goldSpent += nextTierDef.cost;
@@ -537,6 +556,7 @@ export class Game {
     tower.group = group;
 
     this.inspector.show(this.buildInspectorInfo(tower));
+    this.audio.combat.towerUpgraded();
   }
 
   private handleSell() {
@@ -547,6 +567,7 @@ export class Game {
     this.map.grid.removeTower(tower.coord.x, tower.coord.z);
     this.towers = this.towers.filter((t) => t !== tower);
     this.clearSelection();
+    this.audio.combat.towerSold();
   }
 
   private disposeTowerGroup(group: THREE.Group) {
@@ -596,6 +617,7 @@ export class Game {
       if (this.waveIndex >= TOTAL_WAVES) {
         this.victory = true;
         this.victoryScreen.show(this.waveIndex);
+        this.audio.music.victory();
       } else {
         this.nextWaveAtElapsed = this.elapsed + BETWEEN_WAVE_DELAY_SECONDS;
       }
@@ -607,6 +629,8 @@ export class Game {
     if (!wave) return;
     this.waveIndex = index;
     this.economy.setWave(index);
+    this.audio.music.waveStart();
+    if (wave.bossId) this.audio.music.bossIncoming();
 
     const queue: QueuedSpawn[] = [];
     let latest = this.elapsed;
@@ -679,6 +703,7 @@ export class Game {
       if (enemy.waypointIndex >= wps.length - 1) {
         this.economy.loseLife(enemy.def.isBoss ? 5 : 1);
         this.removeEnemy(enemy);
+        this.audio.combat.enemyLeaked();
         continue;
       }
 
@@ -734,6 +759,23 @@ export class Game {
   private killEnemy(enemy: EnemyInstance) {
     this.economy.earn(enemy.def.bounty);
     this.removeEnemy(enemy);
+    this.audio.combat.enemyDeath(enemy.def.isBoss ?? false);
+  }
+
+  /**
+   * Combat can fire dozens of projectiles/impacts per second once many
+   * towers are placed; playing a sound for every single one stacks into a
+   * harsh wall of noise. This chokes repeats of the same (category,element)
+   * pair within a short window so variety still comes through without the
+   * spam — a standard game-audio "choke group" technique.
+   */
+  private lastSfxAt = new Map<string, number>();
+  private playThrottled(key: string, minIntervalMs: number, play: () => void) {
+    const now = performance.now();
+    const last = this.lastSfxAt.get(key) ?? -Infinity;
+    if (now - last < minIntervalMs) return;
+    this.lastSfxAt.set(key, now);
+    play();
   }
 
   // -------------------------------------------------------------------
@@ -830,6 +872,7 @@ export class Game {
       speed: stats.projectileSpeed,
       onArrive: (pos) => this.resolveHit(tower, target, pos, stats.damage, stats.splashRadius, stats.critChance, stats.critMultiplier),
     });
+    this.playThrottled(`launch:${element}`, 80, () => this.audio.combat.projectileFire(element));
   }
 
   private resolveHit(
@@ -852,6 +895,7 @@ export class Game {
     } else {
       this.vfx.impacts.trigger(elA, pos);
     }
+    this.playThrottled(`impact:${elA}`, 60, () => this.audio.combat.impact(elA, pos));
 
     if (splashRadius) {
       for (const enemy of this.enemies) {
@@ -888,6 +932,7 @@ export class Game {
         if (!this.enemies.includes(target)) return;
         target.statusEffects = target.statusEffects.filter((e) => e.kind !== effect.kind);
         target.statusEffects.push(effect);
+        this.audio.combat.statusApplied(effect.kind, this.towerElements(tower)[0]);
       },
       dealDamage: (_targetId: string, dmg: DamageInstance) => {
         if (!this.enemies.includes(target)) return;
@@ -941,6 +986,7 @@ export class Game {
     if (this.economy.isGameOver) {
       this.gameOver = true;
       this.defeatScreen.show(this.waveIndex);
+      this.audio.music.defeat();
     }
   }
 

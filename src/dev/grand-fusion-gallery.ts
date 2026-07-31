@@ -18,6 +18,11 @@ import type { TowerDef } from "@/game/types";
 const params = new URLSearchParams(window.location.search);
 const section = params.get("section") === "capstones" ? "capstones" : "grand";
 const focus = params.get("focus") !== null ? Number(params.get("focus")) : null;
+// Optional camera-distance multiplier for focus mode (?zoom=1.6 pulls the
+// camera back 60% further) — QA-only convenience for inspecting a whole
+// tower (all 3 tiers) without the default tight crop; purely additive,
+// defaults to 1 (no change) so existing behavior/links are unaffected.
+const zoom = params.get("zoom") !== null ? Number(params.get("zoom")) : 1;
 
 const app = document.getElementById("app")!;
 const hud = document.createElement("div");
@@ -142,8 +147,8 @@ let camY = 8.4;
 let camDist = 13.5;
 if (focus !== null && focus >= 0 && focus < columnCount) {
   centerX = focus * COL_SPACING;
-  camY = 4.6;
-  camDist = 8.5;
+  camY = 4.6 * zoom;
+  camDist = 8.5 * zoom;
 }
 const camTarget = new THREE.Vector3(centerX, 1.7, camZ);
 camera.position.set(centerX, camY, camZ + camDist);

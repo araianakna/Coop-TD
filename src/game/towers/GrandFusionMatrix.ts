@@ -8,12 +8,22 @@ import type { Element } from "@/game/types";
  * independently: FusionMatrix answers "which 2 elements make this fusion",
  * this file answers "which fusion + which 3rd element makes this capstone".
  *
- * Unlike FusionMatrix.ts this is a curated list, not an exhaustive
- * enumeration — there are C(6,3) = 20 possible element triads, and only 6
- * of them have a Grand Fusion tower defined (see TowerRegistry.ts's Grand
- * Fusion section for why these 6 were chosen). Looking up an
- * (fusion, element) pair with no curated recipe returns undefined; there is
- * no synthesized fallback.
+ * There are C(6,3) = 20 possible element triads. This list is now
+ * exhaustive: the original 6 (see TowerRegistry.ts's Grand Fusion section
+ * for why those were chosen), a second curation pass of 6 more (see the
+ * "second curation pass" comment further down that same section), and a
+ * third curation pass of the final 8 (see the "third curation pass" comment
+ * further down that section) together cover all 20 triads. The matrix is
+ * combinatorially complete — every (fusion, element) pair below resolves,
+ * and there is no 21st triad left to add.
+ *
+ * Where a triad was reachable via more than one parent-fusion + third-
+ * element path (most are — a triad of 3 elements contains 3 different
+ * 2-element pairs, any of which could be the "parent"), the path was chosen
+ * for the strongest name/flavor/visual concept and to spread which of the
+ * 15 base fusions get used as a Grand Fusion parent, rather than reusing the
+ * same few repeatedly. See `listGrandFusionParentIds()` below to check
+ * current parent coverage.
  */
 export interface GrandFusionRecipe {
   /** TowerDef.id of the 2-element fusion tower being merged. */
@@ -39,6 +49,53 @@ export const GRAND_FUSION_RECIPES: GrandFusionRecipe[] = [
     resultTowerId: "tower_fire_lightning_arcane",
   },
   { parentFusionTowerId: "tower_ice_earth", thirdElement: "nature", resultTowerId: "tower_ice_nature_earth" },
+
+  // Second curation pass — 6 more of the remaining 14 uncovered triads.
+  { parentFusionTowerId: "tower_fire_ice", thirdElement: "nature", resultTowerId: "tower_fire_ice_nature" },
+  {
+    parentFusionTowerId: "tower_ice_lightning",
+    thirdElement: "arcane",
+    resultTowerId: "tower_ice_lightning_arcane",
+  },
+  {
+    parentFusionTowerId: "tower_lightning_earth",
+    thirdElement: "fire",
+    resultTowerId: "tower_fire_lightning_earth",
+  },
+  {
+    parentFusionTowerId: "tower_nature_earth",
+    thirdElement: "arcane",
+    resultTowerId: "tower_nature_earth_arcane",
+  },
+  {
+    parentFusionTowerId: "tower_lightning_nature",
+    thirdElement: "earth",
+    resultTowerId: "tower_lightning_nature_earth",
+  },
+  { parentFusionTowerId: "tower_fire_arcane", thirdElement: "nature", resultTowerId: "tower_fire_nature_arcane" },
+
+  // Third curation pass — the final 8 triads, completing the full C(6,3) = 20
+  // set. See TowerRegistry.ts's "third curation pass" comment for rationale.
+  { parentFusionTowerId: "tower_ice_earth", thirdElement: "fire", resultTowerId: "tower_fire_ice_earth" },
+  { parentFusionTowerId: "tower_ice_arcane", thirdElement: "fire", resultTowerId: "tower_fire_ice_arcane" },
+  {
+    parentFusionTowerId: "tower_fire_nature",
+    thirdElement: "lightning",
+    resultTowerId: "tower_fire_lightning_nature",
+  },
+  { parentFusionTowerId: "tower_fire_earth", thirdElement: "arcane", resultTowerId: "tower_fire_earth_arcane" },
+  {
+    parentFusionTowerId: "tower_lightning_nature",
+    thirdElement: "ice",
+    resultTowerId: "tower_ice_lightning_nature",
+  },
+  { parentFusionTowerId: "tower_lightning_earth", thirdElement: "ice", resultTowerId: "tower_ice_lightning_earth" },
+  { parentFusionTowerId: "tower_earth_arcane", thirdElement: "ice", resultTowerId: "tower_ice_earth_arcane" },
+  {
+    parentFusionTowerId: "tower_lightning_arcane",
+    thirdElement: "nature",
+    resultTowerId: "tower_lightning_nature_arcane",
+  },
 ];
 
 function recipeKey(parentFusionTowerId: string, thirdElement: Element): string {
