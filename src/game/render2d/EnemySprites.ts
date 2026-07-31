@@ -3,6 +3,11 @@ import { PixelCanvas } from "./PixelCanvas";
 
 export const ENEMY_SPRITE_SIZE = 22;
 export const BOSS_SPRITE_SIZE = 40;
+/** Fraction down from the sprite's top that represents "ground contact" —
+ * Game.ts anchors the drawn sprite here so it visually stands on its tile
+ * instead of floating centered on it. Keep in sync with where drawBody()
+ * actually plants the creature's feet/base. */
+export const ENEMY_GROUND_FRAC = 0.62;
 
 interface EnemyVisual {
   body: string;

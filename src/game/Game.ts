@@ -25,8 +25,8 @@ import { getGrandFusionRecipe } from "@/game/towers/GrandFusionMatrix";
 import { getEnemyDef } from "@/game/enemies/EnemyRegistry";
 import { getWave, TOTAL_WAVES } from "@/game/enemies/WaveManager";
 import { Vfx2D } from "@/game/render2d/Vfx2D";
-import { getTowerSprite, TOWER_SPRITE_SIZE } from "@/game/render2d/TowerSprites";
-import { getEnemySprite } from "@/game/render2d/EnemySprites";
+import { getTowerSprite, TOWER_GROUND_FRAC } from "@/game/render2d/TowerSprites";
+import { getEnemySprite, ENEMY_GROUND_FRAC } from "@/game/render2d/EnemySprites";
 import { getTileSprite } from "@/game/render2d/TileSprites";
 import { hashString } from "@/game/render2d/PixelCanvas";
 import { createHUD } from "@/ui/HUD";
@@ -83,10 +83,8 @@ const ON_HIT_PROC: Record<
 // at this height in world units, anchored at `groundFrac` down from its top
 // so it visually "stands" on its tile instead of floating centered on it.
 const TOWER_WORLD_SIZE = 2.05;
-const TOWER_GROUND_FRAC = 24 / TOWER_SPRITE_SIZE;
 const ENEMY_WORLD_SIZE = 1.35;
 const BOSS_WORLD_SIZE = 2.5;
-const ENEMY_GROUND_FRAC = 0.62;
 
 function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;

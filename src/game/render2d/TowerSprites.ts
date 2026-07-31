@@ -3,6 +3,11 @@ import { PixelCanvas } from "./PixelCanvas";
 import { elementPalette } from "./Palette";
 
 export const TOWER_SPRITE_SIZE = 28;
+/** Fraction down from the sprite's top that represents "ground contact" —
+ * Game.ts anchors the drawn sprite here so it visually stands on its tile
+ * instead of floating centered on it. Keep in sync with where the pillar's
+ * base plinth actually sits. */
+export const TOWER_GROUND_FRAC = 24 / TOWER_SPRITE_SIZE;
 
 const cache = new Map<string, HTMLCanvasElement>();
 
