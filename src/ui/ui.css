@@ -1126,7 +1126,11 @@
 .rw-rotate-hint {
   display: none;
   position: absolute;
-  top: env(safe-area-inset-top, 10px);
+  /* Sits below the HUD bar (top: ~8px + its own height) rather than at the
+     same top offset — they were previously both centered at the very top
+     of the screen and stacked directly on top of each other in portrait
+     mode, obscuring the gold/lives/wave readout. */
+  top: calc(72px + env(safe-area-inset-top, 0px));
   left: 50%;
   transform: translateX(-50%);
   z-index: 40;
