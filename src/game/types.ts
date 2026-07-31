@@ -83,6 +83,11 @@ export interface TowerAbility {
 export interface TowerAbilityContext {
   towerId: string;
   position: GridCoord;
+  /** The tower's actual world-space position (post `Grid.gridToWorld`),
+   * for abilities that need to emit VFX at the tower itself — `position`
+   * above is grid-cell indices, not world units, and using it directly as
+   * a world coordinate was a bug (see makeAbility in TowerRegistry.ts). */
+  worldPosition: [number, number, number];
   applyStatus: (targetEnemyId: string, effect: StatusEffect) => void;
   dealDamage: (targetEnemyId: string, dmg: DamageInstance) => void;
   emitVfx: (vfxId: string, worldPos: [number, number, number]) => void;
