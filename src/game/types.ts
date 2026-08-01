@@ -61,6 +61,11 @@ export interface TowerAbility {
   description: string;
   cooldownMs: number;
   onTrigger: (ctx: TowerAbilityContext) => void;
+  /** The status this ability applies, when it applies one — exposed here (in
+   * addition to being closed over inside `onTrigger`) so systems outside
+   * combat resolution, like the bullet "status accent" visuals, can read
+   * what an ability does without simulating a trigger. */
+  statusKind?: StatusEffectKind;
   /**
    * Minimum tower tier at which this ability is active/triggerable.
    * Omitted (undefined) means "available from tier 1" — every ability that

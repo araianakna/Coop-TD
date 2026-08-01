@@ -51,6 +51,15 @@ interface ActiveProjectile {
   elementB: Element | null;
   tier: 1 | 2 | 3;
   category: TowerCategory;
+  /** The firing tower's primary ability status, when it has one — drawn as
+   * a small accent motif riding alongside the base elemental bullet shape
+   * (see drawStatusAccent) so a tower's shots hint at what they actually DO
+   * (chill vs. shock vs. curse, ...), not just which element they carry.
+   * With 100+ towers now sharing just 7 element shapes, this is what keeps
+   * a Voidglass Wraith's bolt reading as meaningfully different from a
+   * Twinflame Geyser's at a glance, without hand-authoring bespoke bullet
+   * art per tower. */
+  statusAccent: StatusEffectKind | null;
   speed: number;
   angle: number;
   spin: number;
@@ -126,6 +135,7 @@ export class Vfx2D {
         elementB?: Element;
         tier?: 1 | 2 | 3;
         category?: TowerCategory;
+        statusAccent?: StatusEffectKind | null;
       },
     ) => {
       const [tx, , tz] = getTarget();
@@ -136,6 +146,7 @@ export class Vfx2D {
         elementB: opts.elementB ?? null,
         tier: opts.tier ?? 1,
         category: opts.category ?? "base",
+        statusAccent: opts.statusAccent ?? null,
         speed: opts.speed,
         angle: Math.atan2(tz - fromPos[2], tx - fromPos[0]),
         spin: Math.random() * Math.PI * 2,
@@ -439,6 +450,7 @@ export class Vfx2D {
       ctx.scale(scale, scale);
       drawAura(ctx, p.category, pal, palB, p.auraSpin);
       drawBulletShape(ctx, p.element, pal, p.angle, p.spin);
+      if (p.statusAccent) drawStatusAccent(ctx, p.statusAccent, p.auraSpin);
       ctx.restore();
 
       if (palB) {
@@ -549,6 +561,139 @@ function drawBulletShape(ctx: CanvasRenderingContext2D, element: Element, pal: E
     case "shadow":
       return drawWispBullet(ctx, pal, angle);
   }
+}
+
+/** Status colors matched to Game.ts's STATUS_COLOR (the enemy status-icon
+ * palette) so the same kind reads as the same color everywhere in the game
+ * — a bullet's accent, the icon over an afflicted enemy's head, and the
+ * impact VFX it triggers all agree. */
+const STATUS_ACCENT_COLOR: Record<StatusEffectKind, string> = {
+  burn: "#ff7a3d",
+  chill: "#7ad4ff",
+  freeze: "#c9f2ff",
+  shock: "#f5e642",
+  root: "#8bd97a",
+  poison: "#b06bff",
+  sunder: "#d9b98a",
+  silence: "#e2c2ff",
+  curse: "#8b6fd6",
+};
+
+/**
+ * A small motif riding alongside the base elemental bullet shape, keyed by
+ * the firing tower's primary ability status — not its element — so the
+ * player gets a glance-legible read of what a shot actually DOES. Drawn in
+ * the same already-translated/scaled space as the bullet itself (see
+ * draw()), independent of travel angle: `spin` is a free-running per-
+ * projectile timer, used for the ones that gently orbit/pulse.
+ */
+function drawStatusAccent(ctx: CanvasRenderingContext2D, kind: StatusEffectKind, spin: number) {
+  const color = STATUS_ACCENT_COLOR[kind];
+  ctx.save();
+  switch (kind) {
+    case "burn": {
+      // A small ember riding just behind the bullet, bobbing.
+      const bob = Math.sin(spin * 4) * 0.6;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(-4.5, -1.5 + bob, 0.9, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
+    case "chill": {
+      // A tiny faceted ice tick above the bullet.
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.moveTo(-1, -3.4);
+      ctx.lineTo(0, -5);
+      ctx.lineTo(1, -3.4);
+      ctx.stroke();
+      break;
+    }
+    case "freeze": {
+      // A thin static halo ring around the whole bullet.
+      ctx.strokeStyle = color;
+      ctx.globalAlpha = 0.75;
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.arc(0, 0, 4.4, 0, Math.PI * 2);
+      ctx.stroke();
+      break;
+    }
+    case "shock": {
+      // A tiny zigzag spark riding above the bullet.
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 0.6;
+      ctx.beginPath();
+      ctx.moveTo(-1.4, -3);
+      ctx.lineTo(-0.2, -4.2);
+      ctx.lineTo(-0.8, -4.2);
+      ctx.lineTo(0.6, -5.6);
+      ctx.stroke();
+      break;
+    }
+    case "root": {
+      // A tiny curled vine hook trailing the bullet.
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 0.6;
+      ctx.beginPath();
+      ctx.moveTo(-3, 0);
+      ctx.quadraticCurveTo(-5, -0.5, -5.4, 1.2);
+      ctx.stroke();
+      break;
+    }
+    case "poison": {
+      // Two tiny bubbles drifting behind, independently timed.
+      ctx.fillStyle = color;
+      ctx.globalAlpha = 0.85;
+      ctx.beginPath();
+      ctx.arc(-4, -0.5 + Math.sin(spin * 3) * 0.5, 0.7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(-5.5, 1 + Math.sin(spin * 3 + 1.5) * 0.5, 0.5, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
+    case "sunder": {
+      // A small jagged crack accent, stone-toned regardless of element.
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 0.6;
+      ctx.beginPath();
+      ctx.moveTo(0, -3.6);
+      ctx.lineTo(0.8, -2.2);
+      ctx.lineTo(0.1, -1.6);
+      ctx.stroke();
+      break;
+    }
+    case "silence": {
+      // A small fading dashed ring — a muted echo, distinct from freeze's
+      // solid static halo.
+      ctx.strokeStyle = color;
+      ctx.globalAlpha = 0.6;
+      ctx.lineWidth = 0.45;
+      ctx.setLineDash([1, 1.2]);
+      ctx.beginPath();
+      ctx.arc(0, 0, 3.6, spin, spin + Math.PI * 1.4);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      break;
+    }
+    case "curse": {
+      // A small dark eye-glint trailing the bullet.
+      ctx.fillStyle = color;
+      ctx.globalAlpha = 0.9;
+      ctx.beginPath();
+      ctx.arc(-4.2, -0.5, 1, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#f2e8ff";
+      ctx.beginPath();
+      ctx.arc(-4.4, -0.7, 0.35, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
+  }
+  ctx.restore();
 }
 
 function drawFlameBullet(ctx: CanvasRenderingContext2D, pal: ElementPalette, angle: number) {

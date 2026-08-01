@@ -136,6 +136,7 @@ function makeAbility(opts: {
     description,
     cooldownMs,
     minTier,
+    statusKind,
     onTrigger: (ctx: TowerAbilityContext) => {
       ctx.emitVfx(vfxId, ctx.worldPosition, statusKind);
 

@@ -880,6 +880,24 @@ export class Game {
     return idTail.split("_").length >= 3 ? "grand" : "fusion";
   }
 
+  /** Picks the status kind shown as a small motif on the tower's bullets —
+   * the highest-tier ability unlocked at the tower's current tier that
+   * actually carries a statusKind, so the accent always reflects an effect
+   * the tower can presently land (not a capstone ability still locked). */
+  private primaryStatusAccent(tower: TowerInstance): StatusEffectKind | null {
+    let picked: StatusEffectKind | null = null;
+    let pickedTier = -1;
+    for (const ability of tower.def.abilities) {
+      const minTier = ability.minTier ?? 1;
+      if (tower.tier < minTier || !ability.statusKind) continue;
+      if (minTier >= pickedTier) {
+        picked = ability.statusKind;
+        pickedTier = minTier;
+      }
+    }
+    return picked;
+  }
+
   private fireProjectile(tower: TowerInstance, target: EnemyInstance) {
     const [elA, elB] = this.towerElements(tower);
     tower.altShot = !tower.altShot;
@@ -896,6 +914,7 @@ export class Game {
       elementB: otherElement,
       tier: tower.tier,
       category: this.towerCategory(tower),
+      statusAccent: this.primaryStatusAccent(tower),
       onArrive: (pos) => this.resolveHit(tower, target, pos, stats.damage, stats.splashRadius, stats.critChance, stats.critMultiplier),
     });
     this.playThrottled(`launch:${element}`, 80, () => this.audio.combat.projectileFire(element));
