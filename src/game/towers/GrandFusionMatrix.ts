@@ -171,6 +171,53 @@ export const GRAND_FUSION_RECIPES: GrandFusionRecipe[] = [
   { parentFusionTowerId: "tower_ice_ice", thirdElement: "nature", resultTowerId: "tower_ice_ice_nature" },
   { parentFusionTowerId: "tower_ice_ice", thirdElement: "earth", resultTowerId: "tower_ice_ice_earth" },
   { parentFusionTowerId: "tower_ice_ice", thirdElement: "arcane", resultTowerId: "tower_ice_ice_arcane" },
+
+  // Duplicate-parent completion, batch 2 — every remaining
+  // lightning+lightning+Y and nature+nature+Y (lightning+lightning+nature
+  // was already done). Running total after this batch: 25/42.
+  {
+    parentFusionTowerId: "tower_lightning_lightning",
+    thirdElement: "fire",
+    resultTowerId: "tower_lightning_lightning_fire",
+  },
+  {
+    parentFusionTowerId: "tower_lightning_lightning",
+    thirdElement: "ice",
+    resultTowerId: "tower_lightning_lightning_ice",
+  },
+  {
+    parentFusionTowerId: "tower_lightning_lightning",
+    thirdElement: "earth",
+    resultTowerId: "tower_lightning_lightning_earth",
+  },
+  {
+    parentFusionTowerId: "tower_lightning_lightning",
+    thirdElement: "arcane",
+    resultTowerId: "tower_lightning_lightning_arcane",
+  },
+  {
+    parentFusionTowerId: "tower_lightning_lightning",
+    thirdElement: "shadow",
+    resultTowerId: "tower_lightning_lightning_shadow",
+  },
+  { parentFusionTowerId: "tower_nature_nature", thirdElement: "fire", resultTowerId: "tower_nature_nature_fire" },
+  { parentFusionTowerId: "tower_nature_nature", thirdElement: "ice", resultTowerId: "tower_nature_nature_ice" },
+  {
+    parentFusionTowerId: "tower_nature_nature",
+    thirdElement: "lightning",
+    resultTowerId: "tower_nature_nature_lightning",
+  },
+  { parentFusionTowerId: "tower_nature_nature", thirdElement: "earth", resultTowerId: "tower_nature_nature_earth" },
+  {
+    parentFusionTowerId: "tower_nature_nature",
+    thirdElement: "arcane",
+    resultTowerId: "tower_nature_nature_arcane",
+  },
+  {
+    parentFusionTowerId: "tower_nature_nature",
+    thirdElement: "shadow",
+    resultTowerId: "tower_nature_nature_shadow",
+  },
 ];
 
 function recipeKey(parentFusionTowerId: string, thirdElement: Element): string {

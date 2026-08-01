@@ -3482,6 +3482,421 @@ const iceIceArcaneTower: TowerDef = {
 };
 
 // ---------------------------------------------------------------------------
+// Duplicate-parent Grand Fusion completion, batch 2 — every remaining
+// lightning+lightning+Y and nature+nature+Y (Twin Storm / Twin Thorn as
+// parent). Same convention as batch 1: the Twin's own doubled signature
+// status carries over (shock for lightning, poison for nature), except
+// when Shadow is the third element, where curse takes over.
+// ---------------------------------------------------------------------------
+
+const lightningLightningFireTower: TowerDef = {
+  id: "tower_lightning_lightning_fire",
+  name: "Stormforge Twin",
+  element: "lightning+lightning",
+  isFusion: true,
+  flavorText: "Twin Storm's looping coil now channels raw fire between every arc it throws.",
+  tiers: buildTiers(
+    { damage: 22, range: 6.6, fireRateMs: 260, projectileSpeed: 28, critChance: 0.26, critMultiplier: 2.1 },
+    [655, 1350, 2670],
+    [1, 1.22, 1.5],
+    [
+      "A single ember now rides the current looping between the twin masts.",
+      "Fire and lightning course together through half the coil's loop.",
+      "A true stormforge twin, doubled current and raw fire fused into one violent cycle.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "stormforge_twin_deeper_overcharge",
+      name: "Deeper Overcharge",
+      description: "Grand Fusion capstone. Overcharges the target far harder than Twin Storm alone, then sears it with forge-fire.",
+      cooldownMs: 9200,
+      vfxId: "vfx.lightning_lightning_fire.ability_deeper_overcharge",
+      statusKind: "shock",
+      statusMagnitude: 0.85,
+      statusDurationMs: 1200,
+      bonusDamage: 34,
+      damageElement: "fire",
+    }),
+  ],
+  targeting: "closest",
+  projectileVfx: "vfx.lightning_lightning_fire.projectile",
+  impactVfx: "vfx.lightning_lightning_fire.impact",
+  idleVfx: "vfx.lightning_lightning_fire.idle",
+  modelId: "tower_lightning_lightning_fire",
+};
+
+const lightningLightningIceTower: TowerDef = {
+  id: "tower_lightning_lightning_ice",
+  name: "Stormglass Twin",
+  element: "lightning+lightning",
+  isFusion: true,
+  flavorText: "Twin Storm's coil has crystallized mid-arc into living shards of ice-veined lightning.",
+  tiers: buildTiers(
+    { damage: 20, range: 6.7, fireRateMs: 280, projectileSpeed: 29, critChance: 0.28, critMultiplier: 2.2 },
+    [645, 1330, 2630],
+    [1, 1.22, 1.5],
+    [
+      "A single shard of ice has crystallized along the coil's arc.",
+      "Half the coil now arcs through crystalline ice instead of open air.",
+      "A true stormglass twin, doubled current locked permanently inside living ice.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "stormglass_twin_deeper_overcharge",
+      name: "Deeper Overcharge",
+      description: "Grand Fusion capstone. Overcharges the target far harder than Twin Storm alone, then lances it with ice-veined current.",
+      cooldownMs: 9200,
+      vfxId: "vfx.lightning_lightning_ice.ability_deeper_overcharge",
+      statusKind: "shock",
+      statusMagnitude: 0.85,
+      statusDurationMs: 1200,
+      bonusDamage: 30,
+      damageElement: "ice",
+    }),
+  ],
+  targeting: "closest",
+  projectileVfx: "vfx.lightning_lightning_ice.projectile",
+  impactVfx: "vfx.lightning_lightning_ice.impact",
+  idleVfx: "vfx.lightning_lightning_ice.idle",
+  modelId: "tower_lightning_lightning_ice",
+};
+
+const lightningLightningEarthTower: TowerDef = {
+  id: "tower_lightning_lightning_earth",
+  name: "Fulgurite Twin",
+  element: "lightning+lightning",
+  isFusion: true,
+  flavorText: "Twin Storm's doubled strikes have fused the ground beneath it into glassy fulgurite.",
+  tiers: buildTiers(
+    { damage: 26, range: 6.2, fireRateMs: 380, projectileSpeed: 24, splashRadius: 1.3 },
+    [660, 1360, 2690],
+    [1, 1.22, 1.5],
+    [
+      "A vein of glassy fulgurite has formed at the twin masts' base.",
+      "Half the ground beneath the coil has fused to glass, current arcing through it.",
+      "A true fulgurite twin, doubled lightning locked forever inside its own glassy stone.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "fulgurite_twin_deeper_overcharge",
+      name: "Deeper Overcharge",
+      description: "Grand Fusion capstone. Overcharges the target far harder than Twin Storm alone, then shatters glassy stone over it.",
+      cooldownMs: 9200,
+      vfxId: "vfx.lightning_lightning_earth.ability_deeper_overcharge",
+      statusKind: "shock",
+      statusMagnitude: 0.85,
+      statusDurationMs: 1200,
+      bonusDamage: 38,
+      damageElement: "earth",
+    }),
+  ],
+  targeting: "strongest",
+  projectileVfx: "vfx.lightning_lightning_earth.projectile",
+  impactVfx: "vfx.lightning_lightning_earth.impact",
+  idleVfx: "vfx.lightning_lightning_earth.idle",
+  modelId: "tower_lightning_lightning_earth",
+};
+
+const lightningLightningArcaneTower: TowerDef = {
+  id: "tower_lightning_lightning_arcane",
+  name: "Stormrune Twin",
+  element: "lightning+lightning",
+  isFusion: true,
+  flavorText: "Twin Storm's coil now hums with binding rune-light between every arc it throws.",
+  tiers: buildTiers(
+    { damage: 21, range: 6.9, fireRateMs: 300, projectileSpeed: 27, critChance: 0.3, critMultiplier: 2.3 },
+    [665, 1370, 2710],
+    [1, 1.22, 1.5],
+    [
+      "A single rune now glows where the twin masts' currents meet.",
+      "A full ring of runes now channels current between both masts.",
+      "A true stormrune twin, doubled lightning bound permanently to a halo of rune-light.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "stormrune_twin_deeper_overcharge",
+      name: "Deeper Overcharge",
+      description: "Grand Fusion capstone. Overcharges the target far harder than Twin Storm alone, then lances it with rune-bound force.",
+      cooldownMs: 9200,
+      vfxId: "vfx.lightning_lightning_arcane.ability_deeper_overcharge",
+      statusKind: "shock",
+      statusMagnitude: 0.85,
+      statusDurationMs: 1200,
+      bonusDamage: 32,
+      damageElement: "arcane",
+    }),
+  ],
+  targeting: "strongest",
+  projectileVfx: "vfx.lightning_lightning_arcane.projectile",
+  impactVfx: "vfx.lightning_lightning_arcane.impact",
+  idleVfx: "vfx.lightning_lightning_arcane.idle",
+  modelId: "tower_lightning_lightning_arcane",
+};
+
+const lightningLightningShadowTower: TowerDef = {
+  id: "tower_lightning_lightning_shadow",
+  name: "Voidstorm Twin",
+  element: "lightning+lightning",
+  isFusion: true,
+  flavorText: "Twin Storm's current has curdled into a curse that arcs endlessly between both masts.",
+  tiers: buildTiers(
+    { damage: 19, range: 6.5, fireRateMs: 320, projectileSpeed: 26, critChance: 0.25, critMultiplier: 2 },
+    [650, 1340, 2650],
+    [1, 1.22, 1.5],
+    [
+      "A single arc between the masts now crackles violet instead of white.",
+      "Half the coil's current has curdled black, curse and lightning arcing together.",
+      "A true voidstorm twin, doubled current given over entirely to a living curse.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "voidstorm_twin_cursed_overcharge",
+      name: "Cursed Overcharge",
+      description: "Grand Fusion capstone. Brands the target with a severe curse, then overcharges it with cursed current.",
+      cooldownMs: 9200,
+      vfxId: "vfx.lightning_lightning_shadow.ability_cursed_overcharge",
+      statusKind: "curse",
+      statusMagnitude: 0.45,
+      statusDurationMs: 4200,
+      bonusDamage: 33,
+      damageElement: "lightning",
+    }),
+  ],
+  targeting: "closest",
+  projectileVfx: "vfx.lightning_lightning_shadow.projectile",
+  impactVfx: "vfx.lightning_lightning_shadow.impact",
+  idleVfx: "vfx.lightning_lightning_shadow.idle",
+  modelId: "tower_lightning_lightning_shadow",
+};
+
+const natureNatureFireTower: TowerDef = {
+  id: "tower_nature_nature_fire",
+  name: "Wildthorn Pyre",
+  element: "nature+nature",
+  isFusion: true,
+  flavorText: "Twin Thorn's doubled canopy now burns without ever being consumed by the flame.",
+  tiers: buildTiers(
+    { damage: 26, range: 6, fireRateMs: 600, projectileSpeed: 17, splashRadius: 1.4 },
+    [610, 1260, 2500],
+    [1, 1.22, 1.5],
+    [
+      "A single burning thorn has taken hold on the doubled trunk.",
+      "Fire now licks along half the canopy without consuming a single leaf.",
+      "A true wildthorn pyre, doubled growth and eternal flame sustaining each other.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "wildthorn_pyre_deeper_venom",
+      name: "Deeper Venom",
+      description: "Grand Fusion capstone. Poisons the target far more virulently than Twin Thorn alone, then sears it with wild fire.",
+      cooldownMs: 9200,
+      vfxId: "vfx.nature_nature_fire.ability_deeper_venom",
+      statusKind: "poison",
+      statusMagnitude: 9,
+      statusDurationMs: 3800,
+      bonusDamage: 32,
+      damageElement: "fire",
+    }),
+  ],
+  targeting: "strongest",
+  projectileVfx: "vfx.nature_nature_fire.projectile",
+  impactVfx: "vfx.nature_nature_fire.impact",
+  idleVfx: "vfx.nature_nature_fire.idle",
+  modelId: "tower_nature_nature_fire",
+};
+
+const natureNatureIceTower: TowerDef = {
+  id: "tower_nature_nature_ice",
+  name: "Rimethorn Twin",
+  element: "nature+nature",
+  isFusion: true,
+  flavorText: "Twin Thorn's doubled canopy has frozen mid-growth, every thorn sheathed in ice.",
+  tiers: buildTiers(
+    { damage: 20, range: 6.1, fireRateMs: 660, projectileSpeed: 17 },
+    [600, 1240, 2460],
+    [1, 1.22, 1.5],
+    [
+      "A single frozen thorn now glints among the doubled canopy.",
+      "Ice sheathes half the canopy's thorns, growth frozen mid-motion.",
+      "A true rimethorn twin, doubled growth locked forever in a crown of ice.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "rimethorn_twin_deeper_venom",
+      name: "Deeper Venom",
+      description: "Grand Fusion capstone. Poisons the target far more virulently than Twin Thorn alone, then chills it to the bone.",
+      cooldownMs: 9200,
+      vfxId: "vfx.nature_nature_ice.ability_deeper_venom",
+      statusKind: "poison",
+      statusMagnitude: 9,
+      statusDurationMs: 3800,
+      bonusDamage: 28,
+      damageElement: "ice",
+    }),
+  ],
+  targeting: "weakest",
+  projectileVfx: "vfx.nature_nature_ice.projectile",
+  impactVfx: "vfx.nature_nature_ice.impact",
+  idleVfx: "vfx.nature_nature_ice.idle",
+  modelId: "tower_nature_nature_ice",
+};
+
+const natureNatureLightningTower: TowerDef = {
+  id: "tower_nature_nature_lightning",
+  name: "Stormthorn Twin",
+  element: "nature+nature",
+  isFusion: true,
+  flavorText: "Twin Thorn's doubled canopy now crackles with lightning between every thorn.",
+  tiers: buildTiers(
+    { damage: 19, range: 6.4, fireRateMs: 420, projectileSpeed: 22, critChance: 0.24, critMultiplier: 1.9 },
+    [630, 1300, 2580],
+    [1, 1.22, 1.5],
+    [
+      "A single spark now leaps between two thorns on the doubled canopy.",
+      "Lightning courses continuously through half the canopy's thorns.",
+      "A true stormthorn twin, doubled growth and raw current fused into one living storm.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "stormthorn_twin_deeper_venom",
+      name: "Deeper Venom",
+      description: "Grand Fusion capstone. Poisons the target far more virulently than Twin Thorn alone, then shocks it with thorn-bound current.",
+      cooldownMs: 9200,
+      vfxId: "vfx.nature_nature_lightning.ability_deeper_venom",
+      statusKind: "poison",
+      statusMagnitude: 9,
+      statusDurationMs: 3800,
+      bonusDamage: 30,
+      damageElement: "lightning",
+    }),
+  ],
+  targeting: "closest",
+  projectileVfx: "vfx.nature_nature_lightning.projectile",
+  impactVfx: "vfx.nature_nature_lightning.impact",
+  idleVfx: "vfx.nature_nature_lightning.idle",
+  modelId: "tower_nature_nature_lightning",
+};
+
+const natureNatureEarthTower: TowerDef = {
+  id: "tower_nature_nature_earth",
+  name: "Rootthorn Colossus",
+  element: "nature+nature",
+  isFusion: true,
+  flavorText: "Twin Thorn's roots have fused with stone into a colossus of living wood and rock.",
+  tiers: buildTiers(
+    { damage: 30, range: 5.8, fireRateMs: 780, projectileSpeed: 15, splashRadius: 1.5 },
+    [625, 1290, 2560],
+    [1, 1.22, 1.5],
+    [
+      "A single root has cracked through stone at the doubled trunk's base.",
+      "Half the trunk has fused with rock, roots running deep through stone.",
+      "A true rootthorn colossus, doubled growth and living rock grown into one being.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "rootthorn_colossus_deeper_venom",
+      name: "Deeper Venom",
+      description: "Grand Fusion capstone. Poisons the target far more virulently than Twin Thorn alone, then crushes it beneath living stone.",
+      cooldownMs: 9200,
+      vfxId: "vfx.nature_nature_earth.ability_deeper_venom",
+      statusKind: "poison",
+      statusMagnitude: 9,
+      statusDurationMs: 3800,
+      bonusDamage: 36,
+      damageElement: "earth",
+    }),
+  ],
+  targeting: "strongest",
+  projectileVfx: "vfx.nature_nature_earth.projectile",
+  impactVfx: "vfx.nature_nature_earth.impact",
+  idleVfx: "vfx.nature_nature_earth.idle",
+  modelId: "tower_nature_nature_earth",
+};
+
+const natureNatureArcaneTower: TowerDef = {
+  id: "tower_nature_nature_arcane",
+  name: "Runethorn Twin",
+  element: "nature+nature",
+  isFusion: true,
+  flavorText: "Twin Thorn's doubled canopy now hums with binding rune-light woven through every branch.",
+  tiers: buildTiers(
+    { damage: 21, range: 6.6, fireRateMs: 700, projectileSpeed: 18, critChance: 0.25, critMultiplier: 2 },
+    [635, 1310, 2600],
+    [1, 1.22, 1.5],
+    [
+      "A single rune now glows among the doubled canopy's branches.",
+      "A full ring of runes orbits the canopy, growth and rune-light woven together.",
+      "A true runethorn twin, doubled growth bound permanently to a halo of living rune-light.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "runethorn_twin_deeper_venom",
+      name: "Deeper Venom",
+      description: "Grand Fusion capstone. Poisons the target far more virulently than Twin Thorn alone, then lances it with rune-bound force.",
+      cooldownMs: 9200,
+      vfxId: "vfx.nature_nature_arcane.ability_deeper_venom",
+      statusKind: "poison",
+      statusMagnitude: 9,
+      statusDurationMs: 3800,
+      bonusDamage: 29,
+      damageElement: "arcane",
+    }),
+  ],
+  targeting: "strongest",
+  projectileVfx: "vfx.nature_nature_arcane.projectile",
+  impactVfx: "vfx.nature_nature_arcane.impact",
+  idleVfx: "vfx.nature_nature_arcane.idle",
+  modelId: "tower_nature_nature_arcane",
+};
+
+const natureNatureShadowTower: TowerDef = {
+  id: "tower_nature_nature_shadow",
+  name: "Blightthorn Twin",
+  element: "nature+nature",
+  isFusion: true,
+  flavorText: "Twin Thorn's doubled growth has curdled into a bramble that carries a curse in every thorn.",
+  tiers: buildTiers(
+    { damage: 22, range: 6, fireRateMs: 660, projectileSpeed: 16 },
+    [620, 1280, 2540],
+    [1, 1.22, 1.5],
+    [
+      "A single thorn on the doubled canopy has gone black and withered.",
+      "Half the canopy has withered to grey, thorns dark with an old curse.",
+      "A true blightthorn twin, doubled growth wholly given over to living curse and rot.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "blightthorn_twin_cursed_venom",
+      name: "Cursed Venom",
+      description: "Grand Fusion capstone. Brands the target with a severe curse, then poisons it with withering venom.",
+      cooldownMs: 9200,
+      vfxId: "vfx.nature_nature_shadow.ability_cursed_venom",
+      statusKind: "curse",
+      statusMagnitude: 0.45,
+      statusDurationMs: 4200,
+      bonusDamage: 30,
+      damageElement: "nature",
+    }),
+  ],
+  targeting: "strongest",
+  projectileVfx: "vfx.nature_nature_shadow.projectile",
+  impactVfx: "vfx.nature_nature_shadow.impact",
+  idleVfx: "vfx.nature_nature_shadow.idle",
+  modelId: "tower_nature_nature_shadow",
+};
+
+// ---------------------------------------------------------------------------
 // Public registry
 // ---------------------------------------------------------------------------
 
@@ -3570,6 +3985,17 @@ const ALL_TOWERS: TowerDef[] = [
   iceIceNatureTower,
   iceIceEarthTower,
   iceIceArcaneTower,
+  lightningLightningFireTower,
+  lightningLightningIceTower,
+  lightningLightningEarthTower,
+  lightningLightningArcaneTower,
+  lightningLightningShadowTower,
+  natureNatureFireTower,
+  natureNatureIceTower,
+  natureNatureLightningTower,
+  natureNatureEarthTower,
+  natureNatureArcaneTower,
+  natureNatureShadowTower,
 ];
 
 export const TOWER_REGISTRY: Map<string, TowerDef> = new Map(ALL_TOWERS.map((t) => [t.id, t]));
