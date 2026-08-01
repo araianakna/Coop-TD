@@ -137,7 +137,7 @@ function makeAbility(opts: {
     cooldownMs,
     minTier,
     onTrigger: (ctx: TowerAbilityContext) => {
-      ctx.emitVfx(vfxId, ctx.worldPosition);
+      ctx.emitVfx(vfxId, ctx.worldPosition, statusKind);
 
       // Stub target id — replaced by the real enemy id(s) the combat system
       // resolves once ability triggering is wired into Game.ts.

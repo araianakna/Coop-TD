@@ -811,6 +811,149 @@
   z-index: 15;
 }
 
+.rw-anchor-utility {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  pointer-events: auto;
+  z-index: 25;
+}
+
+/* -------------------------------------------------------------------------
+   Next-wave preview
+   ------------------------------------------------------------------------- */
+
+.rw-wave-preview {
+  position: relative;
+}
+
+.rw-wave-preview-btn,
+.rw-mute-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  border: 2px solid var(--rw-wood-700);
+  background: var(--rw-parch-200);
+  color: var(--rw-ink-900);
+  cursor: pointer;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.28);
+  transition: transform 0.1s ease, background 0.1s ease;
+}
+.rw-wave-preview-btn:hover,
+.rw-mute-btn:hover {
+  background: #fff6de;
+  transform: translateY(-1px);
+}
+.rw-wave-preview-btn:active,
+.rw-mute-btn:active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.28);
+}
+
+.rw-mute-btn-muted {
+  color: var(--rw-red-700);
+  border-color: var(--rw-red-500);
+}
+
+.rw-wave-preview-panel {
+  position: absolute;
+  top: 48px;
+  right: 0;
+  width: min(340px, 82vw);
+  z-index: 26;
+}
+
+.rw-wave-preview-hidden {
+  display: none;
+}
+
+.rw-wave-preview-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rw-wave-preview-empty {
+  margin: 4px 0;
+  font-size: 12.5px;
+  color: var(--rw-ink-700);
+  text-align: center;
+}
+
+.rw-wave-preview-tally {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.rw-wave-preview-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--rw-parch-300);
+  box-shadow: inset 0 0 0 2px var(--rw-wood-500);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--rw-ink-900);
+}
+
+.rw-wave-preview-chip-flying { color: var(--rw-teal-900); }
+.rw-wave-preview-chip-ground { color: var(--rw-wood-900); }
+.rw-wave-preview-chip-burrowing { color: var(--rw-gold-700); }
+
+.rw-wave-preview-sequence {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-height: 160px;
+  overflow-y: auto;
+  padding: 8px;
+  border-radius: 6px;
+  background: var(--rw-parch-100);
+  box-shadow: inset 0 0 0 2px var(--rw-wood-500);
+}
+
+.rw-wave-preview-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  background: var(--rw-parch-300);
+  box-shadow: inset 0 0 0 1px var(--rw-wood-500);
+  flex: none;
+}
+
+.rw-wave-preview-icon-flying { color: var(--rw-teal-700); }
+.rw-wave-preview-icon-ground { color: var(--rw-wood-900); }
+.rw-wave-preview-icon-burrowing { color: var(--rw-gold-700); }
+.rw-wave-preview-icon-boss {
+  width: 26px;
+  height: 26px;
+  color: var(--rw-red-700);
+  background: var(--rw-gold-300);
+  box-shadow: inset 0 0 0 1px var(--rw-wood-900);
+}
+
+.rw-wave-preview-more {
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--rw-ink-700);
+  white-space: nowrap;
+}
+
 /* -------------------------------------------------------------------------
    Start screen (pre-game map select)
    ------------------------------------------------------------------------- */
@@ -1112,6 +1255,23 @@
   .rw-btn {
     padding: 11px 20px;
     font-size: 15px;
+  }
+
+  .rw-anchor-utility {
+    top: calc(8px + env(safe-area-inset-top, 0px));
+    right: 10px;
+    gap: 6px;
+  }
+
+  .rw-wave-preview-btn,
+  .rw-mute-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .rw-wave-preview-panel {
+    top: 42px;
+    width: min(300px, 80vw);
   }
 }
 

@@ -23,7 +23,7 @@ import { getTowerDef, listBaseTowers } from "@/game/towers/TowerRegistry";
 import { getFusionRecipe } from "@/game/towers/FusionMatrix";
 import { getGrandFusionRecipe } from "@/game/towers/GrandFusionMatrix";
 import { getEnemyDef } from "@/game/enemies/EnemyRegistry";
-import { getWave, TOTAL_WAVES } from "@/game/enemies/WaveManager";
+import { getWave, TOTAL_WAVES, computeSpawnOrder } from "@/game/enemies/WaveManager";
 import { Vfx2D } from "@/game/render2d/Vfx2D";
 import { getTowerSprite, TOWER_GROUND_FRAC } from "@/game/render2d/TowerSprites";
 import { getEnemySprite, ENEMY_GROUND_FRAC } from "@/game/render2d/EnemySprites";
@@ -35,6 +35,8 @@ import { createFusionPanel, type FusionCandidatePair, type FusionPanelApi } from
 import { createTowerInspector, type TowerInspector } from "@/ui/TowerInspector";
 import { createCursorIndicators, type CursorIndicators } from "@/ui/CursorIndicators";
 import { createVictoryScreen, createDefeatScreen, type EndScreen } from "@/ui/EndScreens";
+import { createWavePreview, type PreviewEntry } from "@/ui/WavePreview";
+import { createMuteButton } from "@/ui/MuteButton";
 import { AudioSystem } from "@/audio";
 
 export type MapChoice = "map01" | "map02";
@@ -191,6 +193,13 @@ export class Game {
 
     this.hud = createHUD(this.economy);
     uiRoot.appendChild(this.hud.el);
+
+    const utilityBar = document.createElement("div");
+    utilityBar.className = "rw-anchor-utility";
+    const wavePreview = createWavePreview({ getEntries: () => this.buildWavePreview() });
+    const muteBtn = createMuteButton({ audio: this.audio });
+    utilityBar.append(wavePreview.el, muteBtn.el);
+    uiRoot.appendChild(utilityBar);
 
     this.shop = createShopPanel({
       towers: listBaseTowers(),
@@ -550,20 +559,26 @@ export class Game {
     this.audio.music.waveStart();
     if (wave.bossId) this.audio.music.bossIncoming();
 
-    const queue: QueuedSpawn[] = [];
-    let latest = this.elapsed;
-    for (const entry of wave.spawns) {
-      for (let i = 0; i < entry.count; i++) {
-        const at = this.elapsed + (i * entry.intervalMs) / 1000;
-        queue.push({ enemyId: entry.enemyId, healthMultiplier: entry.healthMultiplier ?? 1, atElapsed: at });
-        latest = Math.max(latest, at);
-      }
-    }
-    if (wave.bossId) {
-      queue.push({ enemyId: wave.bossId, healthMultiplier: 1, atElapsed: latest + 1.5 });
-    }
-    queue.sort((a, b) => a.atElapsed - b.atElapsed);
-    this.spawnQueue = queue;
+    this.spawnQueue = computeSpawnOrder(wave).map((e) => ({
+      enemyId: e.enemyId,
+      healthMultiplier: e.healthMultiplier,
+      atElapsed: this.elapsed + e.offsetMs / 1000,
+    }));
+  }
+
+  /** The "next wave" is always waveIndex + 1 — waveIndex only advances when
+   * a wave actually starts, so this is correct whether the current wave is
+   * still spawning, fully cleared and waiting on the between-wave timer, or
+   * the game hasn't started its first wave yet (waveIndex 0 -> next is 1).
+   * Reuses WaveManager's own spawn-order math so the preview can never
+   * drift out of sync with what actually spawns. */
+  private buildWavePreview(): PreviewEntry[] {
+    const wave = getWave(this.waveIndex + 1);
+    if (!wave) return [];
+    return computeSpawnOrder(wave).map((e) => {
+      const def = getEnemyDef(e.enemyId);
+      return { enemyId: e.enemyId, name: def.name, movement: def.movement, isBoss: e.isBoss };
+    });
   }
 
   private spawnEnemy(enemyId: string, healthMultiplier: number) {
@@ -865,7 +880,8 @@ export class Game {
           this.applyDamage(target, dmg.amount, dmg.element);
         }
       },
-      emitVfx: (vfxId: string, worldPos: [number, number, number]) => this.vfx.emitVfx(vfxId, worldPos),
+      emitVfx: (vfxId: string, worldPos: [number, number, number], statusKind?: StatusEffectKind) =>
+        this.vfx.emitVfx(vfxId, worldPos, statusKind),
     };
     ability.onTrigger(ctx);
   }
