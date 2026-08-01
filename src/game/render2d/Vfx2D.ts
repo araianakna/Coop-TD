@@ -166,6 +166,13 @@ export class Vfx2D {
       this.burst(pos[0], pos[2], [elA, elB]);
       if (crit) this.critFlash(pos[0], pos[2]);
     },
+    /** A small, cheap ring at each secondary enemy caught by a splash hit —
+     * before this, only the primary target flashed, so an AoE tower's
+     * splash radius was invisible even though it was damaging a whole
+     * cluster. Deliberately lighter than `trigger` (no particle burst) so
+     * a splash into a dense pack doesn't flood the canvas. */
+    triggerSplash: (el: Element, pos: [number, number, number]) =>
+      this.ring(pos[0], pos[2], el, undefined, 0.22, 0.55, true, 1.4, false),
   };
 
   /** Layered on top of the normal elemental impact when a hit crits — a

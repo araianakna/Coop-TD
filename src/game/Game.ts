@@ -949,6 +949,7 @@ export class Game {
         if (enemy === target) continue;
         if (Math.hypot(enemy.worldX - pos[0], enemy.worldY - pos[2]) <= splashRadius) {
           this.applyDamage(enemy, baseDamage * 0.6, elA, critChance, critMultiplier);
+          this.vfx.impactsApi.triggerSplash(elA, [enemy.worldX, 0, enemy.worldY]);
         }
       }
     }
