@@ -91,6 +91,16 @@ const STYLES: Record<Element, ElementImpactStyle> = {
     ringDuration: 0.4,
     ringEndRadius: 1.1,
   },
+  shadow: {
+    shape: "soft",
+    burstCount: 24,
+    burstSpeed: [1, 3],
+    burstLifetime: [0.35, 0.7],
+    gravity: new THREE.Vector3(0, -0.2, 0),
+    turbulence: 0.5,
+    ringDuration: 0.45,
+    ringEndRadius: 1,
+  },
 };
 
 /** Anything a `Sequence` can drive: ticked every frame, returns whether it's

@@ -96,6 +96,27 @@ export const GRAND_FUSION_RECIPES: GrandFusionRecipe[] = [
     thirdElement: "nature",
     resultTowerId: "tower_lightning_nature_arcane",
   },
+
+  // Duplicate-parent Grand Fusions — a same-element "Twin" fusion (see
+  // DuplicateFusionMatrix.ts) merged with a THIRD, distinct base element
+  // (e.g. fire+fire, then + ice), rather than two distinct fusion elements.
+  // A curated first pass (4 of the many possible twin+distinct-third
+  // combinations), same convention as every other curation pass in this
+  // file: not exhaustive, extensible later.
+  { parentFusionTowerId: "tower_fire_fire", thirdElement: "ice", resultTowerId: "tower_fire_fire_ice" },
+  { parentFusionTowerId: "tower_ice_ice", thirdElement: "shadow", resultTowerId: "tower_ice_ice_shadow" },
+  {
+    parentFusionTowerId: "tower_lightning_lightning",
+    thirdElement: "nature",
+    resultTowerId: "tower_lightning_lightning_nature",
+  },
+  { parentFusionTowerId: "tower_shadow_shadow", thirdElement: "fire", resultTowerId: "tower_shadow_shadow_fire" },
+
+  // Non-duplicate Shadow Grand Fusions — a shadow cross-fusion (or an
+  // existing non-shadow fusion) merged with a third distinct element, same
+  // curated-first-pass convention as everywhere else in this file.
+  { parentFusionTowerId: "tower_earth_shadow", thirdElement: "arcane", resultTowerId: "tower_earth_arcane_shadow" },
+  { parentFusionTowerId: "tower_nature_arcane", thirdElement: "shadow", resultTowerId: "tower_nature_arcane_shadow" },
 ];
 
 function recipeKey(parentFusionTowerId: string, thirdElement: Element): string {

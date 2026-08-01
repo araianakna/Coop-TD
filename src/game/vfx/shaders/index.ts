@@ -65,6 +65,10 @@ const FACTORIES: Record<Element, (opts?: SurfaceMaterialOptions) => THREE.Shader
   nature: createNatureMaterial,
   earth: createEarthMaterial,
   arcane: createArcaneMaterial,
+  // No bespoke shader yet — this whole legacy Three.js shader module is
+  // unused by the live 2D renderer (see render2d/*), so shadow borrows
+  // arcane's material rather than authoring a new unused GLSL pass.
+  shadow: createArcaneMaterial,
 };
 
 /** Convenience lookup when you have an `Element` value rather than a literal

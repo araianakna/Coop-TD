@@ -1,9 +1,9 @@
 // Shared contracts for the whole game. Subsystems (towers, enemies, vfx, ui)
 // are built against these types so they can be developed independently.
 
-export type Element = "fire" | "ice" | "lightning" | "nature" | "earth" | "arcane";
+export type Element = "fire" | "ice" | "lightning" | "nature" | "earth" | "arcane" | "shadow";
 
-export const ELEMENTS: Element[] = ["fire", "ice", "lightning", "nature", "earth", "arcane"];
+export const ELEMENTS: Element[] = ["fire", "ice", "lightning", "nature", "earth", "arcane", "shadow"];
 
 export interface GridCoord {
   x: number;
@@ -26,7 +26,8 @@ export type StatusEffectKind =
   | "root"
   | "poison"
   | "sunder"
-  | "silence";
+  | "silence"
+  | "curse";
 
 export interface StatusEffect {
   kind: StatusEffectKind;

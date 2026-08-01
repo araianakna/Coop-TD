@@ -21,15 +21,22 @@ export class InputManager {
   private p1PrevDown = false;
   private p2PrevA = false;
   private p2PrevB = false;
+  /** Last pointer type P1 actually used ("mouse" | "pen" | "touch"), so the
+   * orchestrator can hide the P1 reticle on touch — a finger IS the cursor
+   * there, so drawing a separate crosshair on top of it just gets in the
+   * way. Starts as "mouse" (the common case) until the first real event. */
+  private p1PointerType: string = "mouse";
 
   constructor(domElement: HTMLElement) {
     domElement.addEventListener("pointermove", (e) => {
       const rect = domElement.getBoundingClientRect();
       this.p1.ndcX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
       this.p1.ndcY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      this.p1PointerType = e.pointerType;
     });
     domElement.addEventListener("pointerdown", (e) => {
       if (e.button === 0) this.p1.actionPressed = true;
+      this.p1PointerType = e.pointerType;
     });
     window.addEventListener("pointerup", (e) => {
       if (e.button === 0) this.p1.actionPressed = false;
@@ -65,6 +72,12 @@ export class InputManager {
 
   getCursor(player: PlayerSlot): CursorState {
     return player === "p1" ? this.p1 : this.p2;
+  }
+
+  /** Whether P1's most recent pointer input was touch — the orchestrator
+   * uses this to hide the P1 reticle, since a finger doesn't need one. */
+  isP1Touch(): boolean {
+    return this.p1PointerType === "touch";
   }
 
   isP2Active(): boolean {

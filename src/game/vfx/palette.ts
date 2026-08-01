@@ -31,6 +31,7 @@ export const ELEMENT_PALETTES: Record<Element, ElementPalette> = {
   nature: pal(0xb6ff6b, 0x3fa855, 0x0c1f12, 0x8bff9a),
   earth: pal(0xd99a4e, 0x7a5a3a, 0x1c140f, 0xb87a3f),
   arcane: pal(0xe28bff, 0x9a3fe0, 0x150a24, 0xd68bff),
+  shadow: pal(0x9c7fe0, 0x5a3d8f, 0x0d0716, 0xc8f0ff),
 };
 
 /** Approximate direction of the scene's key sun light (see core/Lighting.ts). */

@@ -59,7 +59,7 @@ interface ActiveProjectile {
   onArrive: (pos: [number, number, number]) => void;
 }
 
-const ELEMENT_NAMES: Element[] = ["fire", "ice", "lightning", "nature", "earth", "arcane"];
+const ELEMENT_NAMES: Element[] = ["fire", "ice", "lightning", "nature", "earth", "arcane", "shadow"];
 
 function elementsFromVfxId(vfxId: string): Element[] {
   const found: Element[] = [];
@@ -191,6 +191,8 @@ export class Vfx2D {
         return this.sunderVfx(wx, wy, pal);
       case "silence":
         return this.silenceVfx(wx, wy, pal);
+      case "curse":
+        return this.curseVfx(wx, wy, pal);
     }
   }
 
@@ -314,6 +316,29 @@ export class Vfx2D {
       const ang = (i / 8) * Math.PI * 2;
       const r = 1.1 + Math.random() * 0.3;
       this.pushParticle(wx + Math.cos(ang) * r, wy + Math.sin(ang) * r, -Math.cos(ang) * 1.2, -Math.sin(ang) * 1.2, 0.32, pal.light, 2, 0.86);
+    }
+  }
+
+  /** A dashed sigil ring flashing onto the target plus a handful of dark
+   * motes drifting slowly DOWNWARD — every other status either rises,
+   * radiates, or pulls inward, so curse's "something heavy just landed on
+   * you" read (a brand making future hits worse, not an instant effect)
+   * comes from being the only one that sinks. */
+  private curseVfx(wx: number, wy: number, pal: ElementPalette) {
+    this.ring(wx, wy, undefined, pal.accent, 0.5, 0.95, true, 1.3, true);
+    for (let i = 0; i < 7; i++) {
+      const ang = -Math.PI / 2 + (i / 7) * Math.PI * 2;
+      const r = 0.4 + Math.random() * 0.3;
+      this.pushParticle(
+        wx + Math.cos(ang) * r,
+        wy + Math.sin(ang) * r - 0.6,
+        Math.cos(ang) * 0.1,
+        0.55 + Math.random() * 0.3,
+        0.6 + Math.random() * 0.25,
+        Math.random() > 0.5 ? pal.dark : pal.base,
+        2 + Math.random() * 1.4,
+        0.96,
+      );
     }
   }
 
@@ -521,6 +546,8 @@ function drawBulletShape(ctx: CanvasRenderingContext2D, element: Element, pal: E
       return drawRockBullet(ctx, pal, spin);
     case "arcane":
       return drawRuneBullet(ctx, pal, spin);
+    case "shadow":
+      return drawWispBullet(ctx, pal, angle);
   }
 }
 
@@ -702,6 +729,35 @@ function drawRuneBullet(ctx: CanvasRenderingContext2D, pal: ElementPalette, spin
   ctx.restore();
   ctx.beginPath();
   ctx.arc(0, 0, 0.9, 0, Math.PI * 2);
+  ctx.fillStyle = "#ffffff";
+  ctx.fill();
+}
+
+/** Wisp orb — a dark core trailing a translucent smoky tail (travel-facing,
+ * like fire/ice/nature), with a single bright eye-glint at the leading edge
+ * so it reads as "watching" rather than a plain glowing ball. */
+function drawWispBullet(ctx: CanvasRenderingContext2D, pal: ElementPalette, angle: number) {
+  ctx.rotate(angle);
+  ctx.globalAlpha = 0.8;
+  ctx.beginPath();
+  ctx.moveTo(2.2, 0);
+  ctx.quadraticCurveTo(-2, -2.7, -5.6, -0.7);
+  ctx.quadraticCurveTo(-3, 0, -5.6, 0.7);
+  ctx.quadraticCurveTo(-2, 2.7, 2.2, 0);
+  ctx.closePath();
+  ctx.fillStyle = pal.dark;
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.beginPath();
+  ctx.arc(1.4, 0, 2.1, 0, Math.PI * 2);
+  ctx.fillStyle = pal.base;
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(1.6, 0, 1.15, 0, Math.PI * 2);
+  ctx.fillStyle = pal.accent;
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(2, 0, 0.5, 0, Math.PI * 2);
   ctx.fillStyle = "#ffffff";
   ctx.fill();
 }

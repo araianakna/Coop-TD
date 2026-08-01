@@ -661,7 +661,10 @@
 /* While no gamepad is connected, P2's reticle would otherwise sit as a
    static ghost cursor dead-center of the playfield, obstructing the view
    during solo play — so hide it entirely rather than just fading it. It
-   reappears the instant InputManager detects a gamepad. */
+   reappears the instant InputManager detects a gamepad. Same rule for P1
+   while playing via touch — a finger IS the cursor there, so drawing a
+   separate crosshair over it is redundant clutter, not a helpful indicator. */
+.rw-cursor-p1.rw-cursor-inactive,
 .rw-cursor-p2.rw-cursor-inactive {
   display: none;
 }

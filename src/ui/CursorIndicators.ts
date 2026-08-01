@@ -25,6 +25,7 @@ export type CursorPlayer = "p1" | "p2";
 export interface CursorIndicators {
   container: HTMLElement;
   setPosition: (player: CursorPlayer, xPx: number, yPx: number) => void;
+  setP1Active: (active: boolean) => void;
   setP2Active: (active: boolean) => void;
   setActionPressed: (player: CursorPlayer, pressed: boolean) => void;
 }
@@ -47,6 +48,9 @@ export function createCursorIndicators(): CursorIndicators {
     setPosition(player, xPx, yPx) {
       const el = els[player].root;
       el.style.transform = `translate(${xPx}px, ${yPx}px) translate(-50%, -50%)`;
+    },
+    setP1Active(active) {
+      p1.root.classList.toggle("rw-cursor-inactive", !active);
     },
     setP2Active(active) {
       p2.root.classList.toggle("rw-cursor-inactive", !active);

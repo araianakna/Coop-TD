@@ -21,6 +21,7 @@ export const ELEMENT_THEME: Record<Element, ElementTheme> = {
   nature: { element: "nature", label: "Nature", color: "#7be08a", epithet: "Growth" },
   earth: { element: "earth", label: "Earth", color: "#c9995f", epithet: "Stone" },
   arcane: { element: "arcane", label: "Arcane", color: "#c58cff", epithet: "Mystery" },
+  shadow: { element: "shadow", label: "Shadow", color: "#8b6fd6", epithet: "Curse" },
 };
 
 /** Raw inline SVG glyph markup (viewBox 0 0 24 24) for each element symbol. */
@@ -39,6 +40,8 @@ const ELEMENT_GLYPHS: Record<Element, string> = {
   earth: `<path d="M12 2.6 20.4 8v8L12 21.4 3.6 16V8z" />
     <path d="M12 2.6v18.8M3.6 8l8.4 5.4 8.4-5.4" stroke="#3a2a17" stroke-width="1" fill="none" opacity="0.4"/>`,
   arcane: `<path d="M12 1.6 14.7 9h7.7l-6.3 4.5 2.5 7.4L12 16.3l-6.6 4.6 2.5-7.4L1.6 9h7.7z"/>`,
+  shadow: `<path d="M12 2.5a9.5 9.5 0 1 0 8.4 14 7.7 7.7 0 0 1-8.4-14z"/>
+    <circle cx="16.4" cy="7.6" r="1" fill="currentColor" opacity="0.8"/>`,
 };
 
 /** Builds a colored, glowing circular "icon" for the given element. Pure DOM/SVG, no assets. */
