@@ -117,6 +117,40 @@ export const GRAND_FUSION_RECIPES: GrandFusionRecipe[] = [
   // curated-first-pass convention as everywhere else in this file.
   { parentFusionTowerId: "tower_earth_shadow", thirdElement: "arcane", resultTowerId: "tower_earth_arcane_shadow" },
   { parentFusionTowerId: "tower_nature_arcane", thirdElement: "shadow", resultTowerId: "tower_nature_arcane_shadow" },
+
+  // Full completion pass — every remaining distinct-element triad now that
+  // Shadow is in the roster. C(7,3) = 35 total triads; 22 were covered
+  // above (the original 20 among the first 6 elements, plus the 2 just
+  // above). These 13 are every remaining triad, all necessarily containing
+  // Shadow (every non-Shadow triad was already covered pre-Shadow). Parent
+  // is always the existing fusion of the two non-Shadow elements, third
+  // element is always Shadow — a consistent, easy-to-audit path since
+  // completeness (not parent variety) is the goal for this pass.
+  { parentFusionTowerId: "tower_fire_ice", thirdElement: "shadow", resultTowerId: "tower_fire_ice_shadow" },
+  { parentFusionTowerId: "tower_fire_lightning", thirdElement: "shadow", resultTowerId: "tower_fire_lightning_shadow" },
+  { parentFusionTowerId: "tower_fire_nature", thirdElement: "shadow", resultTowerId: "tower_fire_nature_shadow" },
+  { parentFusionTowerId: "tower_fire_earth", thirdElement: "shadow", resultTowerId: "tower_fire_earth_shadow" },
+  { parentFusionTowerId: "tower_fire_arcane", thirdElement: "shadow", resultTowerId: "tower_fire_arcane_shadow" },
+  { parentFusionTowerId: "tower_ice_lightning", thirdElement: "shadow", resultTowerId: "tower_ice_lightning_shadow" },
+  { parentFusionTowerId: "tower_ice_nature", thirdElement: "shadow", resultTowerId: "tower_ice_nature_shadow" },
+  { parentFusionTowerId: "tower_ice_earth", thirdElement: "shadow", resultTowerId: "tower_ice_earth_shadow" },
+  { parentFusionTowerId: "tower_ice_arcane", thirdElement: "shadow", resultTowerId: "tower_ice_arcane_shadow" },
+  {
+    parentFusionTowerId: "tower_lightning_nature",
+    thirdElement: "shadow",
+    resultTowerId: "tower_lightning_nature_shadow",
+  },
+  {
+    parentFusionTowerId: "tower_lightning_earth",
+    thirdElement: "shadow",
+    resultTowerId: "tower_lightning_earth_shadow",
+  },
+  {
+    parentFusionTowerId: "tower_lightning_arcane",
+    thirdElement: "shadow",
+    resultTowerId: "tower_lightning_arcane_shadow",
+  },
+  { parentFusionTowerId: "tower_nature_earth", thirdElement: "shadow", resultTowerId: "tower_nature_earth_shadow" },
 ];
 
 function recipeKey(parentFusionTowerId: string, thirdElement: Element): string {

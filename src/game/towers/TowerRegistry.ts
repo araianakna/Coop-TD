@@ -2613,6 +2613,495 @@ const natureArcaneShadowTower: TowerDef = {
 };
 
 // ---------------------------------------------------------------------------
+// Full-completion Grand Fusions — every remaining distinct-element triad
+// (all 13 necessarily contain Shadow; see GrandFusionMatrix.ts's "Full
+// completion pass" comment). Every fusion/grand-fusion combination in the
+// game now has a real tower behind it — there is no curated subset left
+// uncovered for the 35 distinct triads.
+// ---------------------------------------------------------------------------
+
+const fireIceShadowTower: TowerDef = {
+  id: "tower_fire_ice_shadow",
+  name: "Wraithsteam Vent",
+  element: "fire+ice",
+  isFusion: true,
+  flavorText: "Steamcaller's geyser now breathes a curse into every cloud of vapor it vents.",
+  tiers: buildTiers(
+    { damage: 32, range: 6.1, fireRateMs: 560, projectileSpeed: 19, splashRadius: 1.5 },
+    [625, 1290, 2560],
+    [1, 1.22, 1.5],
+    [
+      "A hairline crack of violet has spread through the ice-crystal vent.",
+      "The vent hisses in two voices now — scalding steam and something colder beneath it.",
+      "A true wraithsteam vent, every jet of vapor carrying a curse out into the field.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "wraithsteam_vent_cursed_scald",
+      name: "Cursed Scald",
+      description: "Grand Fusion capstone. Brands the target with a curse, then scalds it with cursed steam.",
+      cooldownMs: 9200,
+      vfxId: "vfx.fire_ice_shadow.ability_cursed_scald",
+      statusKind: "curse",
+      statusMagnitude: 0.4,
+      statusDurationMs: 4000,
+      bonusDamage: 34,
+      damageElement: "fire",
+    }),
+  ],
+  targeting: "strongest",
+  projectileVfx: "vfx.fire_ice_shadow.projectile",
+  impactVfx: "vfx.fire_ice_shadow.impact",
+  idleVfx: "vfx.fire_ice_shadow.idle",
+  modelId: "tower_fire_ice_shadow",
+};
+
+const fireLightningShadowTower: TowerDef = {
+  id: "tower_fire_lightning_shadow",
+  name: "Blackspark Reactor",
+  element: "fire+lightning",
+  isFusion: true,
+  flavorText: "Plasma Arc's caged flame now discharges in bolts of living, cursed dark.",
+  tiers: buildTiers(
+    { damage: 26, range: 6.6, fireRateMs: 290, projectileSpeed: 27, critChance: 0.27, critMultiplier: 2.1 },
+    [650, 1340, 2650],
+    [1, 1.22, 1.5],
+    [
+      "A single black spark now crackles inside the containment rings.",
+      "Black lightning has replaced half the plasma's usual glow.",
+      "A true blackspark reactor, every discharge a bolt of cursed fire and current together.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "blackspark_reactor_voidbolt",
+      name: "Voidbolt",
+      description: "Grand Fusion capstone. Brands the target with a curse, then discharges a bolt of cursed current.",
+      cooldownMs: 9200,
+      vfxId: "vfx.fire_lightning_shadow.ability_voidbolt",
+      statusKind: "curse",
+      statusMagnitude: 0.4,
+      statusDurationMs: 4000,
+      bonusDamage: 36,
+      damageElement: "lightning",
+    }),
+  ],
+  targeting: "closest",
+  projectileVfx: "vfx.fire_lightning_shadow.projectile",
+  impactVfx: "vfx.fire_lightning_shadow.impact",
+  idleVfx: "vfx.fire_lightning_shadow.idle",
+  modelId: "tower_fire_lightning_shadow",
+};
+
+const fireNatureShadowTower: TowerDef = {
+  id: "tower_fire_nature_shadow",
+  name: "Nightbloom Warden",
+  element: "fire+nature",
+  isFusion: true,
+  flavorText: "Wildfire Warden's burning trunk has been claimed by curse-vines that only bloom at night.",
+  tiers: buildTiers(
+    { damage: 24, range: 6, fireRateMs: 680, projectileSpeed: 16, splashRadius: 1.4 },
+    [605, 1250, 2480],
+    [1, 1.22, 1.5],
+    [
+      "A single night-blooming flower has taken root in the burning bark.",
+      "Dark blossoms now cover half the trunk, glowing faintly violet.",
+      "A true nightbloom warden, every burning branch hung with curse-blossoms.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "nightbloom_warden_blightbloom",
+      name: "Blightbloom",
+      description: "Grand Fusion capstone. Brands the target with a curse, then bursts a night-blossom of fire over it.",
+      cooldownMs: 9200,
+      vfxId: "vfx.fire_nature_shadow.ability_blightbloom",
+      statusKind: "curse",
+      statusMagnitude: 0.4,
+      statusDurationMs: 4000,
+      bonusDamage: 32,
+      damageElement: "fire",
+    }),
+  ],
+  targeting: "strongest",
+  projectileVfx: "vfx.fire_nature_shadow.projectile",
+  impactVfx: "vfx.fire_nature_shadow.impact",
+  idleVfx: "vfx.fire_nature_shadow.idle",
+  modelId: "tower_fire_nature_shadow",
+};
+
+const fireEarthShadowTower: TowerDef = {
+  id: "tower_fire_earth_shadow",
+  name: "Duskforge Colossus",
+  element: "fire+earth",
+  isFusion: true,
+  flavorText: "Magma Forge's molten heart now bleeds shadow through every glowing crack in the stone.",
+  tiers: buildTiers(
+    { damage: 36, range: 5.6, fireRateMs: 900, projectileSpeed: 14, splashRadius: 1.7 },
+    [645, 1330, 2630],
+    [1, 1.22, 1.5],
+    [
+      "A vein of dark has crept into the boulder's molten cracks.",
+      "Half the boulder now glows violet-black between the usual fire-lit fissures.",
+      "A true duskforge colossus, molten stone and living curse fused past separating.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "duskforge_colossus_ashcurse",
+      name: "Ashcurse",
+      description: "Grand Fusion capstone. Brands the target with a curse, then crushes it beneath cursed molten stone.",
+      cooldownMs: 9200,
+      vfxId: "vfx.fire_earth_shadow.ability_ashcurse",
+      statusKind: "curse",
+      statusMagnitude: 0.4,
+      statusDurationMs: 4000,
+      bonusDamage: 38,
+      damageElement: "earth",
+    }),
+  ],
+  targeting: "strongest",
+  projectileVfx: "vfx.fire_earth_shadow.projectile",
+  impactVfx: "vfx.fire_earth_shadow.impact",
+  idleVfx: "vfx.fire_earth_shadow.idle",
+  modelId: "tower_fire_earth_shadow",
+};
+
+const fireArcaneShadowTower: TowerDef = {
+  id: "tower_fire_arcane_shadow",
+  name: "Hexbound Sigil",
+  element: "fire+arcane",
+  isFusion: true,
+  flavorText: "Hellfire Sigil's captive flame now burns under a hex deeper than the glyphs that bind it.",
+  tiers: buildTiers(
+    { damage: 28, range: 6.7, fireRateMs: 620, projectileSpeed: 18, critChance: 0.25, critMultiplier: 2.1 },
+    [660, 1360, 2690],
+    [1, 1.22, 1.5],
+    [
+      "One binding glyph has gone dark, hexed rather than merely burning.",
+      "Half the sigil's glyphs now pulse violet instead of flame-orange.",
+      "A true hexbound sigil, captive flame and living curse bound in the same obsidian frame.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "hexbound_sigil_hexflare",
+      name: "Hexflare",
+      description: "Grand Fusion capstone. Brands the target with a curse, then unleashes a flare of hexed flame.",
+      cooldownMs: 9200,
+      vfxId: "vfx.fire_arcane_shadow.ability_hexflare",
+      statusKind: "curse",
+      statusMagnitude: 0.4,
+      statusDurationMs: 4000,
+      bonusDamage: 33,
+      damageElement: "arcane",
+    }),
+  ],
+  targeting: "strongest",
+  projectileVfx: "vfx.fire_arcane_shadow.projectile",
+  impactVfx: "vfx.fire_arcane_shadow.impact",
+  idleVfx: "vfx.fire_arcane_shadow.idle",
+  modelId: "tower_fire_arcane_shadow",
+};
+
+const iceLightningShadowTower: TowerDef = {
+  id: "tower_ice_lightning_shadow",
+  name: "Wraithshock Shard",
+  element: "ice+lightning",
+  isFusion: true,
+  flavorText: "Frostshock Pylon's crackling ice now channels a curse through every arc it throws.",
+  tiers: buildTiers(
+    { damage: 25, range: 6.5, fireRateMs: 310, projectileSpeed: 26, critChance: 0.24, critMultiplier: 2 },
+    [635, 1310, 2600],
+    [1, 1.22, 1.5],
+    [
+      "A single crack in the ice shard now sparks violet instead of white.",
+      "Half the shard has gone dark, current and curse arcing together through it.",
+      "A true wraithshock shard, every discharge carrying a curse into the target.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "wraithshock_shard_cursed_shock",
+      name: "Cursed Shock",
+      description: "Grand Fusion capstone. Brands the target with a curse, then shocks it with cursed current.",
+      cooldownMs: 9200,
+      vfxId: "vfx.ice_lightning_shadow.ability_cursed_shock",
+      statusKind: "curse",
+      statusMagnitude: 0.4,
+      statusDurationMs: 4000,
+      bonusDamage: 35,
+      damageElement: "lightning",
+    }),
+  ],
+  targeting: "closest",
+  projectileVfx: "vfx.ice_lightning_shadow.projectile",
+  impactVfx: "vfx.ice_lightning_shadow.impact",
+  idleVfx: "vfx.ice_lightning_shadow.idle",
+  modelId: "tower_ice_lightning_shadow",
+};
+
+const iceNatureShadowTower: TowerDef = {
+  id: "tower_ice_nature_shadow",
+  name: "Hollowfrost Grove",
+  element: "ice+nature",
+  isFusion: true,
+  flavorText: "Permafrost Grove's frozen boughs now hold a hollow, curse-laced chill at their core.",
+  tiers: buildTiers(
+    { damage: 22, range: 6.4, fireRateMs: 700, projectileSpeed: 17 },
+    [615, 1270, 2520],
+    [1, 1.22, 1.5],
+    [
+      "A single frozen bough has gone hollow, violet mist curling from within.",
+      "Half the grove's ice has hollowed out, hung with drifting curse-mist.",
+      "A true hollowfrost grove, every frozen branch hollow and seeping living curse.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "hollowfrost_grove_withering_frost",
+      name: "Withering Frost",
+      description: "Grand Fusion capstone. Brands the target with a curse, then withers it with hollow frost.",
+      cooldownMs: 9200,
+      vfxId: "vfx.ice_nature_shadow.ability_withering_frost",
+      statusKind: "curse",
+      statusMagnitude: 0.4,
+      statusDurationMs: 4000,
+      bonusDamage: 30,
+      damageElement: "ice",
+    }),
+  ],
+  targeting: "weakest",
+  projectileVfx: "vfx.ice_nature_shadow.projectile",
+  impactVfx: "vfx.ice_nature_shadow.impact",
+  idleVfx: "vfx.ice_nature_shadow.idle",
+  modelId: "tower_ice_nature_shadow",
+};
+
+const iceEarthShadowTower: TowerDef = {
+  id: "tower_ice_earth_shadow",
+  name: "Grave Bastion",
+  element: "ice+earth",
+  isFusion: true,
+  flavorText: "Glacier Bastion's ice-and-rock ramparts now guard a curse buried beneath their foundations.",
+  tiers: buildTiers(
+    { damage: 33, range: 5.8, fireRateMs: 950, projectileSpeed: 14 },
+    [655, 1350, 2670],
+    [1, 1.22, 1.5],
+    [
+      "A single crack in the rampart glows faint violet at its base.",
+      "The glow has spread through half the ramparts, ice and stone both stained dark.",
+      "A true grave bastion, every slab of ice and rock guarding the curse buried within.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "grave_bastion_sepulcher_slam",
+      name: "Sepulcher Slam",
+      description: "Grand Fusion capstone. Brands the target with a curse, then slams it with cursed rock and ice.",
+      cooldownMs: 9200,
+      vfxId: "vfx.ice_earth_shadow.ability_sepulcher_slam",
+      statusKind: "curse",
+      statusMagnitude: 0.4,
+      statusDurationMs: 4000,
+      bonusDamage: 37,
+      damageElement: "earth",
+    }),
+  ],
+  targeting: "strongest",
+  projectileVfx: "vfx.ice_earth_shadow.projectile",
+  impactVfx: "vfx.ice_earth_shadow.impact",
+  idleVfx: "vfx.ice_earth_shadow.idle",
+  modelId: "tower_ice_earth_shadow",
+};
+
+const iceArcaneShadowTower: TowerDef = {
+  id: "tower_ice_arcane_shadow",
+  name: "Wraithweave Loom",
+  element: "ice+arcane",
+  isFusion: true,
+  flavorText: "Frostweave Loom's rune-threads now weave living shadow through every strand of ice.",
+  tiers: buildTiers(
+    { damage: 24, range: 6.8, fireRateMs: 720, projectileSpeed: 18, critChance: 0.26, critMultiplier: 2.1 },
+    [645, 1330, 2630],
+    [1, 1.22, 1.5],
+    [
+      "A single dark thread has been woven into the reliquary's ice.",
+      "Half the weave now runs violet-black, rune-light and curse-thread inseparable.",
+      "A true wraithweave loom, every thread of ice and rune-light bound to a living curse.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "wraithweave_loom_cursed_weave",
+      name: "Cursed Weave",
+      description: "Grand Fusion capstone. Brands the target with a curse, then binds it in cursed rune-thread.",
+      cooldownMs: 9200,
+      vfxId: "vfx.ice_arcane_shadow.ability_cursed_weave",
+      statusKind: "curse",
+      statusMagnitude: 0.4,
+      statusDurationMs: 4000,
+      bonusDamage: 32,
+      damageElement: "arcane",
+    }),
+  ],
+  targeting: "strongest",
+  projectileVfx: "vfx.ice_arcane_shadow.projectile",
+  impactVfx: "vfx.ice_arcane_shadow.impact",
+  idleVfx: "vfx.ice_arcane_shadow.idle",
+  modelId: "tower_ice_arcane_shadow",
+};
+
+const lightningNatureShadowTower: TowerDef = {
+  id: "tower_lightning_nature_shadow",
+  name: "Nightstorm Totem",
+  element: "lightning+nature",
+  isFusion: true,
+  flavorText: "Thornstorm Totem's living storm cloud has curdled under a curse that blots out its light.",
+  tiers: buildTiers(
+    { damage: 22, range: 6.6, fireRateMs: 340, projectileSpeed: 25, critChance: 0.24, critMultiplier: 1.9 },
+    [625, 1290, 2560],
+    [1, 1.22, 1.5],
+    [
+      "A single thorn on the totem sparks violet instead of white.",
+      "Half the storm cloud has curdled black, thorns arcing with cursed current.",
+      "A true nightstorm totem, its whole storm cloud curdled into a curse that arcs without end.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "nightstorm_totem_blightstorm",
+      name: "Blightstorm",
+      description: "Grand Fusion capstone. Brands the target with a curse, then lashes it with a cursed storm-thorn.",
+      cooldownMs: 9200,
+      vfxId: "vfx.lightning_nature_shadow.ability_blightstorm",
+      statusKind: "curse",
+      statusMagnitude: 0.4,
+      statusDurationMs: 4000,
+      bonusDamage: 31,
+      damageElement: "lightning",
+    }),
+  ],
+  targeting: "weakest",
+  projectileVfx: "vfx.lightning_nature_shadow.projectile",
+  impactVfx: "vfx.lightning_nature_shadow.impact",
+  idleVfx: "vfx.lightning_nature_shadow.idle",
+  modelId: "tower_lightning_nature_shadow",
+};
+
+const lightningEarthShadowTower: TowerDef = {
+  id: "tower_lightning_earth_shadow",
+  name: "Wraithquake Coil",
+  element: "lightning+earth",
+  isFusion: true,
+  flavorText: "Seismic Coil's fault-cracked pillar now trembles with a curse buried deep beneath the stone.",
+  tiers: buildTiers(
+    { damage: 30, range: 6, fireRateMs: 800, projectileSpeed: 15, splashRadius: 1.4 },
+    [635, 1310, 2600],
+    [1, 1.22, 1.5],
+    [
+      "A single fault line in the coil's pillar now glows faint violet.",
+      "Half the pillar's cracks run dark, tremor and curse rising together.",
+      "A true wraithquake coil, every tremor it calls down carrying a curse with it.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "wraithquake_coil_cursed_tremor",
+      name: "Cursed Tremor",
+      description: "Grand Fusion capstone. Brands the target with a curse, then shatters the ground beneath it.",
+      cooldownMs: 9200,
+      vfxId: "vfx.lightning_earth_shadow.ability_cursed_tremor",
+      statusKind: "curse",
+      statusMagnitude: 0.4,
+      statusDurationMs: 4000,
+      bonusDamage: 36,
+      damageElement: "earth",
+    }),
+  ],
+  targeting: "strongest",
+  projectileVfx: "vfx.lightning_earth_shadow.projectile",
+  impactVfx: "vfx.lightning_earth_shadow.impact",
+  idleVfx: "vfx.lightning_earth_shadow.idle",
+  modelId: "tower_lightning_earth_shadow",
+};
+
+const lightningArcaneShadowTower: TowerDef = {
+  id: "tower_lightning_arcane_shadow",
+  name: "Hexflux Spire",
+  element: "lightning+arcane",
+  isFusion: true,
+  flavorText: "Arcflux Spire's charged conduit now hums with a hex deeper than its own current.",
+  tiers: buildTiers(
+    { damage: 24, range: 6.9, fireRateMs: 280, projectileSpeed: 28, critChance: 0.28, critMultiplier: 2.2 },
+    [655, 1350, 2670],
+    [1, 1.22, 1.5],
+    [
+      "A single coil on the spire hums violet instead of blue-white.",
+      "Half the conduit now channels a hex alongside its usual current.",
+      "A true hexflux spire, every discharge a hex given form as lightning.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "hexflux_spire_hexcharge",
+      name: "Hexcharge",
+      description: "Grand Fusion capstone. Brands the target with a curse, then overcharges it with hexed current.",
+      cooldownMs: 9200,
+      vfxId: "vfx.lightning_arcane_shadow.ability_hexcharge",
+      statusKind: "curse",
+      statusMagnitude: 0.4,
+      statusDurationMs: 4000,
+      bonusDamage: 33,
+      damageElement: "lightning",
+    }),
+  ],
+  targeting: "closest",
+  projectileVfx: "vfx.lightning_arcane_shadow.projectile",
+  impactVfx: "vfx.lightning_arcane_shadow.impact",
+  idleVfx: "vfx.lightning_arcane_shadow.idle",
+  modelId: "tower_lightning_arcane_shadow",
+};
+
+const natureEarthShadowTower: TowerDef = {
+  id: "tower_nature_earth_shadow",
+  name: "Rootgrave Colossus",
+  element: "nature+earth",
+  isFusion: true,
+  flavorText: "Overgrowth Colossus's moss-bound cracks now seep a curse up from whatever it's rooted in.",
+  tiers: buildTiers(
+    { damage: 27, range: 5.9, fireRateMs: 850, projectileSpeed: 14, splashRadius: 1.5 },
+    [620, 1280, 2540],
+    [1, 1.22, 1.5],
+    [
+      "A single root has cracked through the boulder totem, weeping faint violet sap.",
+      "Half the moss has gone pale and grey, curse-sap running through every crack.",
+      "A true rootgrave colossus, moss and stone and buried curse grown into one being.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "rootgrave_colossus_grave_bloom",
+      name: "Grave Bloom",
+      description: "Grand Fusion capstone. Brands the target with a curse, then roots it in cursed growth.",
+      cooldownMs: 9200,
+      vfxId: "vfx.nature_earth_shadow.ability_grave_bloom",
+      statusKind: "curse",
+      statusMagnitude: 0.4,
+      statusDurationMs: 4000,
+      bonusDamage: 30,
+      damageElement: "nature",
+    }),
+  ],
+  targeting: "strongest",
+  projectileVfx: "vfx.nature_earth_shadow.projectile",
+  impactVfx: "vfx.nature_earth_shadow.impact",
+  idleVfx: "vfx.nature_earth_shadow.idle",
+  modelId: "tower_nature_earth_shadow",
+};
+
+// ---------------------------------------------------------------------------
 // Public registry
 // ---------------------------------------------------------------------------
 
@@ -2678,6 +3167,19 @@ const ALL_TOWERS: TowerDef[] = [
   shadowShadowFireTower,
   earthArcaneShadowTower,
   natureArcaneShadowTower,
+  fireIceShadowTower,
+  fireLightningShadowTower,
+  fireNatureShadowTower,
+  fireEarthShadowTower,
+  fireArcaneShadowTower,
+  iceLightningShadowTower,
+  iceNatureShadowTower,
+  iceEarthShadowTower,
+  iceArcaneShadowTower,
+  lightningNatureShadowTower,
+  lightningEarthShadowTower,
+  lightningArcaneShadowTower,
+  natureEarthShadowTower,
 ];
 
 export const TOWER_REGISTRY: Map<string, TowerDef> = new Map(ALL_TOWERS.map((t) => [t.id, t]));
