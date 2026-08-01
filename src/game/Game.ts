@@ -444,8 +444,15 @@ export class Game {
 
     const [fA, fB] = this.towerElements(fusionTower);
     const thirdElement = baseTower.def.element as Element;
-    if (!fB || thirdElement === fA || thirdElement === fB) return [];
-
+    if (!fB) return [];
+    // No eligibility restriction on the third element at all — path-
+    // agnostic by design: Steamcaller(fire+ice)+fire and Twin Ember(fire+
+    // fire)+ice both represent the same "2 fire + 1 ice" combination and
+    // must both resolve to the same result, regardless of which order the
+    // player assembled it in. Whether a given (parent, third) pairing is
+    // actually a real combination is entirely GrandFusionMatrix.ts's job —
+    // it's the recipe lookup below, not this eligibility check, that gates
+    // validity.
     const recipe = getGrandFusionRecipe(fusionTower.def.id, thirdElement);
     if (!recipe) return [];
     const resultDef = getTowerDef(recipe.resultTowerId);
@@ -686,10 +693,28 @@ export class Game {
     const now = Date.now();
     enemy.statusEffects = enemy.statusEffects.filter((e) => now - e.appliedAt < e.durationMs);
 
+    // Each kind now occupies its own tactical niche instead of a handful of
+    // status names sharing the same handful of mechanics:
+    //  - chill: sustained PARTIAL slow, scales with magnitude — the "always
+    //    somewhat useful" crowd-thinning tool.
+    //  - shock / freeze: full stop (speedMult 0) — shock is the brief
+    //    version (short durations already authored across its abilities),
+    //    freeze the longer capstone-tier version. Same bucket, different
+    //    durations give them a real "quick interrupt" vs "hard lockdown"
+    //    feel without needing separate code paths.
+    //  - root: also a full stop, but GROUND-ONLY — it can't grab something
+    //    that's flying, unlike freeze/shock, so it's the ground-rush
+    //    counter rather than a universal CC.
+    //  - burn: flat, no-frills DOT — fire's identity is raw damage.
+    //  - poison: DOT that also spreads to nearby enemies when the carrier
+    //    dies (see the contagion check in killEnemy/removeEnemy below) —
+    //    nature's identity is crowd control against clustered waves, not
+    //    single-target damage.
     let speedMult = 1;
     for (const effect of enemy.statusEffects) {
-      if (effect.kind === "chill" || effect.kind === "shock") speedMult *= 1 - effect.magnitude;
-      if (effect.kind === "freeze" || effect.kind === "root") speedMult = 0;
+      if (effect.kind === "chill") speedMult *= 1 - effect.magnitude;
+      if (effect.kind === "shock" || effect.kind === "freeze") speedMult = 0;
+      if (effect.kind === "root" && enemy.def.movement !== "flying") speedMult = 0;
       if (effect.kind === "burn" || effect.kind === "poison") {
         enemy.health -= effect.magnitude * dtSeconds;
       }
@@ -701,8 +726,12 @@ export class Game {
    * effect of the same kind rather than stacking duplicates. */
   private applyStatusToEnemy(enemy: EnemyInstance, effect: StatusEffect) {
     if (!this.enemies.includes(enemy)) return;
-    enemy.statusEffects = enemy.statusEffects.filter((e) => e.kind !== effect.kind);
-    enemy.statusEffects.push(effect);
+    const resist = enemy.def.statusResistance ?? 0;
+    const resisted = resist > 0
+      ? { ...effect, magnitude: effect.magnitude * (1 - resist), durationMs: effect.durationMs * (1 - resist) }
+      : effect;
+    enemy.statusEffects = enemy.statusEffects.filter((e) => e.kind !== resisted.kind);
+    enemy.statusEffects.push(resisted);
   }
 
   private tryApplyOnHitProc(enemy: EnemyInstance, tower: TowerInstance, element: Element) {
@@ -736,9 +765,29 @@ export class Game {
   }
 
   private killEnemy(enemy: EnemyInstance) {
+    this.spreadPoisonOnDeath(enemy);
     this.economy.earn(Math.round(enemy.def.bounty * BOUNTY_MULTIPLIER));
     this.removeEnemy(enemy);
     this.audio.combat.enemyDeath(enemy.def.isBoss ?? false);
+  }
+
+  /** Poison's real identity: a dying poisoned enemy pops its infection onto
+   * anything else still standing nearby, carrying the same magnitude/
+   * duration forward. Against a clustered wave this chains — kill one,
+   * infect its neighbors, they die and infect theirs — turning a single
+   * poison application into sustained area control instead of a one-off
+   * DOT, which is what actually separates poison from burn's flat damage. */
+  private spreadPoisonOnDeath(enemy: EnemyInstance) {
+    const poison = enemy.statusEffects.find((e) => e.kind === "poison");
+    if (!poison) return;
+    const radius = 1.8;
+    for (const other of this.enemies) {
+      if (other === enemy || other.health <= 0) continue;
+      const d = Math.hypot(other.worldX - enemy.worldX, other.worldY - enemy.worldY);
+      if (d > radius) continue;
+      this.applyStatusToEnemy(other, { ...poison, appliedAt: Date.now() });
+      this.vfx.emitVfx("vfx.nature.poison_spread", [other.worldX, 0, other.worldY], "poison");
+    }
   }
 
   /**
@@ -835,6 +884,24 @@ export class Game {
     return idTail.split("_").length >= 3 ? "grand" : "fusion";
   }
 
+  /** Picks the status kind shown as a small motif on the tower's bullets —
+   * the highest-tier ability unlocked at the tower's current tier that
+   * actually carries a statusKind, so the accent always reflects an effect
+   * the tower can presently land (not a capstone ability still locked). */
+  private primaryStatusAccent(tower: TowerInstance): StatusEffectKind | null {
+    let picked: StatusEffectKind | null = null;
+    let pickedTier = -1;
+    for (const ability of tower.def.abilities) {
+      const minTier = ability.minTier ?? 1;
+      if (tower.tier < minTier || !ability.statusKind) continue;
+      if (minTier >= pickedTier) {
+        picked = ability.statusKind;
+        pickedTier = minTier;
+      }
+    }
+    return picked;
+  }
+
   private fireProjectile(tower: TowerInstance, target: EnemyInstance) {
     const [elA, elB] = this.towerElements(tower);
     tower.altShot = !tower.altShot;
@@ -851,6 +918,7 @@ export class Game {
       elementB: otherElement,
       tier: tower.tier,
       category: this.towerCategory(tower),
+      statusAccent: this.primaryStatusAccent(tower),
       onArrive: (pos) => this.resolveHit(tower, target, pos, stats.damage, stats.splashRadius, stats.critChance, stats.critMultiplier),
     });
     this.playThrottled(`launch:${element}`, 80, () => this.audio.combat.projectileFire(element));
@@ -866,16 +934,17 @@ export class Game {
     critMultiplier: number | undefined,
   ) {
     const [elA, elB] = this.towerElements(tower);
+    let isCrit = false;
 
     if (this.enemies.includes(target)) {
-      this.applyDamage(target, baseDamage, elA, critChance, critMultiplier);
+      isCrit = this.applyDamage(target, baseDamage, elA, critChance, critMultiplier);
       this.tryApplyOnHitProc(target, tower, elA);
     }
 
     if (elB) {
-      this.vfx.impactsApi.triggerFusion(elA, elB, pos);
+      this.vfx.impactsApi.triggerFusion(elA, elB, pos, isCrit);
     } else {
-      this.vfx.impactsApi.trigger(elA, pos);
+      this.vfx.impactsApi.trigger(elA, pos, isCrit);
     }
     this.playThrottled(`impact:${elA}`, 60, () => this.audio.combat.impact(elA, pos));
 
@@ -884,6 +953,7 @@ export class Game {
         if (enemy === target) continue;
         if (Math.hypot(enemy.worldX - pos[0], enemy.worldY - pos[2]) <= splashRadius) {
           this.applyDamage(enemy, baseDamage * 0.6, elA, critChance, critMultiplier);
+          this.vfx.impactsApi.triggerSplash(elA, [enemy.worldX, 0, enemy.worldY]);
         }
       }
     }
@@ -896,13 +966,25 @@ export class Game {
     critChance?: number,
     critMultiplier?: number,
   ) {
-    const mult = enemy.def.resistances[element] ?? enemy.def.weaknesses[element] ?? 1;
+    const rawMult = enemy.def.resistances[element] ?? enemy.def.weaknesses[element] ?? 1;
+    // Silence's real identity: it strips the enemy's innate elemental
+    // RESISTANCE while active (rawMult < 1 becomes 1, full damage gets
+    // through) but doesn't touch an exploited WEAKNESS bonus (rawMult > 1
+    // stays as-is) — "suppressing defenses" makes sense, silencing away a
+    // weakness the player is already benefiting from wouldn't. This gives
+    // arcane's signature status a real answer to the specialized-resistance
+    // enemies later waves lean on, distinct from sunder (armor) and curse
+    // (a flat damage-taken multiplier stacking on top of both).
+    const silenced = enemy.statusEffects.some((e) => e.kind === "silence");
+    const mult = silenced && rawMult < 1 ? 1 : rawMult;
     let dmg = baseDamage * mult;
-    if (critChance && critMultiplier && Math.random() < critChance) dmg *= critMultiplier;
+    const isCrit = !!(critChance && critMultiplier && Math.random() < critChance);
+    if (isCrit) dmg *= critMultiplier!;
     const armor = this.effectiveArmor(enemy);
     dmg *= 100 / (100 + armor);
     dmg *= this.effectiveCurseMultiplier(enemy);
     enemy.health -= dmg;
+    return isCrit;
   }
 
   private triggerAbility(tower: TowerInstance, ability: TowerAbility, target: EnemyInstance) {
@@ -1210,6 +1292,23 @@ export class Game {
     ctx.fillRect(cx - w / 2, topY, w, h);
     ctx.fillStyle = enemy.def.isBoss ? "#ffb14d" : "#4dff88";
     ctx.fillRect(cx - w / 2, topY, w * frac, h);
+    // Passive-trait badge: a small warded-diamond to the right of the bar
+    // for any enemy with `statusResistance` — a persistent tell (unlike
+    // drawStatusIcons below, which only shows effects currently landed) so
+    // players learn "CC barely works here" before wasting a whole rotation
+    // finding out the slow expired in half the time they expected.
+    if (enemy.def.statusResistance) {
+      const bx = cx + w / 2 + 5;
+      const by = topY + h / 2;
+      ctx.fillStyle = "#e8d9ff";
+      ctx.beginPath();
+      ctx.moveTo(bx, by - 3.2);
+      ctx.lineTo(bx + 3.2, by);
+      ctx.lineTo(bx, by + 3.2);
+      ctx.lineTo(bx - 3.2, by);
+      ctx.closePath();
+      ctx.fill();
+    }
   }
 
   private static readonly STATUS_COLOR: Partial<Record<StatusEffectKind, string>> = {

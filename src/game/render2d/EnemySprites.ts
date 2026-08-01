@@ -34,6 +34,7 @@ const VISUALS: Record<string, EnemyVisual> = {
   sandveil: { body: "#d4b877", bodyDark: "#8a7043", accent: "#f0dca8", eye: "#3a2e14" },
   wraithguard: { body: "#5c4a7a", bodyDark: "#2c1f42", accent: "#b08fff", eye: "#e8d4ff" },
   runeshell: { body: "#8a8a99", bodyDark: "#45455c", accent: "#7affe0", eye: "#1a1a26" },
+  wardbound: { body: "#6b6478", bodyDark: "#332e42", accent: "#e8d9ff", eye: "#fff2a0" },
   cindercolossus: { body: "#e8451f", bodyDark: "#5c1505", accent: "#ffd24d", eye: "#fff2c4" },
   hollowglacier: { body: "#bfe8ff", bodyDark: "#3f7a9c", accent: "#ffffff", eye: "#0a2d45" },
   stormsovereign: { body: "#7a4ab0", bodyDark: "#301357", accent: "#e2c2ff", eye: "#f5e642" },
@@ -534,6 +535,37 @@ function drawRuneshell(pc: PixelCanvas, size: number, frame: 0 | 1, v: EnemyVisu
   walkLegs(pc, cx, headCy + size * 0.09, size * ENEMY_GROUND_FRAC, size * 0.17, size * 0.12, t, frame);
 }
 
+/** Squat, low-slung stone brute wrapped in an orbiting ring of ward-glyphs —
+ * the "resists status magic" tell reads as an *active barrier* (glyphs
+ * drift around it every frame) rather than Runeshell's static shell-mounted
+ * runes, so the two warded enemies don't parse as reskins of each other. */
+function drawWardbound(pc: PixelCanvas, size: number, frame: 0 | 1, v: EnemyVisual) {
+  const t = makeTones(v);
+  const cx = size / 2;
+  const bob = frame === 1 ? 1 : 0;
+  const bodyCy = size * 0.52 + bob;
+  // wide, low torso — built to endure, not to move
+  shadedEllipse(pc, cx, bodyCy, size * 0.31, size * 0.23, t);
+  for (const s of [-1, 0, 1]) {
+    line(pc, cx + s * size * 0.13, bodyCy - size * 0.18, cx + s * size * 0.13, bodyCy + size * 0.18, t.deep, 1);
+  }
+  const headCy = size * 0.27 + bob;
+  shadedCircle(pc, cx, headCy, size * 0.14, t);
+  pc.rect(cx - size * 0.09, headCy - 1, size * 0.18, 2, v.eye);
+  // orbiting ward-glyph ring — three glyphs drifting around the body,
+  // swapped positions between frames so they visibly circle it
+  const orbitRx = size * 0.44;
+  const orbitRy = size * 0.14;
+  const spin = frame === 1 ? Math.PI / 3 : 0;
+  for (let i = 0; i < 3; i++) {
+    const ang = (i / 3) * Math.PI * 2 + spin;
+    const gx = cx + Math.cos(ang) * orbitRx;
+    const gy = bodyCy + Math.sin(ang) * orbitRy;
+    pc.rect(gx - 0.5, gy - 0.5, 2, 2, v.accent);
+  }
+  walkLegs(pc, cx, bodyCy + size * 0.2, size * ENEMY_GROUND_FRAC, size * 0.17, size * 0.13, t, frame);
+}
+
 // --- Bosses: bigger, structurally elaborate, more spikes/layers/plates. ---
 
 function drawCindercolossus(pc: PixelCanvas, size: number, frame: 0 | 1, v: EnemyVisual) {
@@ -673,6 +705,7 @@ const DRAWERS: Record<string, Drawer> = {
   sandveil: drawSandveil,
   wraithguard: drawWraithguard,
   runeshell: drawRuneshell,
+  wardbound: drawWardbound,
   cindercolossus: drawCindercolossus,
   hollowglacier: drawHollowglacier,
   stormsovereign: drawStormsovereign,

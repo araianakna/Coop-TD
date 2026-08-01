@@ -273,6 +273,285 @@ export const GRAND_FUSION_RECIPES: GrandFusionRecipe[] = [
     thirdElement: "arcane",
     resultTowerId: "tower_shadow_shadow_arcane",
   },
+
+  // Triple-same-element completion (XXX) — a Twin/duplicate parent merged
+  // with a THIRD copy of the same element again, rather than a distinct
+  // third element. This category was missed in the original "full
+  // completion" pass: Game.ts's eligibility check rejected any third
+  // element matching either of the parent's two elements, which is correct
+  // for a distinct-pair parent (Steamcaller + fire makes no sense) but was
+  // also wrongly blocking a duplicate parent from taking one more of its
+  // own element (Twin Ember + fire *does* make sense — a pure, maximally
+  // specialized capstone). One per element, 7 total; completes every
+  // fusion combination the game's 2-tier merge system can produce.
+  { parentFusionTowerId: "tower_fire_fire", thirdElement: "fire", resultTowerId: "tower_fire_fire_fire" },
+  { parentFusionTowerId: "tower_ice_ice", thirdElement: "ice", resultTowerId: "tower_ice_ice_ice" },
+  {
+    parentFusionTowerId: "tower_lightning_lightning",
+    thirdElement: "lightning",
+    resultTowerId: "tower_lightning_lightning_lightning",
+  },
+  {
+    parentFusionTowerId: "tower_nature_nature",
+    thirdElement: "nature",
+    resultTowerId: "tower_nature_nature_nature",
+  },
+  { parentFusionTowerId: "tower_earth_earth", thirdElement: "earth", resultTowerId: "tower_earth_earth_earth" },
+  {
+    parentFusionTowerId: "tower_arcane_arcane",
+    thirdElement: "arcane",
+    resultTowerId: "tower_arcane_arcane_arcane",
+  },
+  {
+    parentFusionTowerId: "tower_shadow_shadow",
+    thirdElement: "shadow",
+    resultTowerId: "tower_shadow_shadow_shadow",
+  },
+
+  // Alternate-path completion — path-agnostic combining. Every duplicate-
+  // parent triad above (e.g. fire+fire+ice, reached via Twin Ember + ice)
+  // represents the same element MULTISET reachable from the other
+  // direction too: the distinct-pair fusion of those two elements (e.g.
+  // Steamcaller = fire+ice) plus one more of either element it already
+  // contains. Without these entries, only ONE of the two assembly orders
+  // worked for a given combination, which reads as an arbitrary
+  // restriction to a player who happens to try the other order first. Each
+  // entry here points to the SAME already-existing result tower as its
+  // "other path" equivalent above — no new towers, just making every valid
+  // combination reachable regardless of assembly order.
+  { parentFusionTowerId: "tower_fire_ice", thirdElement: "fire", resultTowerId: "tower_fire_fire_ice" },
+  { parentFusionTowerId: "tower_fire_ice", thirdElement: "ice", resultTowerId: "tower_ice_ice_fire" },
+  { parentFusionTowerId: "tower_fire_lightning", thirdElement: "fire", resultTowerId: "tower_fire_fire_lightning" },
+  {
+    parentFusionTowerId: "tower_fire_lightning",
+    thirdElement: "lightning",
+    resultTowerId: "tower_lightning_lightning_fire",
+  },
+  { parentFusionTowerId: "tower_fire_nature", thirdElement: "fire", resultTowerId: "tower_fire_fire_nature" },
+  { parentFusionTowerId: "tower_fire_nature", thirdElement: "nature", resultTowerId: "tower_nature_nature_fire" },
+  { parentFusionTowerId: "tower_fire_earth", thirdElement: "fire", resultTowerId: "tower_fire_fire_earth" },
+  { parentFusionTowerId: "tower_fire_earth", thirdElement: "earth", resultTowerId: "tower_earth_earth_fire" },
+  { parentFusionTowerId: "tower_fire_arcane", thirdElement: "fire", resultTowerId: "tower_fire_fire_arcane" },
+  { parentFusionTowerId: "tower_fire_arcane", thirdElement: "arcane", resultTowerId: "tower_arcane_arcane_fire" },
+  { parentFusionTowerId: "tower_fire_shadow", thirdElement: "fire", resultTowerId: "tower_fire_fire_shadow" },
+  { parentFusionTowerId: "tower_fire_shadow", thirdElement: "shadow", resultTowerId: "tower_shadow_shadow_fire" },
+  { parentFusionTowerId: "tower_ice_lightning", thirdElement: "ice", resultTowerId: "tower_ice_ice_lightning" },
+  {
+    parentFusionTowerId: "tower_ice_lightning",
+    thirdElement: "lightning",
+    resultTowerId: "tower_lightning_lightning_ice",
+  },
+  { parentFusionTowerId: "tower_ice_nature", thirdElement: "ice", resultTowerId: "tower_ice_ice_nature" },
+  { parentFusionTowerId: "tower_ice_nature", thirdElement: "nature", resultTowerId: "tower_nature_nature_ice" },
+  { parentFusionTowerId: "tower_ice_earth", thirdElement: "ice", resultTowerId: "tower_ice_ice_earth" },
+  { parentFusionTowerId: "tower_ice_earth", thirdElement: "earth", resultTowerId: "tower_earth_earth_ice" },
+  { parentFusionTowerId: "tower_ice_arcane", thirdElement: "ice", resultTowerId: "tower_ice_ice_arcane" },
+  { parentFusionTowerId: "tower_ice_arcane", thirdElement: "arcane", resultTowerId: "tower_arcane_arcane_ice" },
+  { parentFusionTowerId: "tower_ice_shadow", thirdElement: "ice", resultTowerId: "tower_ice_ice_shadow" },
+  { parentFusionTowerId: "tower_ice_shadow", thirdElement: "shadow", resultTowerId: "tower_shadow_shadow_ice" },
+  {
+    parentFusionTowerId: "tower_lightning_nature",
+    thirdElement: "lightning",
+    resultTowerId: "tower_lightning_lightning_nature",
+  },
+  {
+    parentFusionTowerId: "tower_lightning_nature",
+    thirdElement: "nature",
+    resultTowerId: "tower_nature_nature_lightning",
+  },
+  {
+    parentFusionTowerId: "tower_lightning_earth",
+    thirdElement: "lightning",
+    resultTowerId: "tower_lightning_lightning_earth",
+  },
+  {
+    parentFusionTowerId: "tower_lightning_earth",
+    thirdElement: "earth",
+    resultTowerId: "tower_earth_earth_lightning",
+  },
+  {
+    parentFusionTowerId: "tower_lightning_arcane",
+    thirdElement: "lightning",
+    resultTowerId: "tower_lightning_lightning_arcane",
+  },
+  {
+    parentFusionTowerId: "tower_lightning_arcane",
+    thirdElement: "arcane",
+    resultTowerId: "tower_arcane_arcane_lightning",
+  },
+  {
+    parentFusionTowerId: "tower_lightning_shadow",
+    thirdElement: "lightning",
+    resultTowerId: "tower_lightning_lightning_shadow",
+  },
+  {
+    parentFusionTowerId: "tower_lightning_shadow",
+    thirdElement: "shadow",
+    resultTowerId: "tower_shadow_shadow_lightning",
+  },
+  { parentFusionTowerId: "tower_nature_earth", thirdElement: "nature", resultTowerId: "tower_nature_nature_earth" },
+  { parentFusionTowerId: "tower_nature_earth", thirdElement: "earth", resultTowerId: "tower_earth_earth_nature" },
+  {
+    parentFusionTowerId: "tower_nature_arcane",
+    thirdElement: "nature",
+    resultTowerId: "tower_nature_nature_arcane",
+  },
+  {
+    parentFusionTowerId: "tower_nature_arcane",
+    thirdElement: "arcane",
+    resultTowerId: "tower_arcane_arcane_nature",
+  },
+  {
+    parentFusionTowerId: "tower_nature_shadow",
+    thirdElement: "nature",
+    resultTowerId: "tower_nature_nature_shadow",
+  },
+  {
+    parentFusionTowerId: "tower_nature_shadow",
+    thirdElement: "shadow",
+    resultTowerId: "tower_shadow_shadow_nature",
+  },
+  { parentFusionTowerId: "tower_earth_arcane", thirdElement: "earth", resultTowerId: "tower_earth_earth_arcane" },
+  { parentFusionTowerId: "tower_earth_arcane", thirdElement: "arcane", resultTowerId: "tower_arcane_arcane_earth" },
+  { parentFusionTowerId: "tower_earth_shadow", thirdElement: "earth", resultTowerId: "tower_earth_earth_shadow" },
+  { parentFusionTowerId: "tower_earth_shadow", thirdElement: "shadow", resultTowerId: "tower_shadow_shadow_earth" },
+  {
+    parentFusionTowerId: "tower_arcane_shadow",
+    thirdElement: "arcane",
+    resultTowerId: "tower_arcane_arcane_shadow",
+  },
+  {
+    parentFusionTowerId: "tower_arcane_shadow",
+    thirdElement: "shadow",
+    resultTowerId: "tower_shadow_shadow_arcane",
+  },
+
+  // Alternate-path completion for the 35 distinct-element triads —
+  // path-agnostic combining applies here too: e.g. Tempest Core
+  // (fire+ice+lightning) should be reachable whichever of the three
+  // sub-pairs the player fuses first (fire+ice then +lightning, fire+
+  // lightning then +ice, or ice+lightning then +fire), not just the one
+  // path originally curated. Each triad above had exactly one of its three
+  // possible parent-pair choices wired; these are the other two for each,
+  // all pointing at the same already-existing result tower.
+{ parentFusionTowerId: "tower_fire_lightning", thirdElement: "ice", resultTowerId: "tower_fire_ice_lightning" },
+{ parentFusionTowerId: "tower_ice_lightning", thirdElement: "fire", resultTowerId: "tower_fire_ice_lightning" },
+{ parentFusionTowerId: "tower_fire_nature", thirdElement: "earth", resultTowerId: "tower_fire_nature_earth" },
+{ parentFusionTowerId: "tower_nature_earth", thirdElement: "fire", resultTowerId: "tower_fire_nature_earth" },
+{ parentFusionTowerId: "tower_ice_arcane", thirdElement: "nature", resultTowerId: "tower_ice_nature_arcane" },
+{ parentFusionTowerId: "tower_nature_arcane", thirdElement: "ice", resultTowerId: "tower_ice_nature_arcane" },
+  {
+    parentFusionTowerId: "tower_lightning_earth",
+    thirdElement: "arcane",
+    resultTowerId: "tower_lightning_earth_arcane",
+  },
+  {
+    parentFusionTowerId: "tower_lightning_arcane",
+    thirdElement: "earth",
+    resultTowerId: "tower_lightning_earth_arcane",
+  },
+{ parentFusionTowerId: "tower_fire_arcane", thirdElement: "lightning", resultTowerId: "tower_fire_lightning_arcane" },
+{ parentFusionTowerId: "tower_lightning_arcane", thirdElement: "fire", resultTowerId: "tower_fire_lightning_arcane" },
+{ parentFusionTowerId: "tower_ice_nature", thirdElement: "earth", resultTowerId: "tower_ice_nature_earth" },
+{ parentFusionTowerId: "tower_nature_earth", thirdElement: "ice", resultTowerId: "tower_ice_nature_earth" },
+{ parentFusionTowerId: "tower_fire_nature", thirdElement: "ice", resultTowerId: "tower_fire_ice_nature" },
+{ parentFusionTowerId: "tower_ice_nature", thirdElement: "fire", resultTowerId: "tower_fire_ice_nature" },
+{ parentFusionTowerId: "tower_ice_arcane", thirdElement: "lightning", resultTowerId: "tower_ice_lightning_arcane" },
+{ parentFusionTowerId: "tower_lightning_arcane", thirdElement: "ice", resultTowerId: "tower_ice_lightning_arcane" },
+{ parentFusionTowerId: "tower_fire_lightning", thirdElement: "earth", resultTowerId: "tower_fire_lightning_earth" },
+{ parentFusionTowerId: "tower_fire_earth", thirdElement: "lightning", resultTowerId: "tower_fire_lightning_earth" },
+{ parentFusionTowerId: "tower_nature_arcane", thirdElement: "earth", resultTowerId: "tower_nature_earth_arcane" },
+{ parentFusionTowerId: "tower_earth_arcane", thirdElement: "nature", resultTowerId: "tower_nature_earth_arcane" },
+  {
+    parentFusionTowerId: "tower_lightning_earth",
+    thirdElement: "nature",
+    resultTowerId: "tower_lightning_nature_earth",
+  },
+  {
+    parentFusionTowerId: "tower_nature_earth",
+    thirdElement: "lightning",
+    resultTowerId: "tower_lightning_nature_earth",
+  },
+{ parentFusionTowerId: "tower_fire_nature", thirdElement: "arcane", resultTowerId: "tower_fire_nature_arcane" },
+{ parentFusionTowerId: "tower_nature_arcane", thirdElement: "fire", resultTowerId: "tower_fire_nature_arcane" },
+{ parentFusionTowerId: "tower_fire_ice", thirdElement: "earth", resultTowerId: "tower_fire_ice_earth" },
+{ parentFusionTowerId: "tower_fire_earth", thirdElement: "ice", resultTowerId: "tower_fire_ice_earth" },
+{ parentFusionTowerId: "tower_fire_ice", thirdElement: "arcane", resultTowerId: "tower_fire_ice_arcane" },
+{ parentFusionTowerId: "tower_fire_arcane", thirdElement: "ice", resultTowerId: "tower_fire_ice_arcane" },
+{ parentFusionTowerId: "tower_fire_lightning", thirdElement: "nature", resultTowerId: "tower_fire_lightning_nature" },
+{ parentFusionTowerId: "tower_lightning_nature", thirdElement: "fire", resultTowerId: "tower_fire_lightning_nature" },
+{ parentFusionTowerId: "tower_fire_arcane", thirdElement: "earth", resultTowerId: "tower_fire_earth_arcane" },
+{ parentFusionTowerId: "tower_earth_arcane", thirdElement: "fire", resultTowerId: "tower_fire_earth_arcane" },
+{ parentFusionTowerId: "tower_ice_lightning", thirdElement: "nature", resultTowerId: "tower_ice_lightning_nature" },
+{ parentFusionTowerId: "tower_ice_nature", thirdElement: "lightning", resultTowerId: "tower_ice_lightning_nature" },
+{ parentFusionTowerId: "tower_ice_lightning", thirdElement: "earth", resultTowerId: "tower_ice_lightning_earth" },
+{ parentFusionTowerId: "tower_ice_earth", thirdElement: "lightning", resultTowerId: "tower_ice_lightning_earth" },
+{ parentFusionTowerId: "tower_ice_earth", thirdElement: "arcane", resultTowerId: "tower_ice_earth_arcane" },
+{ parentFusionTowerId: "tower_ice_arcane", thirdElement: "earth", resultTowerId: "tower_ice_earth_arcane" },
+  {
+    parentFusionTowerId: "tower_lightning_nature",
+    thirdElement: "arcane",
+    resultTowerId: "tower_lightning_nature_arcane",
+  },
+  {
+    parentFusionTowerId: "tower_nature_arcane",
+    thirdElement: "lightning",
+    resultTowerId: "tower_lightning_nature_arcane",
+  },
+{ parentFusionTowerId: "tower_earth_arcane", thirdElement: "shadow", resultTowerId: "tower_earth_arcane_shadow" },
+{ parentFusionTowerId: "tower_arcane_shadow", thirdElement: "earth", resultTowerId: "tower_earth_arcane_shadow" },
+{ parentFusionTowerId: "tower_nature_shadow", thirdElement: "arcane", resultTowerId: "tower_nature_arcane_shadow" },
+{ parentFusionTowerId: "tower_arcane_shadow", thirdElement: "nature", resultTowerId: "tower_nature_arcane_shadow" },
+{ parentFusionTowerId: "tower_fire_shadow", thirdElement: "ice", resultTowerId: "tower_fire_ice_shadow" },
+{ parentFusionTowerId: "tower_ice_shadow", thirdElement: "fire", resultTowerId: "tower_fire_ice_shadow" },
+{ parentFusionTowerId: "tower_fire_shadow", thirdElement: "lightning", resultTowerId: "tower_fire_lightning_shadow" },
+{ parentFusionTowerId: "tower_lightning_shadow", thirdElement: "fire", resultTowerId: "tower_fire_lightning_shadow" },
+{ parentFusionTowerId: "tower_fire_shadow", thirdElement: "nature", resultTowerId: "tower_fire_nature_shadow" },
+{ parentFusionTowerId: "tower_nature_shadow", thirdElement: "fire", resultTowerId: "tower_fire_nature_shadow" },
+{ parentFusionTowerId: "tower_fire_shadow", thirdElement: "earth", resultTowerId: "tower_fire_earth_shadow" },
+{ parentFusionTowerId: "tower_earth_shadow", thirdElement: "fire", resultTowerId: "tower_fire_earth_shadow" },
+{ parentFusionTowerId: "tower_fire_shadow", thirdElement: "arcane", resultTowerId: "tower_fire_arcane_shadow" },
+{ parentFusionTowerId: "tower_arcane_shadow", thirdElement: "fire", resultTowerId: "tower_fire_arcane_shadow" },
+{ parentFusionTowerId: "tower_ice_shadow", thirdElement: "lightning", resultTowerId: "tower_ice_lightning_shadow" },
+{ parentFusionTowerId: "tower_lightning_shadow", thirdElement: "ice", resultTowerId: "tower_ice_lightning_shadow" },
+{ parentFusionTowerId: "tower_ice_shadow", thirdElement: "nature", resultTowerId: "tower_ice_nature_shadow" },
+{ parentFusionTowerId: "tower_nature_shadow", thirdElement: "ice", resultTowerId: "tower_ice_nature_shadow" },
+{ parentFusionTowerId: "tower_ice_shadow", thirdElement: "earth", resultTowerId: "tower_ice_earth_shadow" },
+{ parentFusionTowerId: "tower_earth_shadow", thirdElement: "ice", resultTowerId: "tower_ice_earth_shadow" },
+{ parentFusionTowerId: "tower_ice_shadow", thirdElement: "arcane", resultTowerId: "tower_ice_arcane_shadow" },
+{ parentFusionTowerId: "tower_arcane_shadow", thirdElement: "ice", resultTowerId: "tower_ice_arcane_shadow" },
+  {
+    parentFusionTowerId: "tower_lightning_shadow",
+    thirdElement: "nature",
+    resultTowerId: "tower_lightning_nature_shadow",
+  },
+  {
+    parentFusionTowerId: "tower_nature_shadow",
+    thirdElement: "lightning",
+    resultTowerId: "tower_lightning_nature_shadow",
+  },
+  {
+    parentFusionTowerId: "tower_lightning_shadow",
+    thirdElement: "earth",
+    resultTowerId: "tower_lightning_earth_shadow",
+  },
+  {
+    parentFusionTowerId: "tower_earth_shadow",
+    thirdElement: "lightning",
+    resultTowerId: "tower_lightning_earth_shadow",
+  },
+  {
+    parentFusionTowerId: "tower_lightning_shadow",
+    thirdElement: "arcane",
+    resultTowerId: "tower_lightning_arcane_shadow",
+  },
+  {
+    parentFusionTowerId: "tower_arcane_shadow",
+    thirdElement: "lightning",
+    resultTowerId: "tower_lightning_arcane_shadow",
+  },
+{ parentFusionTowerId: "tower_nature_shadow", thirdElement: "earth", resultTowerId: "tower_nature_earth_shadow" },
+{ parentFusionTowerId: "tower_earth_shadow", thirdElement: "nature", resultTowerId: "tower_nature_earth_shadow" },
 ];
 
 function recipeKey(parentFusionTowerId: string, thirdElement: Element): string {

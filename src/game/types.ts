@@ -61,6 +61,11 @@ export interface TowerAbility {
   description: string;
   cooldownMs: number;
   onTrigger: (ctx: TowerAbilityContext) => void;
+  /** The status this ability applies, when it applies one — exposed here (in
+   * addition to being closed over inside `onTrigger`) so systems outside
+   * combat resolution, like the bullet "status accent" visuals, can read
+   * what an ability does without simulating a trigger. */
+  statusKind?: StatusEffectKind;
   /**
    * Minimum tower tier at which this ability is active/triggerable.
    * Omitted (undefined) means "available from tier 1" — every ability that
@@ -134,6 +139,14 @@ export interface EnemyDef {
   bounty: number;
   modelId: string;
   isBoss?: boolean;
+  /** Multiplies incoming status-effect magnitude AND duration, e.g. 0.6
+   * means every burn/chill/root/curse/etc. this enemy takes lands at 40%
+   * strength and expires 40% sooner. Omitted (undefined) means no
+   * resistance — every enemy defined before this field existed is
+   * unaffected. Elemental resistances already cover "hits for less
+   * damage"; this covers the orthogonal case of "your crowd control
+   * barely works here", which nothing in the roster tested for before. */
+  statusResistance?: number;
 }
 
 export interface WaveSpawnEntry {
