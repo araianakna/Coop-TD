@@ -47,6 +47,8 @@ export interface FusionCandidatePair {
   cost?: number;
   /** Set false (e.g. insufficient gold) to show the pair but disable confirm. */
   affordable?: boolean;
+  /** When affordable is false, how much more gold is needed — shown so the lock isn't a mystery. */
+  goldShortfall?: number;
 }
 
 export interface CreateFusionPanelOptions {
@@ -118,6 +120,10 @@ export function createFusionPanel(opts: CreateFusionPanelOptions): FusionPanelAp
   function updateConfirmState() {
     const pair = currentPairs.find((p) => p.id === selectedPairId);
     confirmBtn.disabled = !pair || pair.affordable === false;
+    confirmBtn.textContent =
+      pair && pair.affordable === false && pair.goldShortfall != null
+        ? `Need ${pair.goldShortfall}g More`
+        : "Confirm Fusion";
   }
 
   function buildPairCard(pair: FusionCandidatePair): HTMLElement {
@@ -169,6 +175,13 @@ export function createFusionPanel(opts: CreateFusionPanelOptions): FusionPanelAp
     }
 
     card.append(inputs, arrow, result);
+
+    if (pair.affordable === false && pair.goldShortfall != null) {
+      const shortfall = document.createElement("div");
+      shortfall.className = "rw-fusion-shortfall";
+      shortfall.textContent = `Need ${pair.goldShortfall}g more gold`;
+      card.appendChild(shortfall);
+    }
 
     const select = () => {
       selectedPairId = pair.id;

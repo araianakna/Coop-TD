@@ -399,6 +399,7 @@ export class Game {
       if (!resultDef) return [];
 
       const cost = Math.round(resultDef.tiers[0].cost * FUSION_COST_FACTOR);
+      const affordable = this.economy.canAfford(cost);
       return [
         {
           id: recipe.resultTowerId,
@@ -408,7 +409,8 @@ export class Game {
           resultElementPair: resultDef.element as FusionElementPair,
           flavorText: resultDef.flavorText,
           cost,
-          affordable: this.economy.canAfford(cost),
+          affordable,
+          goldShortfall: affordable ? undefined : cost - this.economy.gold,
         },
       ];
     }
@@ -428,6 +430,7 @@ export class Game {
     if (!resultDef) return [];
 
     const cost = Math.round(resultDef.tiers[0].cost * FUSION_COST_FACTOR);
+    const affordable = this.economy.canAfford(cost);
     return [
       {
         id: recipe.resultTowerId,
@@ -437,7 +440,8 @@ export class Game {
         resultElementPair: resultDef.element as FusionElementPair,
         flavorText: resultDef.flavorText,
         cost,
-        affordable: this.economy.canAfford(cost),
+        affordable,
+        goldShortfall: affordable ? undefined : cost - this.economy.gold,
       },
     ];
   }
