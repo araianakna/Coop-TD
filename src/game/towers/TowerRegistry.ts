@@ -4541,6 +4541,272 @@ const shadowShadowArcaneTower: TowerDef = {
 };
 
 // ---------------------------------------------------------------------------
+// Triple-same-element (XXX) capstones — a Twin/duplicate parent merged with
+// a THIRD copy of its own element, rather than a distinct third element.
+// The purest, most specialized tier possible: no cross-element flavor, just
+// one element pushed to its absolute limit. One per element (7 total).
+// ---------------------------------------------------------------------------
+
+const fireFireFireTower: TowerDef = {
+  id: "tower_fire_fire_fire",
+  name: "Inferno Apex",
+  element: "fire+fire",
+  isFusion: true,
+  flavorText: "Twin Ember's doubled blaze has been fed a third flame until fire is the only thing left of it.",
+  tiers: buildTiers(
+    { damage: 52, range: 6.3, fireRateMs: 460, projectileSpeed: 22, splashRadius: 2 },
+    [670, 1380, 2730],
+    [1, 1.22, 1.5],
+    [
+      "A third flame has been driven into the cairn, all restraint burned away.",
+      "The cairn no longer resembles stone at all — a standing column of pure fire.",
+      "A true inferno apex, three flames' worth of fire compressed into one unbroken pillar.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "inferno_apex_apex_ignite",
+      name: "Apex Ignite",
+      description: "Grand Fusion capstone. Sets the target ablaze with the fiercest burn fire alone can produce.",
+      cooldownMs: 9200,
+      vfxId: "vfx.fire_fire_fire.ability_apex_ignite",
+      statusKind: "burn",
+      statusMagnitude: 18,
+      statusDurationMs: 4200,
+      bonusDamage: 46,
+      damageElement: "fire",
+    }),
+  ],
+  targeting: "strongest",
+  projectileVfx: "vfx.fire_fire_fire.projectile",
+  impactVfx: "vfx.fire_fire_fire.impact",
+  idleVfx: "vfx.fire_fire_fire.idle",
+  modelId: "tower_fire_fire_fire",
+};
+
+const iceIceIceTower: TowerDef = {
+  id: "tower_ice_ice_ice",
+  name: "Absolute Zero Spire",
+  element: "ice+ice",
+  isFusion: true,
+  flavorText: "Twin Frost's fused lattice has taken a third crystal into itself, cold enough to stop motion outright.",
+  tiers: buildTiers(
+    { damage: 38, range: 6.9, fireRateMs: 500, projectileSpeed: 20 },
+    [660, 1360, 2690],
+    [1, 1.22, 1.5],
+    [
+      "A third crystal has fused into the lattice, frost spreading visibly outward.",
+      "The lattice has grown so cold the air itself glitters around it.",
+      "A true absolute zero spire, three crystals' worth of cold locked into one unbroken lattice.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "absolute_zero_spire_absolute_chill",
+      name: "Absolute Chill",
+      description: "Grand Fusion capstone. Chills the target with the deepest cold ice alone can produce, nearly freezing it in place.",
+      cooldownMs: 9200,
+      vfxId: "vfx.ice_ice_ice.ability_absolute_chill",
+      statusKind: "chill",
+      statusMagnitude: 0.75,
+      statusDurationMs: 3200,
+      bonusDamage: 38,
+      damageElement: "ice",
+    }),
+  ],
+  targeting: "weakest",
+  projectileVfx: "vfx.ice_ice_ice.projectile",
+  impactVfx: "vfx.ice_ice_ice.impact",
+  idleVfx: "vfx.ice_ice_ice.idle",
+  modelId: "tower_ice_ice_ice",
+};
+
+const lightningLightningLightningTower: TowerDef = {
+  id: "tower_lightning_lightning_lightning",
+  name: "Thunderhead Apex",
+  element: "lightning+lightning",
+  isFusion: true,
+  flavorText: "Twin Storm's looping coil now carries a third current, arcing faster than the eye can follow.",
+  tiers: buildTiers(
+    { damage: 30, range: 7.1, fireRateMs: 220, projectileSpeed: 30, critChance: 0.3, critMultiplier: 2.4 },
+    [685, 1410, 2790],
+    [1, 1.22, 1.5],
+    [
+      "A third current now loops through the coil, sparks constantly leaping free.",
+      "The coil has become a single continuous storm, current never once resting.",
+      "A true thunderhead apex, three currents' worth of lightning locked into one endless discharge.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "thunderhead_apex_apex_overcharge",
+      name: "Apex Overcharge",
+      description: "Grand Fusion capstone. Overcharges the target with the strongest shock lightning alone can produce.",
+      cooldownMs: 9200,
+      vfxId: "vfx.lightning_lightning_lightning.ability_apex_overcharge",
+      statusKind: "shock",
+      statusMagnitude: 1,
+      statusDurationMs: 1500,
+      bonusDamage: 42,
+      damageElement: "lightning",
+    }),
+  ],
+  targeting: "closest",
+  projectileVfx: "vfx.lightning_lightning_lightning.projectile",
+  impactVfx: "vfx.lightning_lightning_lightning.impact",
+  idleVfx: "vfx.lightning_lightning_lightning.idle",
+  modelId: "tower_lightning_lightning_lightning",
+};
+
+const natureNatureNatureTower: TowerDef = {
+  id: "tower_nature_nature_nature",
+  name: "Primordial Overgrowth",
+  element: "nature+nature",
+  isFusion: true,
+  flavorText: "Twin Thorn's doubled canopy has taken root a third time, growth outpacing anything that could contain it.",
+  tiers: buildTiers(
+    { damage: 34, range: 6.4, fireRateMs: 640, projectileSpeed: 16, splashRadius: 1.6 },
+    [645, 1330, 2630],
+    [1, 1.22, 1.5],
+    [
+      "A third sapling has taken root beside the doubled trunk.",
+      "The canopy has grown so dense it blocks out the sky above it entirely.",
+      "A true primordial overgrowth, three trunks' worth of growth fused into one unstoppable tangle.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "primordial_overgrowth_apex_venom",
+      name: "Apex Venom",
+      description: "Grand Fusion capstone. Poisons the target with the most virulent venom nature alone can produce.",
+      cooldownMs: 9200,
+      vfxId: "vfx.nature_nature_nature.ability_apex_venom",
+      statusKind: "poison",
+      statusMagnitude: 12,
+      statusDurationMs: 4600,
+      bonusDamage: 40,
+      damageElement: "nature",
+    }),
+  ],
+  targeting: "strongest",
+  projectileVfx: "vfx.nature_nature_nature.projectile",
+  impactVfx: "vfx.nature_nature_nature.impact",
+  idleVfx: "vfx.nature_nature_nature.idle",
+  modelId: "tower_nature_nature_nature",
+};
+
+const earthEarthEarthTower: TowerDef = {
+  id: "tower_earth_earth_earth",
+  name: "Bedrock Apex",
+  element: "earth+earth",
+  isFusion: true,
+  flavorText: "Twin Stone's fused cairn has taken in a third boulder, weight enough now to press down through bedrock.",
+  tiers: buildTiers(
+    { damage: 50, range: 5.9, fireRateMs: 1000, projectileSpeed: 13, splashRadius: 2.1 },
+    [665, 1370, 2710],
+    [1, 1.22, 1.5],
+    [
+      "A third boulder has settled onto the fused cairn, stone groaning under the weight.",
+      "The cairn has grown so massive its base has begun to sink into the ground.",
+      "A true bedrock apex, three boulders' worth of stone fused into one immovable mass.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "bedrock_apex_apex_sunder",
+      name: "Apex Sunder",
+      description: "Grand Fusion capstone. Cracks away the most armor earth alone can shatter.",
+      cooldownMs: 9200,
+      vfxId: "vfx.earth_earth_earth.ability_apex_sunder",
+      statusKind: "sunder",
+      statusMagnitude: 0.55,
+      statusDurationMs: 4600,
+      bonusDamage: 44,
+      damageElement: "earth",
+    }),
+  ],
+  targeting: "strongest",
+  projectileVfx: "vfx.earth_earth_earth.projectile",
+  impactVfx: "vfx.earth_earth_earth.impact",
+  idleVfx: "vfx.earth_earth_earth.idle",
+  modelId: "tower_earth_earth_earth",
+};
+
+const arcaneArcaneArcaneTower: TowerDef = {
+  id: "tower_arcane_arcane_arcane",
+  name: "Arcane Singularity",
+  element: "arcane+arcane",
+  isFusion: true,
+  flavorText: "Twin Rune's merged halo has drawn in a third ring, rune-light collapsing inward on itself.",
+  tiers: buildTiers(
+    { damage: 30, range: 7.3, fireRateMs: 680, projectileSpeed: 20, critChance: 0.32, critMultiplier: 2.5 },
+    [700, 1440, 2850],
+    [1, 1.22, 1.5],
+    [
+      "A third ring has drawn into the merged halo, glyphs beginning to blur together.",
+      "The halo has collapsed into a single blinding band of pure rune-light.",
+      "A true arcane singularity, three rings' worth of rune-light compressed into one point of force.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "arcane_singularity_apex_silence",
+      name: "Apex Silence",
+      description: "Grand Fusion capstone. Suppresses the target's abilities for the longest span arcane force alone can hold.",
+      cooldownMs: 9200,
+      vfxId: "vfx.arcane_arcane_arcane.ability_apex_silence",
+      statusKind: "silence",
+      statusMagnitude: 1,
+      statusDurationMs: 3400,
+      bonusDamage: 41,
+      damageElement: "arcane",
+    }),
+  ],
+  targeting: "strongest",
+  projectileVfx: "vfx.arcane_arcane_arcane.projectile",
+  impactVfx: "vfx.arcane_arcane_arcane.impact",
+  idleVfx: "vfx.arcane_arcane_arcane.idle",
+  modelId: "tower_arcane_arcane_arcane",
+};
+
+const shadowShadowShadowTower: TowerDef = {
+  id: "tower_shadow_shadow_shadow",
+  name: "Umbral Apex",
+  element: "shadow+shadow",
+  isFusion: true,
+  flavorText: "Twin Wraith's doubled shroud has taken on a third cloak of dark, until no light reaches its center at all.",
+  tiers: buildTiers(
+    { damage: 28, range: 6.8, fireRateMs: 720, projectileSpeed: 19 },
+    [680, 1400, 2770],
+    [1, 1.22, 1.5],
+    [
+      "A third cloak of shadow has wound itself into the shroud, eyes almost lost within it.",
+      "The shroud has grown so dense it swallows light within a short distance of itself.",
+      "A true umbral apex, three cloaks' worth of living dark fused into one absolute curse.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "umbral_apex_apex_curse",
+      name: "Apex Curse",
+      description: "Grand Fusion capstone. Brands the target with the deepest curse shadow alone can lay upon it.",
+      cooldownMs: 9200,
+      vfxId: "vfx.shadow_shadow_shadow.ability_apex_curse",
+      statusKind: "curse",
+      statusMagnitude: 0.65,
+      statusDurationMs: 4800,
+      bonusDamage: 44,
+      damageElement: "shadow",
+    }),
+  ],
+  targeting: "first",
+  projectileVfx: "vfx.shadow_shadow_shadow.projectile",
+  impactVfx: "vfx.shadow_shadow_shadow.impact",
+  idleVfx: "vfx.shadow_shadow_shadow.idle",
+  modelId: "tower_shadow_shadow_shadow",
+};
+
+// ---------------------------------------------------------------------------
 // Public registry
 // ---------------------------------------------------------------------------
 
@@ -4657,6 +4923,13 @@ const ALL_TOWERS: TowerDef[] = [
   shadowShadowNatureTower,
   shadowShadowEarthTower,
   shadowShadowArcaneTower,
+  fireFireFireTower,
+  iceIceIceTower,
+  lightningLightningLightningTower,
+  natureNatureNatureTower,
+  earthEarthEarthTower,
+  arcaneArcaneArcaneTower,
+  shadowShadowShadowTower,
 ];
 
 export const TOWER_REGISTRY: Map<string, TowerDef> = new Map(ALL_TOWERS.map((t) => [t.id, t]));

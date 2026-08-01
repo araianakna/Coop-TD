@@ -273,6 +273,40 @@ export const GRAND_FUSION_RECIPES: GrandFusionRecipe[] = [
     thirdElement: "arcane",
     resultTowerId: "tower_shadow_shadow_arcane",
   },
+
+  // Triple-same-element completion (XXX) — a Twin/duplicate parent merged
+  // with a THIRD copy of the same element again, rather than a distinct
+  // third element. This category was missed in the original "full
+  // completion" pass: Game.ts's eligibility check rejected any third
+  // element matching either of the parent's two elements, which is correct
+  // for a distinct-pair parent (Steamcaller + fire makes no sense) but was
+  // also wrongly blocking a duplicate parent from taking one more of its
+  // own element (Twin Ember + fire *does* make sense — a pure, maximally
+  // specialized capstone). One per element, 7 total; completes every
+  // fusion combination the game's 2-tier merge system can produce.
+  { parentFusionTowerId: "tower_fire_fire", thirdElement: "fire", resultTowerId: "tower_fire_fire_fire" },
+  { parentFusionTowerId: "tower_ice_ice", thirdElement: "ice", resultTowerId: "tower_ice_ice_ice" },
+  {
+    parentFusionTowerId: "tower_lightning_lightning",
+    thirdElement: "lightning",
+    resultTowerId: "tower_lightning_lightning_lightning",
+  },
+  {
+    parentFusionTowerId: "tower_nature_nature",
+    thirdElement: "nature",
+    resultTowerId: "tower_nature_nature_nature",
+  },
+  { parentFusionTowerId: "tower_earth_earth", thirdElement: "earth", resultTowerId: "tower_earth_earth_earth" },
+  {
+    parentFusionTowerId: "tower_arcane_arcane",
+    thirdElement: "arcane",
+    resultTowerId: "tower_arcane_arcane_arcane",
+  },
+  {
+    parentFusionTowerId: "tower_shadow_shadow",
+    thirdElement: "shadow",
+    resultTowerId: "tower_shadow_shadow_shadow",
+  },
 ];
 
 function recipeKey(parentFusionTowerId: string, thirdElement: Element): string {
