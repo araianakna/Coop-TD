@@ -21,6 +21,7 @@ import type {
 } from "@/game/types";
 import { getTowerDef, listBaseTowers } from "@/game/towers/TowerRegistry";
 import { getFusionRecipe } from "@/game/towers/FusionMatrix";
+import { getDuplicateFusionRecipe } from "@/game/towers/DuplicateFusionMatrix";
 import { getGrandFusionRecipe } from "@/game/towers/GrandFusionMatrix";
 import { getEnemyDef } from "@/game/enemies/EnemyRegistry";
 import { getWave, TOTAL_WAVES, computeSpawnOrder } from "@/game/enemies/WaveManager";
@@ -79,6 +80,7 @@ const ON_HIT_PROC: Record<
   nature: { chance: 0.3, kind: "poison", magnitude: 3, durationMs: 2500 },
   earth: { chance: 0.3, kind: "sunder", magnitude: 0.15, durationMs: 2500 },
   arcane: { chance: 0.2, kind: "silence", magnitude: 1, durationMs: 1200 },
+  shadow: { chance: 0.28, kind: "curse", magnitude: 0.2, durationMs: 2500 },
 };
 
 // World-space sizing for sprites — each sprite's logical pixel art is drawn
@@ -139,6 +141,18 @@ export class Game {
   private economy = new Economy(STARTING_GOLD, STARTING_LIVES);
   private vfx = new Vfx2D();
   private audio = new AudioSystem();
+
+  /** Ambient dust motes drifting in the backdrop outside the play grid — a
+   * fixed set generated once (normalized [0,1] canvas-fraction coordinates
+   * so it always covers whatever viewport size) and twinkled in draw() via
+   * a cheap per-star sine, instead of a flat single-color fill. */
+  private bgMotes = Array.from({ length: 90 }, () => ({
+    x: Math.random(),
+    y: Math.random(),
+    r: 0.6 + Math.random() * 1.5,
+    phase: Math.random() * Math.PI * 2,
+    speed: 0.35 + Math.random() * 0.75,
+  }));
 
   private towers: TowerInstance[] = [];
   private enemies: EnemyInstance[] = [];
@@ -389,11 +403,13 @@ export class Game {
     const [towerA, towerB] = this.selectedTowerIds.map((id) => this.towers.find((t) => t.id === id));
     if (!towerA || !towerB) return [];
 
-    // Base + base -> a standard 2-element fusion (the original 15 recipes).
+    // Base + base -> a standard 2-element fusion (the original 21 distinct-
+    // pair recipes), or — when both towers share the same element — a
+    // same-element "Twin" fusion from DuplicateFusionMatrix.ts instead.
     if (!towerA.def.isFusion && !towerB.def.isFusion) {
       const elA = towerA.def.element as Element;
       const elB = towerB.def.element as Element;
-      const recipe = getFusionRecipe(elA, elB);
+      const recipe = elA === elB ? getDuplicateFusionRecipe(elA) : getFusionRecipe(elA, elB);
       if (!recipe) return [];
       const resultDef = getTowerDef(recipe.resultTowerId);
       if (!resultDef) return [];
@@ -701,6 +717,14 @@ export class Game {
     return sunder ? enemy.def.armor * (1 - sunder.magnitude) : enemy.def.armor;
   }
 
+  /** Curse doesn't reduce armor like sunder — it's a flat "all damage from
+   * every source lands harder" multiplier, so it stacks additively on top
+   * of whatever the target's armor already lets through. */
+  private effectiveCurseMultiplier(enemy: EnemyInstance): number {
+    const curse = enemy.statusEffects.find((e) => e.kind === "curse");
+    return curse ? 1 + curse.magnitude : 1;
+  }
+
   private removeEnemy(enemy: EnemyInstance) {
     this.enemies = this.enemies.filter((e) => e !== enemy);
   }
@@ -871,6 +895,7 @@ export class Game {
     if (critChance && critMultiplier && Math.random() < critChance) dmg *= critMultiplier;
     const armor = this.effectiveArmor(enemy);
     dmg *= 100 / (100 + armor);
+    dmg *= this.effectiveCurseMultiplier(enemy);
     enemy.health -= dmg;
   }
 
@@ -888,7 +913,7 @@ export class Game {
         if (!this.enemies.includes(target)) return;
         if (dmg.element === "physical") {
           const armor = this.effectiveArmor(target);
-          target.health -= dmg.amount * (100 / (100 + armor));
+          target.health -= dmg.amount * (100 / (100 + armor)) * this.effectiveCurseMultiplier(target);
         } else {
           this.applyDamage(target, dmg.amount, dmg.element);
         }
@@ -907,6 +932,7 @@ export class Game {
     const rect = this.renderer2D.canvas.getBoundingClientRect();
     this.applyCursor("p1", this.input.getCursor("p1"), rect);
     this.applyCursor("p2", this.input.getCursor("p2"), rect);
+    this.cursors.setP1Active(!this.input.isP1Touch());
     this.cursors.setP2Active(this.input.isP2Active());
 
     const p2 = this.input.getCursor("p2");
@@ -936,10 +962,33 @@ export class Game {
   // Rendering
   // -------------------------------------------------------------------
 
+  /** Backdrop drawn behind the grid (and visible around it whenever the map
+   * doesn't fill the viewport) — a soft radial vignette plus a field of
+   * slowly twinkling dust motes, replacing the old flat single-color fill.
+   * Cheap: one gradient plus ~90 small circles, no per-pixel work. */
+  private drawBackdrop(ctx: CanvasRenderingContext2D, vw: number, vh: number) {
+    const grad = ctx.createRadialGradient(vw / 2, vh / 2, 0, vw / 2, vh / 2, Math.max(vw, vh) * 0.78);
+    grad.addColorStop(0, "#1c1329");
+    grad.addColorStop(0.55, "#130c1d");
+    grad.addColorStop(1, "#07050d");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, vw, vh);
+
+    const t = this.elapsed;
+    for (const m of this.bgMotes) {
+      const alpha = 0.12 + 0.3 * (0.5 + 0.5 * Math.sin(t * m.speed + m.phase));
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = "#c9b8ff";
+      ctx.beginPath();
+      ctx.arc(m.x * vw, m.y * vh, m.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
   private draw() {
     const { ctx, width: vw, height: vh } = this.renderer2D;
-    ctx.fillStyle = "#0c0714";
-    ctx.fillRect(0, 0, vw, vh);
+    this.drawBackdrop(ctx, vw, vh);
 
     const cellSize = this.map.grid.cellSize;
     const halfCell = cellSize / 2;
@@ -1029,6 +1078,7 @@ export class Game {
     poison: "#b06bff",
     sunder: "#d9b98a",
     silence: "#e2c2ff",
+    curse: "#8b6fd6",
   };
 
   private drawStatusIcons(ctx: CanvasRenderingContext2D, cx: number, topY: number, enemy: EnemyInstance) {

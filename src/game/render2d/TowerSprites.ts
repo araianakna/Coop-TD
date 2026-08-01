@@ -269,6 +269,7 @@ const FOOTPRINT: Record<Element, number> = {
   nature: 8,
   earth: 10,
   arcane: 6,
+  shadow: 7,
 };
 
 function drawPlinth(pc: PixelCanvas, halfW: number) {
@@ -450,6 +451,47 @@ function arcaneStructure(pc: PixelCanvas, tier: 1 | 2 | 3, grand: boolean, pa: E
   return { top: shaftTop - 3 - (2.2 + (ringCount - 1) * 0.4) - 3, halfW: 9 + (grand ? 1 : 0) };
 }
 
+/** Shadow — a tattered wraith-cloak silhouette: a wide dark hem tapering up
+ * into a hooded point, ragged tendrils fraying off the hem, and a glowing
+ * violet eye in the hood; more tendrils and a second eye at higher tiers. */
+function shadowStructure(pc: PixelCanvas, tier: 1 | 2 | 3, grand: boolean, pa: ElementPalette): StructInfo {
+  const total = totalHeight(tier, grand);
+  const hemY = FEET_Y - 1;
+  const hemHalfW = 6.5 + tier * 0.5 + (grand ? 1 : 0);
+  const hoodY = hemY - total;
+  fillPoly(
+    pc,
+    [
+      [CX, hoodY],
+      [CX - hemHalfW, hemY],
+      [CX - hemHalfW * 0.5, hemY + 1],
+      [CX, hemY - total * 0.08],
+      [CX + hemHalfW * 0.5, hemY + 1],
+      [CX + hemHalfW, hemY],
+    ],
+    pa.dark,
+  );
+  fillPoly(
+    pc,
+    [
+      [CX, hoodY + 1.5],
+      [CX - hemHalfW * 0.5, hemY],
+      [CX, hemY - total * 0.05],
+    ],
+    pa.base,
+  );
+  const tendrilCount = 2 + tier;
+  for (let i = 0; i < tendrilCount; i++) {
+    const t = tendrilCount === 1 ? 0 : i / (tendrilCount - 1) - 0.5;
+    const tx = CX + t * hemHalfW * 1.7;
+    strokeLine(pc, tx, hemY, tx + t * 2, hemY + 2 + Math.abs(t) * 1.6, pa.dark);
+  }
+  pc.px(Math.round(CX), Math.round(hoodY + total * 0.16), pa.accent);
+  if (tier >= 2) pc.px(Math.round(CX - hemHalfW * 0.3), Math.round(hoodY + total * 0.26), pa.accent);
+  if (grand) pc.px(Math.round(CX + hemHalfW * 0.3), Math.round(hoodY + total * 0.26), pa.light);
+  return { top: hoodY - 1, halfW: Math.round(hemHalfW) };
+}
+
 const STRUCTURES: Record<Element, (pc: PixelCanvas, tier: 1 | 2 | 3, grand: boolean, pa: ElementPalette) => StructInfo> = {
   fire: fireStructure,
   ice: iceStructure,
@@ -457,6 +499,7 @@ const STRUCTURES: Record<Element, (pc: PixelCanvas, tier: 1 | 2 | 3, grand: bool
   nature: natureStructure,
   earth: earthStructure,
   arcane: arcaneStructure,
+  shadow: shadowStructure,
 };
 
 // ---------------------------------------------------------------------------
@@ -534,6 +577,17 @@ function arcaneAccent(pc: PixelCanvas, info: StructInfo, tier: 1 | 2 | 3, grand:
   if (grand) pc.px(Math.round(a.leftX), Math.round(a.leftY), pb.accent);
 }
 
+function shadowAccent(pc: PixelCanvas, info: StructInfo, tier: 1 | 2 | 3, grand: boolean, pb: ElementPalette) {
+  const a = anchorsFor(info);
+  pc.px(Math.round(a.rightX), Math.round(a.rightY + 2), pb.accent);
+  strokeLine(pc, a.rightX, a.rightY + 4, a.rightX + 1, a.rightY + 6, pb.dark);
+  if (tier >= 2) {
+    pc.px(Math.round(a.leftX), Math.round(a.leftY + 2), pb.accent);
+    strokeLine(pc, a.leftX, a.leftY + 4, a.leftX - 1, a.leftY + 6, pb.dark);
+  }
+  if (grand) pc.px(Math.round(a.topX), Math.round(a.topY), pb.light);
+}
+
 const ACCENTS: Record<Element, (pc: PixelCanvas, info: StructInfo, tier: 1 | 2 | 3, grand: boolean, pb: ElementPalette) => void> = {
   fire: fireAccent,
   ice: iceAccent,
@@ -541,6 +595,7 @@ const ACCENTS: Record<Element, (pc: PixelCanvas, info: StructInfo, tier: 1 | 2 |
   nature: natureAccent,
   earth: earthAccent,
   arcane: arcaneAccent,
+  shadow: shadowAccent,
 };
 
 /** Grand Fusion capstone flourish — a gentle arc of alternating-color

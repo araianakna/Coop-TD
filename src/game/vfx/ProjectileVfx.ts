@@ -136,6 +136,17 @@ const STYLES: Record<Element, ElementProjectileStyle> = {
     trailTurbulence: 0.4,
     spinSpeed: 5,
   },
+  shadow: {
+    shape: "soft",
+    meshFactory: (c) => makeOrb(0.13, c, 0),
+    speed: 16,
+    trailRate: 60,
+    trailSize: [0.15, 0.02],
+    trailLifetime: [0.26, 0.4],
+    trailGravity: new THREE.Vector3(0, -0.1, 0),
+    trailTurbulence: 0.3,
+    spinSpeed: 2,
+  },
 };
 
 type TargetSource = [number, number, number] | (() => [number, number, number]);

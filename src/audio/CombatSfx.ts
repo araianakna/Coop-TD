@@ -410,6 +410,15 @@ export class CombatSfx {
             filterFreqEnd: 200,
           }),
         ]);
+      case "curse":
+        // A dark, dissonant descending drone (two low detuned voices) that
+        // fades to a near-silent held hum instead of decaying to nothing —
+        // "a mark that lingers", distinct from silence's abrupt cutoff.
+        return combineHandles([
+          this.engine.playTone({ freq: 180, endFreq: 110, type: "sawtooth", detune: -18, attack: 0.03, decay: 0.2, sustain: 0.15, sustainTime: 0.4, release: 0.5, gain: 0.12 }),
+          this.engine.playTone({ freq: 186, endFreq: 114, type: "sawtooth", detune: 18, attack: 0.03, decay: 0.2, sustain: 0.15, sustainTime: 0.4, release: 0.5, gain: 0.1 }),
+          this.engine.playNoiseBurst({ duration: 0.35, color: "pink", filterType: "lowpass", filterFreq: 400, gain: 0.08 }),
+        ]);
     }
   }
 }
@@ -435,5 +444,7 @@ function statusKindDefaultElement(kind: StatusEffectKind): Element {
       return "earth";
     case "silence":
       return "arcane";
+    case "curse":
+      return "shadow";
   }
 }

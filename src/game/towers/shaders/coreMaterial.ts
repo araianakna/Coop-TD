@@ -18,6 +18,7 @@ export const ELEMENT_PALETTE: Record<
   nature: { coreA: 0x0f6b2c, coreB: 0x8fe04a, rim: 0xd8ff9a, structure: 0x2c2416, structureDark: 0x16110a },
   earth: { coreA: 0x8a4a12, coreB: 0xffcf5c, rim: 0xffe6a8, structure: 0x3d332a, structureDark: 0x1e1912 },
   arcane: { coreA: 0x7d1fa3, coreB: 0xdd6dff, rim: 0x9ef9ff, structure: 0x2a1c3a, structureDark: 0x140d1c },
+  shadow: { coreA: 0x2e1c4a, coreB: 0x9c7fe0, rim: 0xc8f0ff, structure: 0x1c1626, structureDark: 0x0d0a12 },
 };
 
 /**
@@ -33,6 +34,7 @@ const PATTERN_ID: Record<Element, number> = {
   nature: 3,
   earth: 4,
   arcane: 5,
+  shadow: 5,
 };
 
 const CORE_VERTEX = /* glsl */ `

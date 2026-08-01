@@ -39,6 +39,7 @@ export interface ElementSoundOptions {
 const NATURE_NOTES = [329.63, 369.99, 415.3, 493.88, 554.37]; // E4 F#4 G#4 B4 C#5 (E major pentatonic-ish)
 const ICE_NOTES = [880, 987.77, 1108.73, 1318.51]; // A5 B5 C#6 E6 — bright, airy
 const ARCANE_NOTES = [493.88, 587.33, 739.99]; // B4 D5 F#5
+const SHADOW_NOTES = [110, 116.54, 130.81]; // A2 Bb2 C3 — a tight, unsettling low cluster
 
 function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -177,6 +178,14 @@ export class ElementSfx {
             gain: 0.12 * g,
             pan,
           }),
+        ]);
+      case "shadow":
+        // Breathy high-passed hiss swelling in (slow attack, unlike every
+        // other element's sharp launch transient) under a low dissonant
+        // drone — reads as "arriving from nowhere" rather than being fired.
+        return combineHandles([
+          this.engine.playNoiseBurst({ duration: 0.22, color: "white", filterType: "highpass", filterFreq: 3200, gain: 0.08 * g, pan }),
+          this.engine.playTone({ freq: pick(SHADOW_NOTES), type: "sawtooth", attack: 0.09, decay: 0.06, release: 0.14, gain: 0.09 * g, pan }),
         ]);
     }
   }
@@ -339,6 +348,15 @@ export class ElementSfx {
             pan,
           }),
         ]);
+      case "shadow":
+        // Low dissonant thud (two close-tuned voices beating) under a dark
+        // lowpassed noise thump — heavier and murkier than earth's clean
+        // rumble, with an unresolved, slightly sour interval.
+        return combineHandles([
+          this.engine.playTone({ freq: pick(SHADOW_NOTES), type: "sawtooth", detune: -14, attack: 0.005, decay: 0.16, release: 0.32, gain: 0.15 * g, pan }),
+          this.engine.playTone({ freq: pick(SHADOW_NOTES), type: "sawtooth", detune: 14, attack: 0.005, decay: 0.16, release: 0.32, gain: 0.13 * g, pan }),
+          this.engine.playNoiseBurst({ duration: 0.3, color: "pink", filterType: "lowpass", filterFreq: 260, gain: 0.16 * g, pan }),
+        ]);
     }
   }
 
@@ -467,6 +485,24 @@ export class ElementSfx {
             filterFreqEnd: 4500,
             filterQ: 3,
             gain: 0.1 * g,
+            pan,
+          }),
+        ]);
+      case "shadow":
+        // A slow-swelling dissonant drone (long attack, unlike arcane's
+        // sweep) under a breathy whisper-band noise sweep — the "cast" reads
+        // as a held brand settling into place, not a burst of energy.
+        return combineHandles([
+          this.engine.playTone({ freq: pick(SHADOW_NOTES), type: "sawtooth", detune: -16, attack: 0.14, decay: 0.18, release: 0.4, gain: 0.13 * g, pan }),
+          this.engine.playTone({ freq: pick(SHADOW_NOTES), type: "sawtooth", detune: 16, attack: 0.14, decay: 0.18, release: 0.4, gain: 0.11 * g, pan }),
+          this.engine.playNoiseBurst({
+            duration: 0.45,
+            color: "white",
+            filterType: "bandpass",
+            filterFreq: 2400,
+            filterFreqEnd: 900,
+            filterQ: 2,
+            gain: 0.09 * g,
             pan,
           }),
         ]);

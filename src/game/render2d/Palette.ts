@@ -17,6 +17,7 @@ export const ELEMENT_PALETTE: Record<Element, ElementPalette> = {
   nature: { base: "#4caf50", light: "#94e07f", dark: "#1b3d1f", accent: "#d9ff8a" },
   earth: { base: "#a97845", light: "#d9b98a", dark: "#3f2a18", accent: "#ffd27a" },
   arcane: { base: "#b06bff", light: "#e2c2ff", dark: "#301357", accent: "#ff6bf0" },
+  shadow: { base: "#5a3d8f", light: "#9c7fe0", dark: "#160c26", accent: "#c8f0ff" },
 };
 
 export function elementPalette(el: Element): ElementPalette {
