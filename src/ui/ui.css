@@ -591,6 +591,14 @@
   margin-top: 14px;
 }
 
+.rw-fusion-shortfall {
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--rw-red-700);
+  text-align: right;
+}
+
 /* -------------------------------------------------------------------------
    Cursor indicators
    ------------------------------------------------------------------------- */
@@ -1142,6 +1150,16 @@
   flex: 1;
   font-size: 13px;
   padding: 9px 10px;
+}
+
+.rw-inspector-fusion-hint {
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px dashed color-mix(in srgb, var(--rw-wood-500) 55%, transparent);
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--rw-ink-500);
+  text-align: center;
 }
 
 /* -------------------------------------------------------------------------

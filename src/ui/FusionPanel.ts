@@ -47,6 +47,8 @@ export interface FusionCandidatePair {
   cost?: number;
   /** Set false (e.g. insufficient gold) to show the pair but disable confirm. */
   affordable?: boolean;
+  /** When affordable is false, how much more gold is needed — shown so the lock isn't a mystery. */
+  goldShortfall?: number;
 }
 
 export interface CreateFusionPanelOptions {
@@ -67,9 +69,16 @@ export function createFusionPanel(opts: CreateFusionPanelOptions): FusionPanelAp
   const panel = createPanel({ className: "rw-fusion", title: "Fuse Towers" });
   panel.root.classList.add("rw-fusion-panel", "rw-fusion-hidden");
 
+  // This panel only ever opens once exactly 2 towers are selected (the
+  // orchestrator calls open() from that state alone), so an empty
+  // candidate list always means "these two specific towers don't have a
+  // recipe together" — never "you haven't picked 2 yet". The copy has to
+  // say that, or players read it as a made-up range requirement (there is
+  // no distance check on fusing) and try uselessly moving towers closer.
   const empty = document.createElement("p");
   empty.className = "rw-fusion-empty";
-  empty.textContent = "Select two towers in range of each other to preview a fusion.";
+  empty.textContent =
+    "These two towers can't be fused. Pair two different base towers, or a Fusion tower with a base tower of a third element it doesn't already have.";
 
   const list = document.createElement("div");
   list.className = "rw-fusion-list";
@@ -111,6 +120,10 @@ export function createFusionPanel(opts: CreateFusionPanelOptions): FusionPanelAp
   function updateConfirmState() {
     const pair = currentPairs.find((p) => p.id === selectedPairId);
     confirmBtn.disabled = !pair || pair.affordable === false;
+    confirmBtn.textContent =
+      pair && pair.affordable === false && pair.goldShortfall != null
+        ? `Need ${pair.goldShortfall}g More`
+        : "Confirm Fusion";
   }
 
   function buildPairCard(pair: FusionCandidatePair): HTMLElement {
@@ -162,6 +175,13 @@ export function createFusionPanel(opts: CreateFusionPanelOptions): FusionPanelAp
     }
 
     card.append(inputs, arrow, result);
+
+    if (pair.affordable === false && pair.goldShortfall != null) {
+      const shortfall = document.createElement("div");
+      shortfall.className = "rw-fusion-shortfall";
+      shortfall.textContent = `Need ${pair.goldShortfall}g more gold`;
+      card.appendChild(shortfall);
+    }
 
     const select = () => {
       selectedPairId = pair.id;

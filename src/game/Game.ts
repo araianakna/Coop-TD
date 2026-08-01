@@ -277,7 +277,16 @@ export class Game {
       return;
     }
 
-    const HIT_RADIUS = 0.9; // world units — matches the old 3D full-footprint hit cylinder's radius
+    // A fixed world-space radius shrinks to almost nothing on screen once
+    // the player zooms out to see more of the board — 0.9 world units is
+    // only ~14px at the camera's min zoom, an easy miss with mouse or
+    // finger. Guarantee a comfortable ~22px screen radius at any zoom
+    // level instead (floor it at the old 0.9 so close zoom doesn't get
+    // *more* trigger-happy than before, only more forgiving when zoomed
+    // out). Two adjacent towers' zones can technically overlap at very low
+    // zoom, but "closest wins" below already resolves that intuitively.
+    const MIN_HIT_RADIUS_PX = 22;
+    const HIT_RADIUS = Math.max(0.9, MIN_HIT_RADIUS_PX / this.cam.zoom);
     let closest: TowerInstance | null = null;
     let closestDist = HIT_RADIUS;
     for (const t of this.towers) {
@@ -390,6 +399,7 @@ export class Game {
       if (!resultDef) return [];
 
       const cost = Math.round(resultDef.tiers[0].cost * FUSION_COST_FACTOR);
+      const affordable = this.economy.canAfford(cost);
       return [
         {
           id: recipe.resultTowerId,
@@ -399,7 +409,8 @@ export class Game {
           resultElementPair: resultDef.element as FusionElementPair,
           flavorText: resultDef.flavorText,
           cost,
-          affordable: this.economy.canAfford(cost),
+          affordable,
+          goldShortfall: affordable ? undefined : cost - this.economy.gold,
         },
       ];
     }
@@ -419,6 +430,7 @@ export class Game {
     if (!resultDef) return [];
 
     const cost = Math.round(resultDef.tiers[0].cost * FUSION_COST_FACTOR);
+    const affordable = this.economy.canAfford(cost);
     return [
       {
         id: recipe.resultTowerId,
@@ -428,7 +440,8 @@ export class Game {
         resultElementPair: resultDef.element as FusionElementPair,
         flavorText: resultDef.flavorText,
         cost,
-        affordable: this.economy.canAfford(cost),
+        affordable,
+        goldShortfall: affordable ? undefined : cost - this.economy.gold,
       },
     ];
   }
