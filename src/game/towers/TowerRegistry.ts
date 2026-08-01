@@ -555,7 +555,7 @@ const fireLightningTower: TowerDef = {
   isFusion: true,
   flavorText: "A caged sphere of ionized flame, unstable and eager to discharge.",
   tiers: buildTiers(
-    { damage: 22, range: 5.6, fireRateMs: 380, projectileSpeed: 24 },
+    { damage: 22, range: 5.6, fireRateMs: 430, projectileSpeed: 24 },
     [270, 580, 1180],
     [1, 1.2, 1.48],
     [
@@ -913,7 +913,7 @@ const lightningArcaneTower: TowerDef = {
   isFusion: true,
   flavorText: "A sleek conduit spire, entirely charged, humming with barely-restrained current.",
   tiers: buildTiers(
-    { damage: 17, range: 6.0, fireRateMs: 360, projectileSpeed: 25, critChance: 0.2, critMultiplier: 2.0 },
+    { damage: 17, range: 6.0, fireRateMs: 390, projectileSpeed: 25, critChance: 0.2, critMultiplier: 2.0 },
     [275, 595, 1195],
     [1, 1.22, 1.48],
     [
@@ -1137,7 +1137,7 @@ const lightningShadowTower: TowerDef = {
   isFusion: true,
   flavorText: "A coil wound with tattered dark cloth — every arc it throws lands with a curse behind it.",
   tiers: buildTiers(
-    { damage: 17, range: 6.1, fireRateMs: 340, projectileSpeed: 24, critChance: 0.2, critMultiplier: 1.9 },
+    { damage: 17, range: 6.1, fireRateMs: 390, projectileSpeed: 24, critChance: 0.2, critMultiplier: 1.9 },
     [270, 580, 1190],
     [1, 1.24, 1.53],
     [
@@ -1368,7 +1368,7 @@ const lightningLightningTower: TowerDef = {
   isFusion: true,
   flavorText: "Two masts wound into one coil, current chasing itself around the loop.",
   tiers: buildTiers(
-    { damage: 15, range: 6.1, fireRateMs: 300, projectileSpeed: 25, critChance: 0.24, critMultiplier: 2 },
+    { damage: 15, range: 6.1, fireRateMs: 360, projectileSpeed: 25, critChance: 0.24, critMultiplier: 2 },
     [272, 585, 1195],
     [1, 1.24, 1.53],
     [
@@ -4629,7 +4629,7 @@ const lightningLightningLightningTower: TowerDef = {
   isFusion: true,
   flavorText: "Twin Storm's looping coil now carries a third current, arcing faster than the eye can follow.",
   tiers: buildTiers(
-    { damage: 30, range: 7.1, fireRateMs: 220, projectileSpeed: 30, critChance: 0.3, critMultiplier: 2.4 },
+    { damage: 30, range: 7.1, fireRateMs: 310, projectileSpeed: 30, critChance: 0.3, critMultiplier: 2.4 },
     [685, 1410, 2790],
     [1, 1.22, 1.5],
     [
