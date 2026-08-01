@@ -158,10 +158,27 @@ export class Vfx2D {
   };
 
   readonly impactsApi = {
-    trigger: (el: Element, pos: [number, number, number]) => this.burst(pos[0], pos[2], [el]),
-    triggerFusion: (elA: Element, elB: Element, pos: [number, number, number]) =>
-      this.burst(pos[0], pos[2], [elA, elB]),
+    trigger: (el: Element, pos: [number, number, number], crit?: boolean) => {
+      this.burst(pos[0], pos[2], [el]);
+      if (crit) this.critFlash(pos[0], pos[2]);
+    },
+    triggerFusion: (elA: Element, elB: Element, pos: [number, number, number], crit?: boolean) => {
+      this.burst(pos[0], pos[2], [elA, elB]);
+      if (crit) this.critFlash(pos[0], pos[2]);
+    },
   };
+
+  /** Layered on top of the normal elemental impact when a hit crits — a
+   * fast bright gold ring plus four sharp spikes, a silhouette no status
+   * or element burst uses, so a crit reads as "extra", not just a bigger
+   * version of the same hit. */
+  private critFlash(wx: number, wy: number) {
+    this.ring(wx, wy, undefined, "#fff6d6", 0.2, 0.85, true, 2.4, false);
+    for (let i = 0; i < 4; i++) {
+      const ang = (i / 4) * Math.PI * 2 + Math.PI / 4;
+      this.pushParticle(wx, wy, Math.cos(ang) * 2.8, Math.sin(ang) * 2.8, 0.2, "#ffe873", 3.2, 0.8);
+    }
+  }
 
   /**
    * `statusKind`, when supplied, routes to a bespoke per-effect visual —

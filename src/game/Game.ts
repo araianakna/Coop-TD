@@ -930,16 +930,17 @@ export class Game {
     critMultiplier: number | undefined,
   ) {
     const [elA, elB] = this.towerElements(tower);
+    let isCrit = false;
 
     if (this.enemies.includes(target)) {
-      this.applyDamage(target, baseDamage, elA, critChance, critMultiplier);
+      isCrit = this.applyDamage(target, baseDamage, elA, critChance, critMultiplier);
       this.tryApplyOnHitProc(target, tower, elA);
     }
 
     if (elB) {
-      this.vfx.impactsApi.triggerFusion(elA, elB, pos);
+      this.vfx.impactsApi.triggerFusion(elA, elB, pos, isCrit);
     } else {
-      this.vfx.impactsApi.trigger(elA, pos);
+      this.vfx.impactsApi.trigger(elA, pos, isCrit);
     }
     this.playThrottled(`impact:${elA}`, 60, () => this.audio.combat.impact(elA, pos));
 
@@ -972,11 +973,13 @@ export class Game {
     const silenced = enemy.statusEffects.some((e) => e.kind === "silence");
     const mult = silenced && rawMult < 1 ? 1 : rawMult;
     let dmg = baseDamage * mult;
-    if (critChance && critMultiplier && Math.random() < critChance) dmg *= critMultiplier;
+    const isCrit = !!(critChance && critMultiplier && Math.random() < critChance);
+    if (isCrit) dmg *= critMultiplier!;
     const armor = this.effectiveArmor(enemy);
     dmg *= 100 / (100 + armor);
     dmg *= this.effectiveCurseMultiplier(enemy);
     enemy.health -= dmg;
+    return isCrit;
   }
 
   private triggerAbility(tower: TowerInstance, ability: TowerAbility, target: EnemyInstance) {
