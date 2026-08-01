@@ -118,7 +118,11 @@ export class AudioEngine {
     this.context = context ?? new Ctx();
 
     this.master = this.context.createGain();
-    this.master.gain.value = 0.9;
+    // Default to a comfortably soft level rather than near-full volume —
+    // players can always turn it up (or mute entirely via the HUD button),
+    // but a quiet-by-default game is a friendlier first impression than a
+    // loud one.
+    this.master.gain.value = 0.55;
     this.master.connect(this.context.destination);
 
     this.buses = {

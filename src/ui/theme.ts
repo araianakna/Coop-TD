@@ -77,6 +77,23 @@ const MISC_GLYPHS = {
   lock: `<rect x="5" y="10.5" width="14" height="10" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/>
     <path d="M8 10.5V7.8a4 4 0 0 1 8 0v2.7" fill="none" stroke="currentColor" stroke-width="1.8"/>
     <circle cx="12" cy="15" r="1.4"/>`,
+  scroll: `<path d="M6 4.5h9.5a2.5 2.5 0 0 1 2.5 2.5v10a2.5 2.5 0 0 1-2.5 2.5H8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+    <path d="M6 4.5a2.5 2.5 0 0 0-2.5 2.5v10A2.5 2.5 0 0 0 6 19.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+    <line x1="8" y1="9" x2="14.5" y2="9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+    <line x1="8" y1="12.5" x2="14.5" y2="12.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+    <line x1="8" y1="16" x2="12" y2="16" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>`,
+  speakerOn: `<path d="M4 9.5h3.6L12.5 5v14l-4.9-4.5H4z" fill="currentColor"/>
+    <path d="M16 9.2a4.6 4.6 0 0 1 0 5.6M18.6 6.8a8.4 8.4 0 0 1 0 10.4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>`,
+  speakerOff: `<path d="M4 9.5h3.6L12.5 5v14l-4.9-4.5H4z" fill="currentColor"/>
+    <line x1="15.5" y1="9.5" x2="20.5" y2="14.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="20.5" y1="9.5" x2="15.5" y2="14.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>`,
+  flying: `<path d="M12 5c1.4 3 3.4 4.6 6.4 5.4-3 .5-5 1.9-6.4 4.6-1.4-2.7-3.4-4.1-6.4-4.6C8.6 9.6 10.6 8 12 5z" fill="currentColor"/>
+    <path d="M12 15v4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>`,
+  ground: `<path d="M12 4a3 3 0 0 1 3 3c0 1.8-1.4 3-3 5.5C10.4 10 9 8.8 9 7a3 3 0 0 1 3-3z" fill="currentColor"/>
+    <ellipse cx="12" cy="18.5" rx="5.5" ry="1.6" fill="currentColor" opacity="0.5"/>`,
+  burrow: `<path d="M4 14.5c2-2.4 4.4-3.6 8-3.6s6 1.2 8 3.6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+    <path d="M6.5 17.5c1.6-1.6 3.4-2.4 5.5-2.4s3.9.8 5.5 2.4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity="0.65"/>
+    <ellipse cx="12" cy="8.2" rx="2.4" ry="2" fill="currentColor"/>`,
 } as const;
 
 export type MiscGlyph = keyof typeof MISC_GLYPHS;

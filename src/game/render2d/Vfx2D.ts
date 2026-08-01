@@ -1,6 +1,8 @@
-import type { Element } from "@/game/types";
+import type { Element, StatusEffectKind } from "@/game/types";
 import { elementPalette, type ElementPalette } from "./Palette";
 import type { TopDownCamera2D } from "@/core/Camera2D";
+
+type TowerCategory = "base" | "fusion" | "grand";
 
 interface Particle {
   x: number;
@@ -11,6 +13,35 @@ interface Particle {
   maxLife: number;
   color: string;
   size: number;
+  /** Per-frame velocity multiplier — snappy bursts (sunder shrapnel, freeze
+   * shards) want fast damping (~0.88); slow-drifting effects (rising
+   * embers, poison bubbles) want it close to 1 so they keep coasting for
+   * their whole lifetime instead of stopping dead a few frames in. */
+  damping: number;
+}
+
+interface Ring {
+  x: number;
+  y: number;
+  life: number;
+  maxLife: number;
+  color: string;
+  maxR: number;
+  /** false = shrinks from maxR to 0 instead of expanding — silence's
+   * "suppression" read (the opposite of an outward blast). */
+  growing: boolean;
+  width: number;
+  dashed: boolean;
+}
+
+interface Arc {
+  x: number;
+  y: number;
+  points: [number, number][];
+  life: number;
+  maxLife: number;
+  color: string;
+  width: number;
 }
 
 interface ActiveProjectile {
@@ -18,9 +49,12 @@ interface ActiveProjectile {
   y: number;
   element: Element;
   elementB: Element | null;
+  tier: 1 | 2 | 3;
+  category: TowerCategory;
   speed: number;
   angle: number;
   spin: number;
+  auraSpin: number;
   getTarget: () => [number, number, number];
   onArrive: (pos: [number, number, number]) => void;
 }
@@ -31,6 +65,30 @@ function elementsFromVfxId(vfxId: string): Element[] {
   const found: Element[] = [];
   for (const el of ELEMENT_NAMES) if (vfxId.includes(el)) found.push(el);
   return found;
+}
+
+// base -> fusion -> grand, and within each, tier 1 -> 2 -> 3: every bullet
+// gets progressively bigger, trails harder, and picks up extra flourish
+// (a soft aura glow at fusion, a rotating dashed "power ring" at grand) so
+// a Grand Fusion tower's shots unmistakably read as more powerful than a
+// base tower's, independent of which element(s) they carry.
+const CATEGORY_SIZE: Record<TowerCategory, number> = { base: 1, fusion: 1.28, grand: 1.6 };
+const TIER_SIZE: Record<1 | 2 | 3, number> = { 1: 1, 2: 1.1, 3: 1.22 };
+
+function trailChance(element: Element, category: TowerCategory): number {
+  const elementBase = element === "fire" || element === "lightning" ? 0.3 : 0;
+  const categoryBonus = category === "fusion" ? 0.3 : category === "grand" ? 0.55 : 0;
+  return Math.min(0.92, elementBase + categoryBonus);
+}
+
+function hexToRgb(hex: string): [number, number, number] {
+  const n = parseInt(hex.replace("#", ""), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+function rgba(hex: string, a: number): string {
+  const [r, g, b] = hexToRgb(hex);
+  return `rgba(${r},${g},${b},${a})`;
 }
 
 /**
@@ -46,19 +104,29 @@ function elementsFromVfxId(vfxId: string): Element[] {
  * bolt with a spark trail, nature a curved leaf/thorn, earth a tumbling
  * rock chunk, arcane a rotating rune-sparkle — so a tower's shots read as
  * "that element" at a glance, matching the tower/enemy sprites' own
- * per-element shape language instead of a uniform colored ball.
+ * per-element shape language instead of a uniform colored ball. On top of
+ * that, size/trail-density/aura scale with the firing tower's category
+ * (base/fusion/grand) and tier, so more powerful towers visibly throw
+ * more powerful-looking shots.
  */
 export class Vfx2D {
   private projectiles: ActiveProjectile[] = [];
   private particles: Particle[] = [];
-  private rings: { x: number; y: number; life: number; maxLife: number; color: string; maxR: number }[] = [];
+  private rings: Ring[] = [];
+  private arcs: Arc[] = [];
 
   readonly projectilesApi = {
     spawn: (
       element: Element,
       fromPos: [number, number, number],
       getTarget: () => [number, number, number],
-      opts: { speed: number; onArrive: (pos: [number, number, number]) => void; elementB?: Element },
+      opts: {
+        speed: number;
+        onArrive: (pos: [number, number, number]) => void;
+        elementB?: Element;
+        tier?: 1 | 2 | 3;
+        category?: TowerCategory;
+      },
     ) => {
       const [tx, , tz] = getTarget();
       this.projectiles.push({
@@ -66,9 +134,12 @@ export class Vfx2D {
         y: fromPos[2],
         element,
         elementB: opts.elementB ?? null,
+        tier: opts.tier ?? 1,
+        category: opts.category ?? "base",
         speed: opts.speed,
         angle: Math.atan2(tz - fromPos[2], tx - fromPos[0]),
         spin: Math.random() * Math.PI * 2,
+        auraSpin: Math.random() * Math.PI * 2,
         getTarget,
         onArrive: opts.onArrive,
       });
@@ -81,10 +152,173 @@ export class Vfx2D {
       this.burst(pos[0], pos[2], [elA, elB]),
   };
 
-  emitVfx(vfxId: string, worldPos: [number, number, number]) {
+  /**
+   * `statusKind`, when supplied, routes to a bespoke per-effect visual —
+   * burn throws rising embers, freeze shatters into a held ice ring,
+   * silence collapses inward, and so on — so an ability's VFX actually
+   * shows what it does instead of every ability getting the same colored
+   * puff. Falls back to the generic multi-element burst for abilities that
+   * only deal bonus damage (no status), e.g. Stonewarden's Cataclysm.
+   */
+  emitVfx(vfxId: string, worldPos: [number, number, number], statusKind?: StatusEffectKind) {
     const els = elementsFromVfxId(vfxId);
-    this.burst(worldPos[0], worldPos[2], els.length ? els : ["arcane"]);
-    this.ring(worldPos[0], worldPos[2], els[0]);
+    const wx = worldPos[0];
+    const wy = worldPos[2];
+    if (statusKind) {
+      this.statusVfx(wx, wy, statusKind, els.length ? els : ["arcane"]);
+      return;
+    }
+    this.burst(wx, wy, els.length ? els : ["arcane"]);
+    this.ring(wx, wy, els[0]);
+  }
+
+  private statusVfx(wx: number, wy: number, kind: StatusEffectKind, elements: Element[]) {
+    const pal = elementPalette(elements[0]);
+    switch (kind) {
+      case "burn":
+        return this.burnVfx(wx, wy, pal);
+      case "chill":
+        return this.chillVfx(wx, wy, pal);
+      case "freeze":
+        return this.freezeVfx(wx, wy, pal);
+      case "shock":
+        return this.shockVfx(wx, wy, pal);
+      case "poison":
+        return this.poisonVfx(wx, wy, pal);
+      case "root":
+        return this.rootVfx(wx, wy, pal);
+      case "sunder":
+        return this.sunderVfx(wx, wy, pal);
+      case "silence":
+        return this.silenceVfx(wx, wy, pal);
+    }
+  }
+
+  /** Rising embers — mostly-upward cone, slow damping so they keep coasting
+   * up instead of stopping dead, plus a quick warm flash ring. */
+  private burnVfx(wx: number, wy: number, pal: ElementPalette) {
+    for (let i = 0; i < 12; i++) {
+      const ang = -Math.PI / 2 + (Math.random() - 0.5) * 1.3;
+      const speed = 0.7 + Math.random() * 1.3;
+      this.pushParticle(wx, wy, Math.cos(ang) * speed * 0.5, Math.sin(ang) * speed, 0.5 + Math.random() * 0.35, Math.random() > 0.4 ? pal.accent : pal.light, 2.6 + Math.random() * 2, 0.97);
+    }
+    this.ring(wx, wy, undefined, pal.accent, 0.3, 0.75, false, 2.4, false);
+  }
+
+  /** Slow, quiet frost motes drifting outward — chill is a creeping effect,
+   * not an explosion, so no ring flash, just a gentle pale-blue haze. */
+  private chillVfx(wx: number, wy: number, pal: ElementPalette) {
+    for (let i = 0; i < 9; i++) {
+      const ang = Math.random() * Math.PI * 2;
+      const speed = 0.25 + Math.random() * 0.4;
+      this.pushParticle(wx, wy, Math.cos(ang) * speed, Math.sin(ang) * speed - 0.15, 0.55 + Math.random() * 0.3, Math.random() > 0.5 ? pal.light : "#eafcff", 2 + Math.random() * 1.6, 0.985);
+    }
+  }
+
+  /** Sharp icy shatter — fast angular shard burst plus a solid, long-held
+   * ring (freeze locks the target in place, so the ring should linger). */
+  private freezeVfx(wx: number, wy: number, pal: ElementPalette) {
+    for (let i = 0; i < 14; i++) {
+      const ang = (i / 14) * Math.PI * 2 + Math.random() * 0.3;
+      const speed = 1.6 + Math.random() * 1.6;
+      this.pushParticle(wx, wy, Math.cos(ang) * speed, Math.sin(ang) * speed, 0.32 + Math.random() * 0.2, Math.random() > 0.5 ? "#ffffff" : pal.accent, 2.4 + Math.random() * 1.8, 0.88);
+    }
+    this.ring(wx, wy, undefined, "#eafcff", 0.65, 0.85, false, 2.8, false);
+    this.ring(wx, wy, undefined, pal.accent, 0.65, 1.0, false, 1.4, false);
+  }
+
+  /** Instant jagged arcs radiating out, redrawn every trigger like a real
+   * zap — arcs fade almost immediately, so the "effect" is the snap itself
+   * rather than a lingering cloud. */
+  private shockVfx(wx: number, wy: number, pal: ElementPalette) {
+    const boltCount = 5;
+    for (let i = 0; i < boltCount; i++) {
+      const baseAng = (i / boltCount) * Math.PI * 2 + Math.random() * 0.5;
+      const len = 1.3 + Math.random() * 0.9;
+      const points: [number, number][] = [[0, 0]];
+      let px = 0;
+      let py = 0;
+      const segs = 3;
+      for (let s = 1; s <= segs; s++) {
+        const t = s / segs;
+        const jitter = (Math.random() - 0.5) * 0.5;
+        px = Math.cos(baseAng) * len * t + Math.cos(baseAng + Math.PI / 2) * jitter;
+        py = Math.sin(baseAng) * len * t + Math.sin(baseAng + Math.PI / 2) * jitter;
+        points.push([px, py]);
+      }
+      this.arcs.push({ x: wx, y: wy, points, life: 0, maxLife: 0.14 + Math.random() * 0.06, color: Math.random() > 0.4 ? "#fff9c4" : pal.accent, width: 0.12 });
+    }
+    for (let i = 0; i < 4; i++) {
+      const ang = Math.random() * Math.PI * 2;
+      this.pushParticle(wx, wy, Math.cos(ang) * 1.5, Math.sin(ang) * 1.5, 0.15, "#ffffff", 2, 0.8);
+    }
+  }
+
+  /** Erratic slow-rising bubbles with a lingering sickly pulse — poison is
+   * meant to feel like it's still working on the target after the visual
+   * settles, so both the particles and the ring outlast most other kinds. */
+  private poisonVfx(wx: number, wy: number, pal: ElementPalette) {
+    for (let i = 0; i < 10; i++) {
+      const ang = -Math.PI / 2 + (Math.random() - 0.5) * 1.8;
+      const speed = 0.4 + Math.random() * 0.6;
+      this.pushParticle(wx, wy, Math.cos(ang) * speed, Math.sin(ang) * speed, 0.6 + Math.random() * 0.4, Math.random() > 0.5 ? pal.accent : pal.light, 2.2 + Math.random() * 1.8, 0.98);
+    }
+    this.ring(wx, wy, undefined, pal.accent, 0.55, 0.7, false, 1.6, false);
+  }
+
+  /** Curling vine tendrils sprouting from the ground point, plus a couple
+   * of leaf motes at the tips — the only status effect drawn as growing
+   * curves instead of radiating particles, matching "you're rooted in
+   * place" rather than "something hit you". */
+  private rootVfx(wx: number, wy: number, pal: ElementPalette) {
+    const vineCount = 3;
+    for (let i = 0; i < vineCount; i++) {
+      const baseAng = -Math.PI / 2 + (i - (vineCount - 1) / 2) * 0.9 + (Math.random() - 0.5) * 0.3;
+      const len = 1.1 + Math.random() * 0.5;
+      const curl = (Math.random() - 0.5) * 1.4;
+      const points: [number, number][] = [[0, 0]];
+      const segs = 5;
+      for (let s = 1; s <= segs; s++) {
+        const t = s / segs;
+        const bend = Math.sin(t * Math.PI * 0.5) * curl;
+        const px = Math.cos(baseAng) * len * t + Math.cos(baseAng + Math.PI / 2) * bend * t;
+        const py = Math.sin(baseAng) * len * t + Math.sin(baseAng + Math.PI / 2) * bend * t;
+        points.push([px, py]);
+      }
+      this.arcs.push({ x: wx, y: wy, points, life: 0, maxLife: 0.5 + Math.random() * 0.15, color: pal.dark, width: 0.28 });
+      const [tx, ty] = points[points.length - 1];
+      this.pushParticle(wx + tx, wy + ty, 0, -0.1, 0.4, pal.accent, 2.2, 0.95);
+    }
+  }
+
+  /** Angular grey-brown shrapnel bursting fast outward, like armor
+   * physically cracking apart, plus a brief flat shockwave. Always stone-
+   * toned regardless of the tower's element — sunder is about armor
+   * breaking, not about which element caused it. */
+  private sunderVfx(wx: number, wy: number, _pal: ElementPalette) {
+    const shrapnelColors = ["#c9b28f", "#8a7460", "#544539"];
+    for (let i = 0; i < 11; i++) {
+      const ang = (i / 11) * Math.PI * 2 + Math.random() * 0.4;
+      const speed = 1.4 + Math.random() * 1.5;
+      this.pushParticle(wx, wy, Math.cos(ang) * speed, Math.sin(ang) * speed, 0.3 + Math.random() * 0.2, shrapnelColors[i % shrapnelColors.length], 2 + Math.random() * 2, 0.86);
+    }
+    this.ring(wx, wy, undefined, "#c9b28f", 0.28, 0.9, false, 2.2, false);
+  }
+
+  /** A ring that shrinks inward instead of expanding, with a few particles
+   * pulled toward the center — the visual opposite of every other effect's
+   * outward burst, reading as "suppression" rather than "impact". */
+  private silenceVfx(wx: number, wy: number, pal: ElementPalette) {
+    this.ring(wx, wy, undefined, pal.accent, 0.4, 1.1, true, 1.6, true);
+    for (let i = 0; i < 8; i++) {
+      const ang = (i / 8) * Math.PI * 2;
+      const r = 1.1 + Math.random() * 0.3;
+      this.pushParticle(wx + Math.cos(ang) * r, wy + Math.sin(ang) * r, -Math.cos(ang) * 1.2, -Math.sin(ang) * 1.2, 0.32, pal.light, 2, 0.86);
+    }
+  }
+
+  private pushParticle(x: number, y: number, vx: number, vy: number, maxLife: number, color: string, size: number, damping: number) {
+    this.particles.push({ x, y, vx, vy, life: 0, maxLife, color, size, damping });
   }
 
   private burst(wx: number, wy: number, elements: Element[]) {
@@ -94,36 +328,37 @@ export class Vfx2D {
       const pal = elementPalette(el);
       const ang = (i / count) * Math.PI * 2 + Math.random() * 0.4;
       const speed = 1.2 + Math.random() * 1.8;
-      this.particles.push({
-        x: wx,
-        y: wy,
-        vx: Math.cos(ang) * speed,
-        vy: Math.sin(ang) * speed,
-        life: 0,
-        maxLife: 0.32 + Math.random() * 0.18,
-        color: Math.random() > 0.4 ? pal.accent : pal.light,
-        size: 3 + Math.random() * 2,
-      });
+      this.pushParticle(wx, wy, Math.cos(ang) * speed, Math.sin(ang) * speed, 0.32 + Math.random() * 0.18, Math.random() > 0.4 ? pal.accent : pal.light, 3 + Math.random() * 2, 0.9);
     }
   }
 
-  private ring(wx: number, wy: number, el?: Element) {
-    const pal = elementPalette(el ?? "arcane");
-    this.rings.push({ x: wx, y: wy, life: 0, maxLife: 0.45, color: pal.accent, maxR: 1.1 });
+  private ring(
+    wx: number,
+    wy: number,
+    el?: Element,
+    colorOverride?: string,
+    maxLife = 0.45,
+    maxR = 1.1,
+    growing = true,
+    width = 2,
+    dashed = false,
+  ) {
+    const color = colorOverride ?? elementPalette(el ?? "arcane").accent;
+    this.rings.push({ x: wx, y: wy, life: 0, maxLife, color, maxR, growing, width, dashed });
   }
 
-  private trail(wx: number, wy: number, element: Element) {
+  private trail(wx: number, wy: number, element: Element, sizeMult: number) {
     const pal = elementPalette(element);
-    this.particles.push({
-      x: wx,
-      y: wy,
-      vx: (Math.random() - 0.5) * 0.3,
-      vy: (Math.random() - 0.5) * 0.3,
-      life: 0,
-      maxLife: 0.16 + Math.random() * 0.1,
-      color: pal.accent,
-      size: 1.6 + Math.random(),
-    });
+    this.pushParticle(
+      wx,
+      wy,
+      (Math.random() - 0.5) * 0.3,
+      (Math.random() - 0.5) * 0.3,
+      0.16 + Math.random() * 0.1,
+      pal.accent,
+      (1.6 + Math.random()) * sizeMult,
+      0.9,
+    );
   }
 
   update(dt: number) {
@@ -140,10 +375,11 @@ export class Vfx2D {
       }
       p.angle = Math.atan2(dy, dx);
       p.spin += dt * (p.element === "earth" ? 9 : p.element === "arcane" ? 3 : 0);
+      p.auraSpin += dt * 2.6;
       p.x += (dx / dist) * step;
       p.y += (dy / dist) * step;
-      if ((p.element === "fire" || p.element === "lightning") && Math.random() < 0.55) {
-        this.trail(p.x, p.y, p.element);
+      if (Math.random() < trailChance(p.element, p.category)) {
+        this.trail(p.x, p.y, p.element, CATEGORY_SIZE[p.category] * TIER_SIZE[p.tier]);
       }
     }
     this.projectiles = this.projectiles.filter((p) => p.x > -1e8);
@@ -152,25 +388,31 @@ export class Vfx2D {
       particle.life += dt;
       particle.x += particle.vx * dt;
       particle.y += particle.vy * dt;
-      particle.vx *= 0.9;
-      particle.vy *= 0.9;
+      particle.vx *= particle.damping;
+      particle.vy *= particle.damping;
     }
     this.particles = this.particles.filter((p) => p.life < p.maxLife);
 
     for (const r of this.rings) r.life += dt;
     this.rings = this.rings.filter((r) => r.life < r.maxLife);
+
+    for (const a of this.arcs) a.life += dt;
+    this.arcs = this.arcs.filter((a) => a.life < a.maxLife);
   }
 
   draw(ctx: CanvasRenderingContext2D, cam: TopDownCamera2D, vw: number, vh: number) {
     for (const p of this.projectiles) {
       const [sx, sy] = cam.worldToScreen(p.x, p.y, vw, vh);
-      const scale = cam.zoom / 30;
+      const zoomScale = cam.zoom / 30;
+      const sizeMult = CATEGORY_SIZE[p.category] * TIER_SIZE[p.tier];
+      const scale = zoomScale * sizeMult;
       const pal = elementPalette(p.element);
       const palB = p.elementB ? elementPalette(p.elementB) : null;
 
       ctx.save();
       ctx.translate(sx, sy);
       ctx.scale(scale, scale);
+      drawAura(ctx, p.category, pal, palB, p.auraSpin);
       drawBulletShape(ctx, p.element, pal, p.angle, p.spin);
       ctx.restore();
 
@@ -195,14 +437,66 @@ export class Vfx2D {
     for (const r of this.rings) {
       const [sx, sy] = cam.worldToScreen(r.x, r.y, vw, vh);
       const t = r.life / r.maxLife;
+      const radiusT = r.growing ? t : 1 - t;
       ctx.globalAlpha = Math.max(0, 1 - t);
       ctx.strokeStyle = r.color;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = r.width;
+      ctx.setLineDash(r.dashed ? [3, 2] : []);
       ctx.beginPath();
-      ctx.arc(sx, sy, r.maxR * t * cam.zoom, 0, Math.PI * 2);
+      ctx.arc(sx, sy, Math.max(0.5, r.maxR * radiusT * cam.zoom), 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
+    }
+
+    for (const a of this.arcs) {
+      const [sx, sy] = cam.worldToScreen(a.x, a.y, vw, vh);
+      const t = a.life / a.maxLife;
+      ctx.globalAlpha = Math.max(0, 1 - t);
+      ctx.strokeStyle = a.color;
+      ctx.lineWidth = a.width * cam.zoom;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.beginPath();
+      const [x0, y0] = a.points[0];
+      ctx.moveTo(sx + x0 * cam.zoom, sy + y0 * cam.zoom);
+      for (let i = 1; i < a.points.length; i++) {
+        const [px, py] = a.points[i];
+        ctx.lineTo(sx + px * cam.zoom, sy + py * cam.zoom);
+      }
       ctx.stroke();
       ctx.globalAlpha = 1;
     }
+  }
+}
+
+/** Soft glow + (for Grand Fusion only) a rotating dashed power-ring drawn
+ * behind the elemental shape — the "this bullet came from something more
+ * powerful than a base tower" cue, independent of which element fired. */
+function drawAura(ctx: CanvasRenderingContext2D, category: TowerCategory, pal: ElementPalette, palB: ElementPalette | null, auraSpin: number) {
+  if (category === "base") return;
+
+  const strength = category === "grand" ? 1 : 0.55;
+  const radius = category === "grand" ? 7.5 : 6.2;
+  const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
+  grad.addColorStop(0, rgba(pal.accent, 0.4 * strength));
+  grad.addColorStop(1, rgba(pal.accent, 0));
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(0, 0, radius, 0, Math.PI * 2);
+  ctx.fill();
+
+  if (category === "grand") {
+    ctx.save();
+    ctx.rotate(auraSpin);
+    ctx.globalAlpha = 0.75;
+    ctx.strokeStyle = palB ? palB.accent : pal.light;
+    ctx.lineWidth = 0.5;
+    ctx.setLineDash([1.4, 1.6]);
+    ctx.beginPath();
+    ctx.arc(0, 0, radius * 0.82, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
   }
 }
 

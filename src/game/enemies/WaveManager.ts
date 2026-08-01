@@ -508,3 +508,40 @@ export function getWave(index: number): WaveDef | undefined {
   if (index > TOTAL_WAVES) return generateEndlessWave(index);
   return undefined;
 }
+
+export interface SpawnOrderEntry {
+  enemyId: string;
+  /** Milliseconds after the wave starts — relative, not an absolute game
+   * timestamp, so this same ordering works both for actually scheduling
+   * spawns (Game.ts adds its own elapsed-time offset) and for a read-only
+   * "what's coming" preview that has no notion of elapsed time yet. */
+  offsetMs: number;
+  healthMultiplier: number;
+  isBoss?: boolean;
+}
+
+/**
+ * Single source of truth for "in what order do this wave's enemies
+ * actually walk out," used both by Game.ts's real spawn scheduler and by
+ * the next-wave preview UI — a wave's `spawns` entries don't spawn one
+ * entry fully before the next starts, they interleave by timing (every
+ * entry's own count starts ticking from the same t=0), so the true spawn
+ * order has to be computed by sorting the merged timeline, not just read
+ * off `spawns` in array order.
+ */
+export function computeSpawnOrder(wave: WaveDef): SpawnOrderEntry[] {
+  const queue: SpawnOrderEntry[] = [];
+  let latest = 0;
+  for (const entry of wave.spawns) {
+    for (let i = 0; i < entry.count; i++) {
+      const offsetMs = i * entry.intervalMs;
+      queue.push({ enemyId: entry.enemyId, offsetMs, healthMultiplier: entry.healthMultiplier ?? 1 });
+      latest = Math.max(latest, offsetMs);
+    }
+  }
+  if (wave.bossId) {
+    queue.push({ enemyId: wave.bossId, offsetMs: latest + 1500, healthMultiplier: 1, isBoss: true });
+  }
+  queue.sort((a, b) => a.offsetMs - b.offsetMs);
+  return queue;
+}

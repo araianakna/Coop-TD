@@ -90,7 +90,11 @@ export interface TowerAbilityContext {
   worldPosition: [number, number, number];
   applyStatus: (targetEnemyId: string, effect: StatusEffect) => void;
   dealDamage: (targetEnemyId: string, dmg: DamageInstance) => void;
-  emitVfx: (vfxId: string, worldPos: [number, number, number]) => void;
+  /** `statusKind`, when the ability applies one, lets the VFX layer draw a
+   * bespoke effect matching what the ability actually does (a burn ability
+   * throws embers, a freeze ability shatters ice, ...) instead of a generic
+   * colored burst for every ability regardless of function. */
+  emitVfx: (vfxId: string, worldPos: [number, number, number], statusKind?: StatusEffectKind) => void;
 }
 
 export interface TowerDef {
