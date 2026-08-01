@@ -1292,6 +1292,23 @@ export class Game {
     ctx.fillRect(cx - w / 2, topY, w, h);
     ctx.fillStyle = enemy.def.isBoss ? "#ffb14d" : "#4dff88";
     ctx.fillRect(cx - w / 2, topY, w * frac, h);
+    // Passive-trait badge: a small warded-diamond to the right of the bar
+    // for any enemy with `statusResistance` — a persistent tell (unlike
+    // drawStatusIcons below, which only shows effects currently landed) so
+    // players learn "CC barely works here" before wasting a whole rotation
+    // finding out the slow expired in half the time they expected.
+    if (enemy.def.statusResistance) {
+      const bx = cx + w / 2 + 5;
+      const by = topY + h / 2;
+      ctx.fillStyle = "#e8d9ff";
+      ctx.beginPath();
+      ctx.moveTo(bx, by - 3.2);
+      ctx.lineTo(bx + 3.2, by);
+      ctx.lineTo(bx, by + 3.2);
+      ctx.lineTo(bx - 3.2, by);
+      ctx.closePath();
+      ctx.fill();
+    }
   }
 
   private static readonly STATUS_COLOR: Partial<Record<StatusEffectKind, string>> = {
