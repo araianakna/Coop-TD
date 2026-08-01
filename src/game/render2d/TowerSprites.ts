@@ -37,6 +37,60 @@ function parseElements(def: TowerDef): [Element, Element | null] {
   return [el as Element, null];
 }
 
+const ELEMENT_SET = new Set<string>(["fire", "ice", "lightning", "nature", "earth", "arcane", "shadow"]);
+
+/** The tower id is the only place a Grand Fusion's full 3-element
+ * composition survives — `def.element` (a `FusionElementPair`) can only
+ * ever hold 2 slots, so it's set to whichever 2-element parent happened to
+ * be used when the recipe was authored, silently dropping the 3rd element.
+ * Ids are always element names joined in `ELEMENTS` order (see
+ * GrandFusionMatrix.ts's header comment), so parsing the id back out is
+ * the reliable source of truth this file needs to actually render all 3
+ * elements instead of just the 2 the parent pair happened to expose. */
+function parseIdElements(def: TowerDef): Element[] {
+  const idTail = def.id.replace(/^tower_/, "");
+  return idTail.split("_").filter((p): p is Element => ELEMENT_SET.has(p));
+}
+
+interface VisualElements {
+  primary: Element;
+  /** First accent element, if any — for a 2-element fusion this is the
+   * only accent; for a distinct-triad Grand Fusion it's drawn opposite
+   * `accentB` (right anchor) instead of doubled onto both sides. */
+  accentA: Element | null;
+  /** Second accent element — only set for Grand Fusions whose 3 elements
+   * are all distinct, so both non-primary elements get their own dedicated
+   * glyph instead of one of them vanishing entirely. */
+  accentB: Element | null;
+  isGrand: boolean;
+}
+
+/** Resolves what actually gets drawn from a tower's id, replacing the old
+ * `def.element`-only parse. Base towers and simple 2-element fusions
+ * (including same-element Twin fusions) are untouched — the fix only
+ * changes Grand Fusion (3-element id) resolution:
+ *  - triple-same (X,X,X): pure `primary`, no accents — already reads as a
+ *    saturated single-element apex, which is correct.
+ *  - duplicate-parent (X,X,Y): `primary` is the doubled element, `accentA`
+ *    is the genuinely differentiating 3rd element Y (previously this slot
+ *    silently got X again, making these towers indistinguishable from a
+ *    plain X tower).
+ *  - all-distinct (a,b,c): `primary` is the first in ELEMENTS order,
+ *    `accentA`/`accentB` are the other two, each drawn at its own anchor
+ *    instead of one of them being dropped. */
+function resolveVisualElements(def: TowerDef): VisualElements {
+  const idEls = parseIdElements(def);
+  if (idEls.length <= 2) {
+    const [a, b] = parseElements(def);
+    return { primary: a, accentA: b, accentB: null, isGrand: false };
+  }
+  const [a, b, c] = idEls;
+  if (a === b && b === c) return { primary: a, accentA: null, accentB: null, isGrand: true };
+  if (a === b) return { primary: a, accentA: c, accentB: null, isGrand: true };
+  if (b === c) return { primary: b, accentA: a, accentB: null, isGrand: true };
+  return { primary: a, accentA: b, accentB: c, isGrand: true };
+}
+
 // ---------------------------------------------------------------------------
 // Local colors not covered by the shared element palette — a warm stone base
 // (matches the "stone cottage" reference), warm wood for nature trunks, and
@@ -530,65 +584,80 @@ function anchorsFor(info: StructInfo): Anchors {
   };
 }
 
-function fireAccent(pc: PixelCanvas, info: StructInfo, tier: 1 | 2 | 3, grand: boolean, pb: ElementPalette) {
+/** Every accent function takes an optional `onlySide`: undefined means "the
+ * single secondary element of a 2-element fusion or duplicate-parent Grand
+ * Fusion" and reproduces the original right-always/left-at-tier2+ look;
+ * "right"/"left" means "one of TWO distinct accent elements on an
+ * all-distinct-triad Grand Fusion", so each draws only its own side, always
+ * visible from tier 1 (there's no other copy of that element anywhere else
+ * on the sprite to fall back on). */
+type OnlySide = "left" | "right" | undefined;
+
+function fireAccent(pc: PixelCanvas, info: StructInfo, tier: 1 | 2 | 3, grand: boolean, pb: ElementPalette, onlySide?: OnlySide) {
   const a = anchorsFor(info);
-  drawFlame(pc, a.rightX, a.rightY + 3, 5 + tier, 1.8, pb, 0.4);
-  if (tier >= 2) drawFlame(pc, a.leftX, a.leftY + 3, 4 + tier, 1.5, pb, -0.4);
-  if (grand) pc.px(Math.round(a.topX + 4), Math.round(a.topY), pb.accent);
+  if (onlySide !== "left") drawFlame(pc, a.rightX, a.rightY + 3, 5 + tier, 1.8, pb, 0.4);
+  if (onlySide === "left" || (onlySide === undefined && tier >= 2)) drawFlame(pc, a.leftX, a.leftY + 3, 4 + tier, 1.5, pb, -0.4);
+  if (grand && onlySide !== "left") pc.px(Math.round(a.topX + 4), Math.round(a.topY), pb.accent);
 }
 
-function iceAccent(pc: PixelCanvas, info: StructInfo, tier: 1 | 2 | 3, grand: boolean, pb: ElementPalette) {
+function iceAccent(pc: PixelCanvas, info: StructInfo, tier: 1 | 2 | 3, grand: boolean, pb: ElementPalette, onlySide?: OnlySide) {
   const a = anchorsFor(info);
-  drawCrystal(pc, a.rightX, a.rightY + 3, 5 + tier * 0.7, 1.7, pb);
-  if (tier >= 2) drawCrystal(pc, a.leftX, a.leftY + 3, 4 + tier * 0.6, 1.5, pb);
-  if (grand) pc.px(Math.round(a.topX - 4), Math.round(a.topY + 1), SPARK);
+  if (onlySide !== "left") drawCrystal(pc, a.rightX, a.rightY + 3, 5 + tier * 0.7, 1.7, pb);
+  if (onlySide === "left" || (onlySide === undefined && tier >= 2)) drawCrystal(pc, a.leftX, a.leftY + 3, 4 + tier * 0.6, 1.5, pb);
+  if (grand && onlySide !== "left") pc.px(Math.round(a.topX - 4), Math.round(a.topY + 1), SPARK);
 }
 
-function lightningAccent(pc: PixelCanvas, info: StructInfo, tier: 1 | 2 | 3, grand: boolean, pb: ElementPalette) {
+function lightningAccent(pc: PixelCanvas, info: StructInfo, tier: 1 | 2 | 3, grand: boolean, pb: ElementPalette, onlySide?: OnlySide) {
   const a = anchorsFor(info);
-  drawBolt(pc, a.rightX, a.rightY + 4, 6 + tier, 2.4, pb);
-  if (tier >= 2) drawBolt(pc, a.leftX, a.leftY + 4, 5 + tier, 2, pb);
-  if (grand) pc.px(Math.round(a.topX), Math.round(a.topY - 1), pb.light);
+  if (onlySide !== "left") drawBolt(pc, a.rightX, a.rightY + 4, 6 + tier, 2.4, pb);
+  if (onlySide === "left" || (onlySide === undefined && tier >= 2)) drawBolt(pc, a.leftX, a.leftY + 4, 5 + tier, 2, pb);
+  if (grand && onlySide !== "left") pc.px(Math.round(a.topX), Math.round(a.topY - 1), pb.light);
 }
 
-function natureAccent(pc: PixelCanvas, info: StructInfo, tier: 1 | 2 | 3, grand: boolean, pb: ElementPalette) {
+function natureAccent(pc: PixelCanvas, info: StructInfo, tier: 1 | 2 | 3, grand: boolean, pb: ElementPalette, onlySide?: OnlySide) {
   const a = anchorsFor(info);
-  strokeLine(pc, a.rightX + 1, FEET_Y, a.rightX, a.rightY, pb.dark);
-  shadedBlob(pc, a.rightX, a.rightY, 1.7, 1.4, pb, pb.light);
-  if (tier >= 2) {
+  if (onlySide !== "left") {
+    strokeLine(pc, a.rightX + 1, FEET_Y, a.rightX, a.rightY, pb.dark);
+    shadedBlob(pc, a.rightX, a.rightY, 1.7, 1.4, pb, pb.light);
+  }
+  if (onlySide === "left" || (onlySide === undefined && tier >= 2)) {
     strokeLine(pc, a.leftX - 1, FEET_Y, a.leftX, a.leftY, pb.dark);
     shadedBlob(pc, a.leftX, a.leftY, 1.5, 1.2, pb, pb.light);
   }
-  if (grand) pc.px(Math.round(a.topX - 3), Math.round(a.topY), pb.accent);
+  if (grand && onlySide !== "left") pc.px(Math.round(a.topX - 3), Math.round(a.topY), pb.accent);
 }
 
-function earthAccent(pc: PixelCanvas, info: StructInfo, tier: 1 | 2 | 3, grand: boolean, pb: ElementPalette) {
+function earthAccent(pc: PixelCanvas, info: StructInfo, tier: 1 | 2 | 3, grand: boolean, pb: ElementPalette, onlySide?: OnlySide) {
   const a = anchorsFor(info);
-  shadedBlob(pc, a.rightX, a.rightY + 3, 2.6, 2, pb, pb.light);
-  if (tier >= 2) shadedBlob(pc, a.leftX, a.leftY + 3, 2.2, 1.7, pb, pb.light);
-  if (grand) pc.px(Math.round(a.rightX), Math.round(a.rightY + 1), pb.accent);
+  if (onlySide !== "left") shadedBlob(pc, a.rightX, a.rightY + 3, 2.6, 2, pb, pb.light);
+  if (onlySide === "left" || (onlySide === undefined && tier >= 2)) shadedBlob(pc, a.leftX, a.leftY + 3, 2.2, 1.7, pb, pb.light);
+  if (grand && onlySide !== "left") pc.px(Math.round(a.rightX), Math.round(a.rightY + 1), pb.accent);
 }
 
-function arcaneAccent(pc: PixelCanvas, info: StructInfo, tier: 1 | 2 | 3, grand: boolean, pb: ElementPalette) {
+function arcaneAccent(pc: PixelCanvas, info: StructInfo, tier: 1 | 2 | 3, grand: boolean, pb: ElementPalette, onlySide?: OnlySide) {
   const a = anchorsFor(info);
-  drawRuneRing(pc, a.topX, a.topY + 3, info.halfW * 0.55, 1.8, pb);
-  if (tier >= 2) drawRuneRing(pc, a.topX, a.topY + 6, info.halfW * 0.7, 2.1, pb);
-  pc.px(Math.round(a.topX), Math.round(a.topY + 3), pb.light);
-  if (grand) pc.px(Math.round(a.leftX), Math.round(a.leftY), pb.accent);
+  const offsetX = onlySide === "left" ? -info.halfW * 0.6 : onlySide === "right" ? info.halfW * 0.6 : 0;
+  const cx = a.topX + offsetX;
+  drawRuneRing(pc, cx, a.topY + 3, info.halfW * (onlySide ? 0.42 : 0.55), 1.8, pb);
+  if (onlySide !== undefined || tier >= 2) drawRuneRing(pc, cx, a.topY + (onlySide ? 3 : 6), info.halfW * (onlySide ? 0.5 : 0.7), 2.1, pb);
+  pc.px(Math.round(cx), Math.round(a.topY + 3), pb.light);
+  if (grand && onlySide !== "left") pc.px(Math.round(a.leftX), Math.round(a.leftY), pb.accent);
 }
 
-function shadowAccent(pc: PixelCanvas, info: StructInfo, tier: 1 | 2 | 3, grand: boolean, pb: ElementPalette) {
+function shadowAccent(pc: PixelCanvas, info: StructInfo, tier: 1 | 2 | 3, grand: boolean, pb: ElementPalette, onlySide?: OnlySide) {
   const a = anchorsFor(info);
-  pc.px(Math.round(a.rightX), Math.round(a.rightY + 2), pb.accent);
-  strokeLine(pc, a.rightX, a.rightY + 4, a.rightX + 1, a.rightY + 6, pb.dark);
-  if (tier >= 2) {
+  if (onlySide !== "left") {
+    pc.px(Math.round(a.rightX), Math.round(a.rightY + 2), pb.accent);
+    strokeLine(pc, a.rightX, a.rightY + 4, a.rightX + 1, a.rightY + 6, pb.dark);
+  }
+  if (onlySide === "left" || (onlySide === undefined && tier >= 2)) {
     pc.px(Math.round(a.leftX), Math.round(a.leftY + 2), pb.accent);
     strokeLine(pc, a.leftX, a.leftY + 4, a.leftX - 1, a.leftY + 6, pb.dark);
   }
-  if (grand) pc.px(Math.round(a.topX), Math.round(a.topY), pb.light);
+  if (grand && onlySide !== "left") pc.px(Math.round(a.topX), Math.round(a.topY), pb.light);
 }
 
-const ACCENTS: Record<Element, (pc: PixelCanvas, info: StructInfo, tier: 1 | 2 | 3, grand: boolean, pb: ElementPalette) => void> = {
+const ACCENTS: Record<Element, (pc: PixelCanvas, info: StructInfo, tier: 1 | 2 | 3, grand: boolean, pb: ElementPalette, onlySide?: OnlySide) => void> = {
   fire: fireAccent,
   ice: iceAccent,
   lightning: lightningAccent,
@@ -602,13 +671,13 @@ const ACCENTS: Record<Element, (pc: PixelCanvas, info: StructInfo, tier: 1 | 2 |
  * sparkle motes crowning the whole structure, plus a wider plinth (handled
  * by the caller via FOOTPRINT+1). Reads as "more ornate/imposing", not just
  * "bigger". */
-function drawGrandFlourish(pc: PixelCanvas, info: StructInfo, pa: ElementPalette, pb: ElementPalette) {
+function drawGrandFlourish(pc: PixelCanvas, info: StructInfo, colorA: string, colorB: string) {
   const motes = 7;
   for (let i = 0; i < motes; i++) {
     const t = (i / (motes - 1)) * 2 - 1;
     const dx = t * (info.halfW + 4);
     const dy = -2 - (1 - t * t) * 3.5;
-    pc.px(Math.round(CX + dx), Math.round(info.top + dy), i % 2 === 0 ? pa.accent : pb.accent);
+    pc.px(Math.round(CX + dx), Math.round(info.top + dy), i % 2 === 0 ? colorA : colorB);
   }
 }
 
@@ -622,30 +691,44 @@ function drawGrandFlourish(pc: PixelCanvas, info: StructInfo, pa: ElementPalette
  * fusion towers grow their first element's archetype as the primary
  * silhouette and weave the second element's motif in as accent details at a
  * couple of anchor points, so the blend reads as a real hybrid rather than a
- * literal vertical split. Grand Fusions (tri-element capstones — detected
- * from the tower id carrying three element segments, since `def.element`
- * only ever exposes two) get the same treatment scaled up with an extra
- * sparkle-crown flourish. */
+ * literal vertical split. Grand Fusions (tri-element capstones, resolved via
+ * `resolveVisualElements` from the id — `def.element` only ever exposes 2 of
+ * the 3) get the same treatment scaled up: a duplicate-parent triad
+ * (X,X,Y) draws Y as the accent instead of silently vanishing, and an
+ * all-distinct triad (a,b,c) draws b and c as two independent accents on
+ * opposite sides instead of one of them being dropped — every Grand Fusion
+ * now visibly carries all 3 of its elements, plus a sparkle-crown flourish. */
 export function getTowerSprite(def: TowerDef, tier: 1 | 2 | 3): HTMLCanvasElement {
   const key = `${def.id}:${tier}`;
   const cached = cache.get(key);
   if (cached) return cached;
 
-  const [elA, elB] = parseElements(def);
-  const pa = elementPalette(elA);
-  const pb = elB ? elementPalette(elB) : null;
-  const idTail = def.id.replace(/^tower_/, "");
-  const isGrand = idTail.split("_").length >= 3;
+  const { primary, accentA, accentB, isGrand } = resolveVisualElements(def);
+  const pa = elementPalette(primary);
+  const paletteA = accentA ? elementPalette(accentA) : null;
+  const paletteB = accentB ? elementPalette(accentB) : null;
 
   const pc = new PixelCanvas(SIZE);
 
-  const footprint = FOOTPRINT[elA] + (isGrand ? 1 : 0);
-  if (elA !== "arcane") drawPlinth(pc, footprint);
+  const footprint = FOOTPRINT[primary] + (isGrand ? 1 : 0);
+  if (primary !== "arcane") drawPlinth(pc, footprint);
 
-  const info = STRUCTURES[elA](pc, tier, isGrand, pa);
+  const info = STRUCTURES[primary](pc, tier, isGrand, pa);
 
-  if (elB && pb) ACCENTS[elB](pc, info, tier, isGrand, pb);
-  if (isGrand && pb) drawGrandFlourish(pc, info, pa, pb);
+  if (accentA && paletteA) {
+    // Two distinct accent elements (all-3-different Grand Fusion) each get
+    // their own side; a single accent element (everything else) keeps the
+    // original both-sides-tier-gated look.
+    ACCENTS[accentA](pc, info, tier, isGrand, paletteA, accentB ? "right" : undefined);
+  }
+  if (accentB && paletteB) {
+    ACCENTS[accentB](pc, info, tier, isGrand, paletteB, "left");
+  }
+  if (isGrand) {
+    const flourishColorA = (paletteB ?? paletteA ?? pa).accent;
+    const flourishColorB = pa.light;
+    drawGrandFlourish(pc, info, flourishColorA, flourishColorB);
+  }
 
   pc.outline(OUTLINE);
   drawGroundShadow(pc, footprint);
