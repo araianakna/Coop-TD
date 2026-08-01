@@ -445,17 +445,14 @@ export class Game {
     const [fA, fB] = this.towerElements(fusionTower);
     const thirdElement = baseTower.def.element as Element;
     if (!fB) return [];
-    // A distinct-pair parent (fA !== fB, e.g. Steamcaller = fire+ice) needs
-    // a genuinely new third element — re-adding fire or ice doesn't make a
-    // sensible triad. A Twin/duplicate parent (fA === fB, e.g. Twin Ember =
-    // fire+fire) is different: its only two "new" directions are a
-    // different third element (the XXY duplicate-parent triads, e.g.
-    // fire+fire+ice) OR one more of the SAME element again (an XXX triple
-    // capstone, e.g. fire+fire+fire) — both are meaningful, so only the
-    // distinct-pair case restricts the third element at all.
-    const isTwinParent = fA === fB;
-    if (!isTwinParent && (thirdElement === fA || thirdElement === fB)) return [];
-
+    // No eligibility restriction on the third element at all — path-
+    // agnostic by design: Steamcaller(fire+ice)+fire and Twin Ember(fire+
+    // fire)+ice both represent the same "2 fire + 1 ice" combination and
+    // must both resolve to the same result, regardless of which order the
+    // player assembled it in. Whether a given (parent, third) pairing is
+    // actually a real combination is entirely GrandFusionMatrix.ts's job —
+    // it's the recipe lookup below, not this eligibility check, that gates
+    // validity.
     const recipe = getGrandFusionRecipe(fusionTower.def.id, thirdElement);
     if (!recipe) return [];
     const resultDef = getTowerDef(recipe.resultTowerId);
