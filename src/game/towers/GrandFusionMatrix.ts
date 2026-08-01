@@ -218,6 +218,38 @@ export const GRAND_FUSION_RECIPES: GrandFusionRecipe[] = [
     thirdElement: "shadow",
     resultTowerId: "tower_nature_nature_shadow",
   },
+
+  // Duplicate-parent completion, batch 3 — every earth+earth+Y and
+  // arcane+arcane+Y (neither had any prior coverage). Running total after
+  // this batch: 37/42.
+  { parentFusionTowerId: "tower_earth_earth", thirdElement: "fire", resultTowerId: "tower_earth_earth_fire" },
+  { parentFusionTowerId: "tower_earth_earth", thirdElement: "ice", resultTowerId: "tower_earth_earth_ice" },
+  {
+    parentFusionTowerId: "tower_earth_earth",
+    thirdElement: "lightning",
+    resultTowerId: "tower_earth_earth_lightning",
+  },
+  { parentFusionTowerId: "tower_earth_earth", thirdElement: "nature", resultTowerId: "tower_earth_earth_nature" },
+  { parentFusionTowerId: "tower_earth_earth", thirdElement: "arcane", resultTowerId: "tower_earth_earth_arcane" },
+  { parentFusionTowerId: "tower_earth_earth", thirdElement: "shadow", resultTowerId: "tower_earth_earth_shadow" },
+  { parentFusionTowerId: "tower_arcane_arcane", thirdElement: "fire", resultTowerId: "tower_arcane_arcane_fire" },
+  { parentFusionTowerId: "tower_arcane_arcane", thirdElement: "ice", resultTowerId: "tower_arcane_arcane_ice" },
+  {
+    parentFusionTowerId: "tower_arcane_arcane",
+    thirdElement: "lightning",
+    resultTowerId: "tower_arcane_arcane_lightning",
+  },
+  {
+    parentFusionTowerId: "tower_arcane_arcane",
+    thirdElement: "nature",
+    resultTowerId: "tower_arcane_arcane_nature",
+  },
+  { parentFusionTowerId: "tower_arcane_arcane", thirdElement: "earth", resultTowerId: "tower_arcane_arcane_earth" },
+  {
+    parentFusionTowerId: "tower_arcane_arcane",
+    thirdElement: "shadow",
+    resultTowerId: "tower_arcane_arcane_shadow",
+  },
 ];
 
 function recipeKey(parentFusionTowerId: string, thirdElement: Element): string {
