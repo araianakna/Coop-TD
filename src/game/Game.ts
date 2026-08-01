@@ -693,10 +693,28 @@ export class Game {
     const now = Date.now();
     enemy.statusEffects = enemy.statusEffects.filter((e) => now - e.appliedAt < e.durationMs);
 
+    // Each kind now occupies its own tactical niche instead of a handful of
+    // status names sharing the same handful of mechanics:
+    //  - chill: sustained PARTIAL slow, scales with magnitude — the "always
+    //    somewhat useful" crowd-thinning tool.
+    //  - shock / freeze: full stop (speedMult 0) — shock is the brief
+    //    version (short durations already authored across its abilities),
+    //    freeze the longer capstone-tier version. Same bucket, different
+    //    durations give them a real "quick interrupt" vs "hard lockdown"
+    //    feel without needing separate code paths.
+    //  - root: also a full stop, but GROUND-ONLY — it can't grab something
+    //    that's flying, unlike freeze/shock, so it's the ground-rush
+    //    counter rather than a universal CC.
+    //  - burn: flat, no-frills DOT — fire's identity is raw damage.
+    //  - poison: DOT that also spreads to nearby enemies when the carrier
+    //    dies (see the contagion check in killEnemy/removeEnemy below) —
+    //    nature's identity is crowd control against clustered waves, not
+    //    single-target damage.
     let speedMult = 1;
     for (const effect of enemy.statusEffects) {
-      if (effect.kind === "chill" || effect.kind === "shock") speedMult *= 1 - effect.magnitude;
-      if (effect.kind === "freeze" || effect.kind === "root") speedMult = 0;
+      if (effect.kind === "chill") speedMult *= 1 - effect.magnitude;
+      if (effect.kind === "shock" || effect.kind === "freeze") speedMult = 0;
+      if (effect.kind === "root" && enemy.def.movement !== "flying") speedMult = 0;
       if (effect.kind === "burn" || effect.kind === "poison") {
         enemy.health -= effect.magnitude * dtSeconds;
       }
@@ -743,9 +761,29 @@ export class Game {
   }
 
   private killEnemy(enemy: EnemyInstance) {
+    this.spreadPoisonOnDeath(enemy);
     this.economy.earn(Math.round(enemy.def.bounty * BOUNTY_MULTIPLIER));
     this.removeEnemy(enemy);
     this.audio.combat.enemyDeath(enemy.def.isBoss ?? false);
+  }
+
+  /** Poison's real identity: a dying poisoned enemy pops its infection onto
+   * anything else still standing nearby, carrying the same magnitude/
+   * duration forward. Against a clustered wave this chains — kill one,
+   * infect its neighbors, they die and infect theirs — turning a single
+   * poison application into sustained area control instead of a one-off
+   * DOT, which is what actually separates poison from burn's flat damage. */
+  private spreadPoisonOnDeath(enemy: EnemyInstance) {
+    const poison = enemy.statusEffects.find((e) => e.kind === "poison");
+    if (!poison) return;
+    const radius = 1.8;
+    for (const other of this.enemies) {
+      if (other === enemy || other.health <= 0) continue;
+      const d = Math.hypot(other.worldX - enemy.worldX, other.worldY - enemy.worldY);
+      if (d > radius) continue;
+      this.applyStatusToEnemy(other, { ...poison, appliedAt: Date.now() });
+      this.vfx.emitVfx("vfx.nature.poison_spread", [other.worldX, 0, other.worldY], "poison");
+    }
   }
 
   /**
@@ -903,7 +941,17 @@ export class Game {
     critChance?: number,
     critMultiplier?: number,
   ) {
-    const mult = enemy.def.resistances[element] ?? enemy.def.weaknesses[element] ?? 1;
+    const rawMult = enemy.def.resistances[element] ?? enemy.def.weaknesses[element] ?? 1;
+    // Silence's real identity: it strips the enemy's innate elemental
+    // RESISTANCE while active (rawMult < 1 becomes 1, full damage gets
+    // through) but doesn't touch an exploited WEAKNESS bonus (rawMult > 1
+    // stays as-is) — "suppressing defenses" makes sense, silencing away a
+    // weakness the player is already benefiting from wouldn't. This gives
+    // arcane's signature status a real answer to the specialized-resistance
+    // enemies later waves lean on, distinct from sunder (armor) and curse
+    // (a flat damage-taken multiplier stacking on top of both).
+    const silenced = enemy.statusEffects.some((e) => e.kind === "silence");
+    const mult = silenced && rawMult < 1 ? 1 : rawMult;
     let dmg = baseDamage * mult;
     if (critChance && critMultiplier && Math.random() < critChance) dmg *= critMultiplier;
     const armor = this.effectiveArmor(enemy);

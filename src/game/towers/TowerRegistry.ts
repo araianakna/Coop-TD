@@ -297,7 +297,7 @@ const lightningTower: TowerDef = {
       id: "storm_conduit_grand_overload",
       name: "Grand Overload",
       description:
-        "Tier-3 capstone. Floods the target with raw current, frying its systems and silencing every special capability for several seconds.",
+        "Tier-3 capstone. Floods the target with raw current, frying its systems and stripping away its elemental resistances for several seconds.",
       cooldownMs: 14000,
       vfxId: "vfx.lightning.ability_grand_overload",
       statusKind: "silence",
@@ -430,7 +430,7 @@ const arcaneTower: TowerDef = {
     makeAbility({
       id: "rune_obelisk_silence",
       name: "Silence",
-      description: "Suppresses the target's special abilities for a short time.",
+      description: "Strips away the target's elemental resistances for a short time, letting every hit land at full force.",
       cooldownMs: 8000,
       vfxId: "vfx.arcane.ability_silence",
       statusKind: "silence",
@@ -1485,7 +1485,7 @@ const arcaneArcaneTower: TowerDef = {
     makeAbility({
       id: "twin_rune_deep_silence",
       name: "Deep Silence",
-      description: "A doubled-up Silence — suppresses the target's abilities for far longer than one obelisk could alone.",
+      description: "A doubled-up Silence — strips the target's elemental resistances for far longer than one obelisk could alone.",
       cooldownMs: 6500,
       vfxId: "vfx.arcane_arcane.ability_deep_silence",
       statusKind: "silence",
@@ -2110,7 +2110,7 @@ const fireIceArcaneTower: TowerDef = {
       id: "scaldweave_reliquary_unweaving_flare",
       name: "Unweaving Flare",
       description:
-        "Grand Fusion capstone. Unravels the target's defenses into silence, then scalds it with a burst of the reliquary's captive fire.",
+        "Grand Fusion capstone. Unravels the target's elemental defenses, then scalds it with a burst of the reliquary's captive fire.",
       cooldownMs: 8800,
       vfxId: "vfx.fire_ice_arcane.ability_unweaving_flare",
       statusKind: "silence",
@@ -4145,7 +4145,7 @@ const arcaneArcaneFireTower: TowerDef = {
     makeAbility({
       id: "hexforge_twin_deeper_silence",
       name: "Deeper Silence",
-      description: "Grand Fusion capstone. Suppresses the target's abilities far longer than Twin Rune alone, then sears it with captive fire.",
+      description: "Grand Fusion capstone. Strips the target's elemental resistances far longer than Twin Rune alone, then sears it with captive fire.",
       cooldownMs: 9200,
       vfxId: "vfx.arcane_arcane_fire.ability_deeper_silence",
       statusKind: "silence",
@@ -4182,7 +4182,7 @@ const arcaneArcaneIceTower: TowerDef = {
     makeAbility({
       id: "runeglass_twin_deeper_silence",
       name: "Deeper Silence",
-      description: "Grand Fusion capstone. Suppresses the target's abilities far longer than Twin Rune alone, then chills it to the bone.",
+      description: "Grand Fusion capstone. Strips the target's elemental resistances far longer than Twin Rune alone, then chills it to the bone.",
       cooldownMs: 9200,
       vfxId: "vfx.arcane_arcane_ice.ability_deeper_silence",
       statusKind: "silence",
@@ -4219,7 +4219,7 @@ const arcaneArcaneLightningTower: TowerDef = {
     makeAbility({
       id: "arcflux_twin_deeper_silence",
       name: "Deeper Silence",
-      description: "Grand Fusion capstone. Suppresses the target's abilities far longer than Twin Rune alone, then overcharges it with captive current.",
+      description: "Grand Fusion capstone. Strips the target's elemental resistances far longer than Twin Rune alone, then overcharges it with captive current.",
       cooldownMs: 9200,
       vfxId: "vfx.arcane_arcane_lightning.ability_deeper_silence",
       statusKind: "silence",
@@ -4256,7 +4256,7 @@ const arcaneArcaneNatureTower: TowerDef = {
     makeAbility({
       id: "runegrove_twin_deeper_silence",
       name: "Deeper Silence",
-      description: "Grand Fusion capstone. Suppresses the target's abilities far longer than Twin Rune alone, then poisons it with rune-fed sap.",
+      description: "Grand Fusion capstone. Strips the target's elemental resistances far longer than Twin Rune alone, then poisons it with rune-fed sap.",
       cooldownMs: 9200,
       vfxId: "vfx.arcane_arcane_nature.ability_deeper_silence",
       statusKind: "silence",
@@ -4293,7 +4293,7 @@ const arcaneArcaneEarthTower: TowerDef = {
     makeAbility({
       id: "runeforge_twin_deeper_silence",
       name: "Deeper Silence",
-      description: "Grand Fusion capstone. Suppresses the target's abilities far longer than Twin Rune alone, then drops rune-bound stone on it.",
+      description: "Grand Fusion capstone. Strips the target's elemental resistances far longer than Twin Rune alone, then drops rune-bound stone on it.",
       cooldownMs: 9200,
       vfxId: "vfx.arcane_arcane_earth.ability_deeper_silence",
       statusKind: "silence",
@@ -4330,7 +4330,7 @@ const arcaneArcaneShadowTower: TowerDef = {
     makeAbility({
       id: "voidrune_twin_cursed_silence",
       name: "Cursed Silence",
-      description: "Grand Fusion capstone. Brands the target with a severe curse and suppresses its abilities at once.",
+      description: "Grand Fusion capstone. Brands the target with a severe curse, unraveling its arcane defenses at the same time.",
       cooldownMs: 9200,
       vfxId: "vfx.arcane_arcane_shadow.ability_cursed_silence",
       statusKind: "curse",
@@ -4752,7 +4752,7 @@ const arcaneArcaneArcaneTower: TowerDef = {
     makeAbility({
       id: "arcane_singularity_apex_silence",
       name: "Apex Silence",
-      description: "Grand Fusion capstone. Suppresses the target's abilities for the longest span arcane force alone can hold.",
+      description: "Grand Fusion capstone. Strips away the target's elemental resistances for the longest span arcane force alone can hold.",
       cooldownMs: 9200,
       vfxId: "vfx.arcane_arcane_arcane.ability_apex_silence",
       statusKind: "silence",
