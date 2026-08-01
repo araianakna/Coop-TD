@@ -250,6 +250,29 @@ export const GRAND_FUSION_RECIPES: GrandFusionRecipe[] = [
     thirdElement: "shadow",
     resultTowerId: "tower_arcane_arcane_shadow",
   },
+
+  // Duplicate-parent completion, batch 4 (FINAL) — every remaining
+  // shadow+shadow+Y (shadow+shadow+fire was already done). This completes
+  // the full 42/42 duplicate-parent set, and with it every fusion
+  // combination in the game — base pairs, duplicate pairs, distinct
+  // triads, and duplicate-parent triads — now resolves to a real tower.
+  { parentFusionTowerId: "tower_shadow_shadow", thirdElement: "ice", resultTowerId: "tower_shadow_shadow_ice" },
+  {
+    parentFusionTowerId: "tower_shadow_shadow",
+    thirdElement: "lightning",
+    resultTowerId: "tower_shadow_shadow_lightning",
+  },
+  {
+    parentFusionTowerId: "tower_shadow_shadow",
+    thirdElement: "nature",
+    resultTowerId: "tower_shadow_shadow_nature",
+  },
+  { parentFusionTowerId: "tower_shadow_shadow", thirdElement: "earth", resultTowerId: "tower_shadow_shadow_earth" },
+  {
+    parentFusionTowerId: "tower_shadow_shadow",
+    thirdElement: "arcane",
+    resultTowerId: "tower_shadow_shadow_arcane",
+  },
 ];
 
 function recipeKey(parentFusionTowerId: string, thirdElement: Element): string {

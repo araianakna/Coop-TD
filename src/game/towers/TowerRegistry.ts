@@ -4348,6 +4348,199 @@ const arcaneArcaneShadowTower: TowerDef = {
 };
 
 // ---------------------------------------------------------------------------
+// Duplicate-parent Grand Fusion completion, batch 4 (FINAL) — every
+// remaining shadow+shadow+Y (Twin Wraith as parent). This closes out the
+// last combination category: every base pair, duplicate pair, distinct
+// triad, and duplicate-parent triad in the game now has a real tower
+// behind it.
+// ---------------------------------------------------------------------------
+
+const shadowShadowIceTower: TowerDef = {
+  id: "tower_shadow_shadow_ice",
+  name: "Hollowfrost Wraith",
+  element: "shadow+shadow",
+  isFusion: true,
+  flavorText: "Twin Wraith's doubled shroud has frozen mid-drift, ice clinging to every ragged fold.",
+  tiers: buildTiers(
+    { damage: 24, range: 6.2, fireRateMs: 780, projectileSpeed: 18 },
+    [640, 1320, 2610],
+    [1, 1.22, 1.5],
+    [
+      "A single fold of the shroud has iced over, eyes glinting through the frost.",
+      "Half the shroud now trails frost, curse and cold drifting together.",
+      "A true hollowfrost wraith, every fold of dark cloak sheathed in unmelting ice.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "hollowfrost_wraith_deeper_curse",
+      name: "Deeper Curse",
+      description: "Grand Fusion capstone. Brands the target with a severe curse, then chills it to the bone.",
+      cooldownMs: 9200,
+      vfxId: "vfx.shadow_shadow_ice.ability_deeper_curse",
+      statusKind: "curse",
+      statusMagnitude: 0.5,
+      statusDurationMs: 4400,
+      bonusDamage: 32,
+      damageElement: "ice",
+    }),
+  ],
+  targeting: "weakest",
+  projectileVfx: "vfx.shadow_shadow_ice.projectile",
+  impactVfx: "vfx.shadow_shadow_ice.impact",
+  idleVfx: "vfx.shadow_shadow_ice.idle",
+  modelId: "tower_shadow_shadow_ice",
+};
+
+const shadowShadowLightningTower: TowerDef = {
+  id: "tower_shadow_shadow_lightning",
+  name: "Voidbolt Wraith",
+  element: "shadow+shadow",
+  isFusion: true,
+  flavorText: "Twin Wraith's doubled shroud now crackles with cursed lightning between its ragged folds.",
+  tiers: buildTiers(
+    { damage: 20, range: 6.6, fireRateMs: 380, projectileSpeed: 24, critChance: 0.24, critMultiplier: 2 },
+    [655, 1350, 2670],
+    [1, 1.22, 1.5],
+    [
+      "A single spark of violet lightning now arcs between two folds of the shroud.",
+      "Lightning courses continuously through half the shroud, cloak snapping with every arc.",
+      "A true voidbolt wraith, doubled curse and raw current fused into one living storm-shroud.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "voidbolt_wraith_deeper_curse",
+      name: "Deeper Curse",
+      description: "Grand Fusion capstone. Brands the target with a severe curse, then arcs cursed lightning through it.",
+      cooldownMs: 9200,
+      vfxId: "vfx.shadow_shadow_lightning.ability_deeper_curse",
+      statusKind: "curse",
+      statusMagnitude: 0.5,
+      statusDurationMs: 4400,
+      bonusDamage: 34,
+      damageElement: "lightning",
+    }),
+  ],
+  targeting: "closest",
+  projectileVfx: "vfx.shadow_shadow_lightning.projectile",
+  impactVfx: "vfx.shadow_shadow_lightning.impact",
+  idleVfx: "vfx.shadow_shadow_lightning.idle",
+  modelId: "tower_shadow_shadow_lightning",
+};
+
+const shadowShadowNatureTower: TowerDef = {
+  id: "tower_shadow_shadow_nature",
+  name: "Blightwraith Grove",
+  element: "shadow+shadow",
+  isFusion: true,
+  flavorText: "Twin Wraith's doubled shroud has grown withered vines that never stop reaching for the light.",
+  tiers: buildTiers(
+    { damage: 19, range: 6.1, fireRateMs: 720, projectileSpeed: 17 },
+    [625, 1290, 2560],
+    [1, 1.22, 1.5],
+    [
+      "A single withered vine has grown from beneath the shroud's hem.",
+      "Half the shroud now trails withered vines, grey and slow-reaching.",
+      "A true blightwraith grove, doubled curse and withered growth grown into one being.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "blightwraith_grove_deeper_curse",
+      name: "Deeper Curse",
+      description: "Grand Fusion capstone. Brands the target with a severe curse, then poisons it with withering sap.",
+      cooldownMs: 9200,
+      vfxId: "vfx.shadow_shadow_nature.ability_deeper_curse",
+      statusKind: "curse",
+      statusMagnitude: 0.5,
+      statusDurationMs: 4400,
+      bonusDamage: 30,
+      damageElement: "nature",
+    }),
+  ],
+  targeting: "strongest",
+  projectileVfx: "vfx.shadow_shadow_nature.projectile",
+  impactVfx: "vfx.shadow_shadow_nature.impact",
+  idleVfx: "vfx.shadow_shadow_nature.idle",
+  modelId: "tower_shadow_shadow_nature",
+};
+
+const shadowShadowEarthTower: TowerDef = {
+  id: "tower_shadow_shadow_earth",
+  name: "Wraithstone Cairn",
+  element: "shadow+shadow",
+  isFusion: true,
+  flavorText: "Twin Wraith's doubled shroud now drapes over a cairn of cold grey stone it never leaves.",
+  tiers: buildTiers(
+    { damage: 27, range: 5.9, fireRateMs: 850, projectileSpeed: 15, splashRadius: 1.3 },
+    [645, 1330, 2630],
+    [1, 1.22, 1.5],
+    [
+      "A single stone has gathered beneath the shroud's hem.",
+      "A half-built cairn now anchors the shroud, stone and dark cloak fused at the base.",
+      "A true wraithstone cairn, doubled curse anchored permanently to unmoving grey stone.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "wraithstone_cairn_deeper_curse",
+      name: "Deeper Curse",
+      description: "Grand Fusion capstone. Brands the target with a severe curse, then crushes it beneath cursed stone.",
+      cooldownMs: 9200,
+      vfxId: "vfx.shadow_shadow_earth.ability_deeper_curse",
+      statusKind: "curse",
+      statusMagnitude: 0.5,
+      statusDurationMs: 4400,
+      bonusDamage: 37,
+      damageElement: "earth",
+    }),
+  ],
+  targeting: "strongest",
+  projectileVfx: "vfx.shadow_shadow_earth.projectile",
+  impactVfx: "vfx.shadow_shadow_earth.impact",
+  idleVfx: "vfx.shadow_shadow_earth.idle",
+  modelId: "tower_shadow_shadow_earth",
+};
+
+const shadowShadowArcaneTower: TowerDef = {
+  id: "tower_shadow_shadow_arcane",
+  name: "Voidglass Wraith",
+  element: "shadow+shadow",
+  isFusion: true,
+  flavorText: "Twin Wraith's doubled shroud now drifts within a halo of hexed rune-light that shows no reflection.",
+  tiers: buildTiers(
+    { damage: 21, range: 6.7, fireRateMs: 700, projectileSpeed: 18, critChance: 0.27, critMultiplier: 2.2 },
+    [650, 1340, 2650],
+    [1, 1.22, 1.5],
+    [
+      "A single hexed glyph now orbits the shroud, all three eyes fixed on it.",
+      "A full ring of hexed glyphs orbits the shroud, dark and rune-light intertwined.",
+      "A true voidglass wraith, doubled curse bound permanently to a halo of hexed rune-light.",
+    ],
+  ),
+  abilities: [
+    makeAbility({
+      id: "voidglass_wraith_deeper_curse",
+      name: "Deeper Curse",
+      description: "Grand Fusion capstone. Brands the target with a severe curse, then lances it with hexed rune-light.",
+      cooldownMs: 9200,
+      vfxId: "vfx.shadow_shadow_arcane.ability_deeper_curse",
+      statusKind: "curse",
+      statusMagnitude: 0.5,
+      statusDurationMs: 4400,
+      bonusDamage: 33,
+      damageElement: "arcane",
+    }),
+  ],
+  targeting: "strongest",
+  projectileVfx: "vfx.shadow_shadow_arcane.projectile",
+  impactVfx: "vfx.shadow_shadow_arcane.impact",
+  idleVfx: "vfx.shadow_shadow_arcane.idle",
+  modelId: "tower_shadow_shadow_arcane",
+};
+
+// ---------------------------------------------------------------------------
 // Public registry
 // ---------------------------------------------------------------------------
 
@@ -4459,6 +4652,11 @@ const ALL_TOWERS: TowerDef[] = [
   arcaneArcaneNatureTower,
   arcaneArcaneEarthTower,
   arcaneArcaneShadowTower,
+  shadowShadowIceTower,
+  shadowShadowLightningTower,
+  shadowShadowNatureTower,
+  shadowShadowEarthTower,
+  shadowShadowArcaneTower,
 ];
 
 export const TOWER_REGISTRY: Map<string, TowerDef> = new Map(ALL_TOWERS.map((t) => [t.id, t]));
