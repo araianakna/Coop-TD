@@ -17,14 +17,16 @@
 // `healthMultiplier` keeps climbing from ~3.6 up to ~10.8, `intervalMs` on
 // swarm entries keeps tightening (down toward ~85-100ms for voltling by
 // wave 40), and composition variety keeps widening — wave 30 is a
-// deliberate "mega gauntlet" milestone that spawns all ten regular enemy
-// types at once (no boss) before the back stretch resumes. Two new
+// deliberate "mega gauntlet" milestone that spawns all eleven regular
+// enemy types at once (no boss) before the back stretch resumes. Three new
 // regular enemies are folded in starting here: `wraithguard` (an armored
-// flying tank, introduced wave 23) and `runeshell` (a four-element
-// resistance puzzle unit, introduced wave 27), each debuting at a
-// discounted `healthMultiplier` relative to that wave's other entries —
-// the same "soft intro" convention wave 8 used for quagbrute — before
-// joining the full-strength rotation. Wave 40 is a single finale boss gate
+// flying tank, introduced wave 23), `runeshell` (a four-element
+// resistance puzzle unit, introduced wave 27), and `wardbound` (a
+// status-resistant brute that blunts crowd-control decks, introduced
+// wave 26), each debuting at a discounted `healthMultiplier` relative to
+// that wave's other entries — the same "soft intro" convention wave 8
+// used for quagbrute — before joining the full-strength rotation. Wave 40
+// is a single finale boss gate
 // (Thal'vor, the Stormbound Sovereign, `stormsovereign`) preceded by a
 // breather/staging wave (39) exactly like wave 19 was for wave 20, backed
 // by the largest mixed escort in the campaign.
@@ -276,7 +278,7 @@ const RAW_WAVES: WaveDef[] = [
       { enemyId: "wraithguard", count: 5, intervalMs: 1250, healthMultiplier: 4.4 },
     ],
   },
-  // 26
+  // 26 — introduce Wardbound Bulwark (status-resistant brute)
   {
     index: 26,
     spawns: [
@@ -284,6 +286,7 @@ const RAW_WAVES: WaveDef[] = [
       { enemyId: "cragback", count: 9, intervalMs: 700, healthMultiplier: 4.9 },
       { enemyId: "voltling", count: 26, intervalMs: 140, healthMultiplier: 4.9 },
       { enemyId: "wraithguard", count: 5, intervalMs: 1200, healthMultiplier: 4.7 },
+      { enemyId: "wardbound", count: 4, intervalMs: 1400, healthMultiplier: 3.5 },
     ],
   },
   // 27 — introduce Runeshell Warden (4-element resistance puzzle unit)
@@ -316,7 +319,7 @@ const RAW_WAVES: WaveDef[] = [
       { enemyId: "wraithguard", count: 7, intervalMs: 1100, healthMultiplier: 5.7 },
     ],
   },
-  // 30 — MEGA GAUNTLET: all ten regular enemy types at once, no boss.
+  // 30 — MEGA GAUNTLET: all eleven regular enemy types at once, no boss.
   // A deliberate milestone wave (not just "another wave with more HP") —
   // every archetype in the roster on screen together.
   {
@@ -332,6 +335,7 @@ const RAW_WAVES: WaveDef[] = [
       { enemyId: "skitterwing", count: 12, intervalMs: 280, healthMultiplier: 6.3 },
       { enemyId: "wraithguard", count: 7, intervalMs: 1050, healthMultiplier: 6.2 },
       { enemyId: "runeshell", count: 6, intervalMs: 1350, healthMultiplier: 6.0 },
+      { enemyId: "wardbound", count: 6, intervalMs: 1300, healthMultiplier: 6.0 },
     ],
   },
   // 31
@@ -352,6 +356,7 @@ const RAW_WAVES: WaveDef[] = [
       { enemyId: "wraithguard", count: 8, intervalMs: 1000, healthMultiplier: 7.0 },
       { enemyId: "voltling", count: 30, intervalMs: 110, healthMultiplier: 7.0 },
       { enemyId: "cinderling", count: 16, intervalMs: 230, healthMultiplier: 7.0 },
+      { enemyId: "wardbound", count: 7, intervalMs: 1150, healthMultiplier: 6.8 },
     ],
   },
   // 33
@@ -372,6 +377,7 @@ const RAW_WAVES: WaveDef[] = [
       { enemyId: "skitterwing", count: 18, intervalMs: 230, healthMultiplier: 7.8 },
       { enemyId: "wraithguard", count: 9, intervalMs: 950, healthMultiplier: 7.6 },
       { enemyId: "voltling", count: 32, intervalMs: 105, healthMultiplier: 7.8 },
+      { enemyId: "wardbound", count: 8, intervalMs: 1050, healthMultiplier: 7.5 },
     ],
   },
   // 35 — midpoint spike (mirrors wave 15's role)
@@ -393,6 +399,7 @@ const RAW_WAVES: WaveDef[] = [
       { enemyId: "sandveil", count: 18, intervalMs: 240, healthMultiplier: 8.6 },
       { enemyId: "quagbrute", count: 8, intervalMs: 800, healthMultiplier: 8.4 },
       { enemyId: "voltling", count: 34, intervalMs: 100, healthMultiplier: 8.6 },
+      { enemyId: "wardbound", count: 9, intervalMs: 980, healthMultiplier: 8.2 },
     ],
   },
   // 37
@@ -413,6 +420,7 @@ const RAW_WAVES: WaveDef[] = [
       { enemyId: "cinderling", count: 20, intervalMs: 200, healthMultiplier: 9.4 },
       { enemyId: "quagbrute", count: 9, intervalMs: 780, healthMultiplier: 9.2 },
       { enemyId: "voltling", count: 36, intervalMs: 95, healthMultiplier: 9.4 },
+      { enemyId: "wardbound", count: 10, intervalMs: 920, healthMultiplier: 9.0 },
     ],
   },
   // 39 — final breather / staging wave before the campaign finale boss
@@ -427,7 +435,7 @@ const RAW_WAVES: WaveDef[] = [
     ],
   },
   // 40 — CAMPAIGN FINALE BOSS: Thal'vor, the Stormbound Sovereign, backed
-  // by the largest, most varied escort in the game (7 regular types).
+  // by the largest, most varied escort in the game (8 regular types).
   {
     index: 40,
     spawns: [
@@ -438,6 +446,7 @@ const RAW_WAVES: WaveDef[] = [
       { enemyId: "runeshell", count: 8, intervalMs: 1050, healthMultiplier: 10.2 },
       { enemyId: "quagbrute", count: 7, intervalMs: 750, healthMultiplier: 10.5 },
       { enemyId: "cragback", count: 9, intervalMs: 480, healthMultiplier: 10.8 },
+      { enemyId: "wardbound", count: 8, intervalMs: 870, healthMultiplier: 9.8 },
     ],
     bossId: "stormsovereign",
   },
@@ -461,7 +470,7 @@ export const TOTAL_WAVES: number = WAVES.length;
 // ---------------------------------------------------------------------------
 // Endless mode — procedurally generated waves past the campaign finale
 // ---------------------------------------------------------------------------
-// Reuses the same 10 regular enemy ids and cycles the 3 existing bosses
+// Reuses the same 11 regular enemy ids and cycles the 3 existing bosses
 // every 5th endless wave, so no new content is required. Health keeps
 // climbing geometrically from wave 40's tuned baseline, composition widens
 // a little further, and swarm spacing keeps tightening — the same shape the
@@ -477,6 +486,7 @@ const ENDLESS_ENEMY_IDS = [
   "quagbrute",
   "wraithguard",
   "runeshell",
+  "wardbound",
 ];
 const ENDLESS_BOSS_IDS = ["cindercolossus", "hollowglacier", "stormsovereign"];
 

@@ -139,6 +139,14 @@ export interface EnemyDef {
   bounty: number;
   modelId: string;
   isBoss?: boolean;
+  /** Multiplies incoming status-effect magnitude AND duration, e.g. 0.6
+   * means every burn/chill/root/curse/etc. this enemy takes lands at 40%
+   * strength and expires 40% sooner. Omitted (undefined) means no
+   * resistance — every enemy defined before this field existed is
+   * unaffected. Elemental resistances already cover "hits for less
+   * damage"; this covers the orthogonal case of "your crowd control
+   * barely works here", which nothing in the roster tested for before. */
+  statusResistance?: number;
 }
 
 export interface WaveSpawnEntry {

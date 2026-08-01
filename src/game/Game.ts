@@ -726,8 +726,12 @@ export class Game {
    * effect of the same kind rather than stacking duplicates. */
   private applyStatusToEnemy(enemy: EnemyInstance, effect: StatusEffect) {
     if (!this.enemies.includes(enemy)) return;
-    enemy.statusEffects = enemy.statusEffects.filter((e) => e.kind !== effect.kind);
-    enemy.statusEffects.push(effect);
+    const resist = enemy.def.statusResistance ?? 0;
+    const resisted = resist > 0
+      ? { ...effect, magnitude: effect.magnitude * (1 - resist), durationMs: effect.durationMs * (1 - resist) }
+      : effect;
+    enemy.statusEffects = enemy.statusEffects.filter((e) => e.kind !== resisted.kind);
+    enemy.statusEffects.push(resisted);
   }
 
   private tryApplyOnHitProc(enemy: EnemyInstance, tower: TowerInstance, element: Element) {

@@ -165,6 +165,32 @@ export const ENEMY_REGISTRY: EnemyDef[] = [
     modelId: "runeshell",
   },
 
+  // Gap filled: every other enemy's counter-play is purely elemental
+  // (bring the right damage type) or armor (bring more damage). Nothing in
+  // the roster tests whether a player leans on chill/root/curse-stacking
+  // *instead* of raw DPS towers — a valid, encouraged playstyle given how
+  // much of the tower roster's identity is status effects. Wardbound
+  // Bulwark is the counter-play to that: a ground brute that resists 60%
+  // of incoming status magnitude AND duration (see `statusResistance` in
+  // types.ts), so a deck built entirely around CC-lock towers suddenly
+  // needs real burst/DPS towers to back it up. It's not immune — chip
+  // damage from DoTs and slows still land, just far weaker — so the
+  // counter-play is "bring more raw damage", not "status towers are now
+  // useless here".
+  {
+    id: "wardbound",
+    name: "Wardbound Bulwark",
+    baseHealth: 340,
+    baseSpeed: 1.75,
+    armor: 12,
+    movement: "ground",
+    resistances: { arcane: 0.5 },
+    weaknesses: { earth: 1.5, fire: 1.3 },
+    bounty: 26,
+    modelId: "wardbound",
+    statusResistance: 0.6,
+  },
+
   // ---------------------------------------------------------------------
   // Bosses
   // ---------------------------------------------------------------------
