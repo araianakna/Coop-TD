@@ -151,6 +151,26 @@ export const GRAND_FUSION_RECIPES: GrandFusionRecipe[] = [
     resultTowerId: "tower_lightning_arcane_shadow",
   },
   { parentFusionTowerId: "tower_nature_earth", thirdElement: "shadow", resultTowerId: "tower_nature_earth_shadow" },
+
+  // Duplicate-parent completion, batch 1 — every remaining fire+fire+Y and
+  // ice+ice+Y combination (fire+fire+ice and ice+ice+shadow were already
+  // done). 7 elements x 6 possible thirds = 42 total duplicate-parent
+  // triads; this batch plus the 4 already done brings the running total to
+  // 14/42. See TowerRegistry.ts's matching section for the towers.
+  {
+    parentFusionTowerId: "tower_fire_fire",
+    thirdElement: "lightning",
+    resultTowerId: "tower_fire_fire_lightning",
+  },
+  { parentFusionTowerId: "tower_fire_fire", thirdElement: "nature", resultTowerId: "tower_fire_fire_nature" },
+  { parentFusionTowerId: "tower_fire_fire", thirdElement: "earth", resultTowerId: "tower_fire_fire_earth" },
+  { parentFusionTowerId: "tower_fire_fire", thirdElement: "arcane", resultTowerId: "tower_fire_fire_arcane" },
+  { parentFusionTowerId: "tower_fire_fire", thirdElement: "shadow", resultTowerId: "tower_fire_fire_shadow" },
+  { parentFusionTowerId: "tower_ice_ice", thirdElement: "fire", resultTowerId: "tower_ice_ice_fire" },
+  { parentFusionTowerId: "tower_ice_ice", thirdElement: "lightning", resultTowerId: "tower_ice_ice_lightning" },
+  { parentFusionTowerId: "tower_ice_ice", thirdElement: "nature", resultTowerId: "tower_ice_ice_nature" },
+  { parentFusionTowerId: "tower_ice_ice", thirdElement: "earth", resultTowerId: "tower_ice_ice_earth" },
+  { parentFusionTowerId: "tower_ice_ice", thirdElement: "arcane", resultTowerId: "tower_ice_ice_arcane" },
 ];
 
 function recipeKey(parentFusionTowerId: string, thirdElement: Element): string {
