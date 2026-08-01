@@ -2,6 +2,8 @@ import type { Element } from "@/game/types";
 import { elementPalette, type ElementPalette } from "./Palette";
 import type { TopDownCamera2D } from "@/core/Camera2D";
 
+type TowerCategory = "base" | "fusion" | "grand";
+
 interface Particle {
   x: number;
   y: number;
@@ -18,9 +20,12 @@ interface ActiveProjectile {
   y: number;
   element: Element;
   elementB: Element | null;
+  tier: 1 | 2 | 3;
+  category: TowerCategory;
   speed: number;
   angle: number;
   spin: number;
+  auraSpin: number;
   getTarget: () => [number, number, number];
   onArrive: (pos: [number, number, number]) => void;
 }
@@ -31,6 +36,30 @@ function elementsFromVfxId(vfxId: string): Element[] {
   const found: Element[] = [];
   for (const el of ELEMENT_NAMES) if (vfxId.includes(el)) found.push(el);
   return found;
+}
+
+// base -> fusion -> grand, and within each, tier 1 -> 2 -> 3: every bullet
+// gets progressively bigger, trails harder, and picks up extra flourish
+// (a soft aura glow at fusion, a rotating dashed "power ring" at grand) so
+// a Grand Fusion tower's shots unmistakably read as more powerful than a
+// base tower's, independent of which element(s) they carry.
+const CATEGORY_SIZE: Record<TowerCategory, number> = { base: 1, fusion: 1.28, grand: 1.6 };
+const TIER_SIZE: Record<1 | 2 | 3, number> = { 1: 1, 2: 1.1, 3: 1.22 };
+
+function trailChance(element: Element, category: TowerCategory): number {
+  const elementBase = element === "fire" || element === "lightning" ? 0.3 : 0;
+  const categoryBonus = category === "fusion" ? 0.3 : category === "grand" ? 0.55 : 0;
+  return Math.min(0.92, elementBase + categoryBonus);
+}
+
+function hexToRgb(hex: string): [number, number, number] {
+  const n = parseInt(hex.replace("#", ""), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+function rgba(hex: string, a: number): string {
+  const [r, g, b] = hexToRgb(hex);
+  return `rgba(${r},${g},${b},${a})`;
 }
 
 /**
@@ -46,7 +75,10 @@ function elementsFromVfxId(vfxId: string): Element[] {
  * bolt with a spark trail, nature a curved leaf/thorn, earth a tumbling
  * rock chunk, arcane a rotating rune-sparkle — so a tower's shots read as
  * "that element" at a glance, matching the tower/enemy sprites' own
- * per-element shape language instead of a uniform colored ball.
+ * per-element shape language instead of a uniform colored ball. On top of
+ * that, size/trail-density/aura scale with the firing tower's category
+ * (base/fusion/grand) and tier, so more powerful towers visibly throw
+ * more powerful-looking shots.
  */
 export class Vfx2D {
   private projectiles: ActiveProjectile[] = [];
@@ -58,7 +90,13 @@ export class Vfx2D {
       element: Element,
       fromPos: [number, number, number],
       getTarget: () => [number, number, number],
-      opts: { speed: number; onArrive: (pos: [number, number, number]) => void; elementB?: Element },
+      opts: {
+        speed: number;
+        onArrive: (pos: [number, number, number]) => void;
+        elementB?: Element;
+        tier?: 1 | 2 | 3;
+        category?: TowerCategory;
+      },
     ) => {
       const [tx, , tz] = getTarget();
       this.projectiles.push({
@@ -66,9 +104,12 @@ export class Vfx2D {
         y: fromPos[2],
         element,
         elementB: opts.elementB ?? null,
+        tier: opts.tier ?? 1,
+        category: opts.category ?? "base",
         speed: opts.speed,
         angle: Math.atan2(tz - fromPos[2], tx - fromPos[0]),
         spin: Math.random() * Math.PI * 2,
+        auraSpin: Math.random() * Math.PI * 2,
         getTarget,
         onArrive: opts.onArrive,
       });
@@ -112,7 +153,7 @@ export class Vfx2D {
     this.rings.push({ x: wx, y: wy, life: 0, maxLife: 0.45, color: pal.accent, maxR: 1.1 });
   }
 
-  private trail(wx: number, wy: number, element: Element) {
+  private trail(wx: number, wy: number, element: Element, sizeMult: number) {
     const pal = elementPalette(element);
     this.particles.push({
       x: wx,
@@ -122,7 +163,7 @@ export class Vfx2D {
       life: 0,
       maxLife: 0.16 + Math.random() * 0.1,
       color: pal.accent,
-      size: 1.6 + Math.random(),
+      size: (1.6 + Math.random()) * sizeMult,
     });
   }
 
@@ -140,10 +181,11 @@ export class Vfx2D {
       }
       p.angle = Math.atan2(dy, dx);
       p.spin += dt * (p.element === "earth" ? 9 : p.element === "arcane" ? 3 : 0);
+      p.auraSpin += dt * 2.6;
       p.x += (dx / dist) * step;
       p.y += (dy / dist) * step;
-      if ((p.element === "fire" || p.element === "lightning") && Math.random() < 0.55) {
-        this.trail(p.x, p.y, p.element);
+      if (Math.random() < trailChance(p.element, p.category)) {
+        this.trail(p.x, p.y, p.element, CATEGORY_SIZE[p.category] * TIER_SIZE[p.tier]);
       }
     }
     this.projectiles = this.projectiles.filter((p) => p.x > -1e8);
@@ -164,13 +206,16 @@ export class Vfx2D {
   draw(ctx: CanvasRenderingContext2D, cam: TopDownCamera2D, vw: number, vh: number) {
     for (const p of this.projectiles) {
       const [sx, sy] = cam.worldToScreen(p.x, p.y, vw, vh);
-      const scale = cam.zoom / 30;
+      const zoomScale = cam.zoom / 30;
+      const sizeMult = CATEGORY_SIZE[p.category] * TIER_SIZE[p.tier];
+      const scale = zoomScale * sizeMult;
       const pal = elementPalette(p.element);
       const palB = p.elementB ? elementPalette(p.elementB) : null;
 
       ctx.save();
       ctx.translate(sx, sy);
       ctx.scale(scale, scale);
+      drawAura(ctx, p.category, pal, palB, p.auraSpin);
       drawBulletShape(ctx, p.element, pal, p.angle, p.spin);
       ctx.restore();
 
@@ -203,6 +248,36 @@ export class Vfx2D {
       ctx.stroke();
       ctx.globalAlpha = 1;
     }
+  }
+}
+
+/** Soft glow + (for Grand Fusion only) a rotating dashed power-ring drawn
+ * behind the elemental shape — the "this bullet came from something more
+ * powerful than a base tower" cue, independent of which element fired. */
+function drawAura(ctx: CanvasRenderingContext2D, category: TowerCategory, pal: ElementPalette, palB: ElementPalette | null, auraSpin: number) {
+  if (category === "base") return;
+
+  const strength = category === "grand" ? 1 : 0.55;
+  const radius = category === "grand" ? 7.5 : 6.2;
+  const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
+  grad.addColorStop(0, rgba(pal.accent, 0.4 * strength));
+  grad.addColorStop(1, rgba(pal.accent, 0));
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(0, 0, radius, 0, Math.PI * 2);
+  ctx.fill();
+
+  if (category === "grand") {
+    ctx.save();
+    ctx.rotate(auraSpin);
+    ctx.globalAlpha = 0.75;
+    ctx.strokeStyle = palB ? palB.accent : pal.light;
+    ctx.lineWidth = 0.5;
+    ctx.setLineDash([1.4, 1.6]);
+    ctx.beginPath();
+    ctx.arc(0, 0, radius * 0.82, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
   }
 }
 

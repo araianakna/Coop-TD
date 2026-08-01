@@ -766,16 +766,33 @@ export class Game {
     }
   }
 
+  /** Same "how many elements does this tower's id encode" convention
+   * TowerSprites.ts uses to detect Grand Fusion towers (def.element only
+   * ever exposes 2 of a Grand Fusion's 3 elements, so the id is the only
+   * reliable signal) — reused here so bullet VFX richness (base < fusion <
+   * grand) lines up with the same category the tower's own sprite uses. */
+  private towerCategory(tower: TowerInstance): "base" | "fusion" | "grand" {
+    if (!tower.def.isFusion) return "base";
+    const idTail = tower.def.id.replace(/^tower_/, "");
+    return idTail.split("_").length >= 3 ? "grand" : "fusion";
+  }
+
   private fireProjectile(tower: TowerInstance, target: EnemyInstance) {
     const [elA, elB] = this.towerElements(tower);
     tower.altShot = !tower.altShot;
     const element = elB && tower.altShot ? elB : elA;
+    // The "other" element for the bullet's secondary accent — the element
+    // NOT currently firing, so an alternating fusion shot doesn't show the
+    // same color twice (elA firing -> accent elB, and vice versa).
+    const otherElement = elB ? (element === elA ? elB : elA) : undefined;
     const stats = this.currentTierDef(tower).stats;
     const fromPos: [number, number, number] = [tower.worldX, 0, tower.worldY];
 
     this.vfx.projectilesApi.spawn(element, fromPos, () => [target.worldX, 0, target.worldY], {
       speed: stats.projectileSpeed,
-      elementB: elB ?? undefined,
+      elementB: otherElement,
+      tier: tower.tier,
+      category: this.towerCategory(tower),
       onArrive: (pos) => this.resolveHit(tower, target, pos, stats.damage, stats.splashRadius, stats.critChance, stats.critMultiplier),
     });
     this.playThrottled(`launch:${element}`, 80, () => this.audio.combat.projectileFire(element));
