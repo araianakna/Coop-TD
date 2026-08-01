@@ -6,7 +6,6 @@ import { buildMap02 } from "@/game/world/Map02";
 import { Economy } from "@/game/economy/Economy";
 import { InputManager, type CursorState, type PlayerSlot } from "@/game/input/InputManager";
 import type {
-  CellKind,
   DamageInstance,
   Element,
   EnemyDef,
@@ -28,8 +27,8 @@ import { getWave, TOTAL_WAVES, computeSpawnOrder } from "@/game/enemies/WaveMana
 import { Vfx2D } from "@/game/render2d/Vfx2D";
 import { getTowerSprite, TOWER_GROUND_FRAC } from "@/game/render2d/TowerSprites";
 import { getEnemySprite, ENEMY_GROUND_FRAC } from "@/game/render2d/EnemySprites";
-import { getTileSprite } from "@/game/render2d/TileSprites";
-import { hashString } from "@/game/render2d/PixelCanvas";
+import { getTileSprite, ROAD_SHADOW, ROAD_DARK, ROAD_BASE, ROAD_LIGHT, ROAD_TREAD } from "@/game/render2d/TileSprites";
+import { hashString, mulberry32 } from "@/game/render2d/PixelCanvas";
 import { createHUD } from "@/ui/HUD";
 import { createShopPanel, type ShopPanel } from "@/ui/ShopPanel";
 import { createFusionPanel, type FusionCandidatePair, type FusionPanelApi } from "@/ui/FusionPanel";
@@ -154,6 +153,12 @@ export class Game {
     speed: 0.35 + Math.random() * 0.75,
   }));
 
+  /** Small pebble/dirt-fleck texture dots scattered along the curved road
+   * (see drawCurvedRoad) — computed once from the map's waypoints with a
+   * seeded RNG so they're stable frame to frame instead of re-rolled (and
+   * jittering) every draw call. */
+  private roadFlecks: { wx: number; wy: number; r: number; color: string }[] = [];
+
   private towers: TowerInstance[] = [];
   private enemies: EnemyInstance[] = [];
   private towerIdCounter = 0;
@@ -180,6 +185,7 @@ export class Game {
   constructor(host: HTMLElement, mapId: MapChoice = "map01") {
     this.host = host;
     this.map = mapId === "map02" ? buildMap02() : buildMap01();
+    this.roadFlecks = this.buildRoadFlecks();
     // Game is only ever constructed from inside the StartScreen's map-select
     // click handler, so this synchronous call satisfies the browser's
     // autoplay-gesture requirement.
@@ -962,6 +968,108 @@ export class Game {
   // Rendering
   // -------------------------------------------------------------------
 
+  /** Walks every waypoint segment and scatters a handful of small pebble/
+   * dirt-fleck dots (perpendicular-jittered within the road's width) along
+   * it, seeded deterministically off the segment index so re-running this
+   * always produces the same scatter for a given map. */
+  private buildRoadFlecks(): { wx: number; wy: number; r: number; color: string }[] {
+    const wps = this.map.waypoints;
+    const cellSize = this.map.grid.cellSize;
+    const roadHalfWidth = cellSize * 0.36;
+    const flecks: { wx: number; wy: number; r: number; color: string }[] = [];
+    const colors = [ROAD_DARK, ROAD_TREAD, ROAD_SHADOW];
+    for (let i = 0; i < wps.length - 1; i++) {
+      const [ax, ay] = this.map.grid.gridToWorld(wps[i]);
+      const [bx, by] = this.map.grid.gridToWorld(wps[i + 1]);
+      const dx = bx - ax;
+      const dy = by - ay;
+      const len = Math.hypot(dx, dy) || 1;
+      const nx = -dy / len;
+      const ny = dx / len;
+      const rng = mulberry32(7000 + i * 131);
+      const count = 2;
+      for (let f = 0; f < count; f++) {
+        const t = (f + 0.5) / count;
+        const perp = (rng() - 0.5) * roadHalfWidth * 1.4;
+        flecks.push({
+          wx: ax + dx * t + nx * perp,
+          wy: ay + dy * t + ny * perp,
+          r: 0.05 + rng() * 0.07,
+          color: colors[Math.floor(rng() * colors.length)],
+        });
+      }
+    }
+    return flecks;
+  }
+
+  /** Strokes the map's waypoint list as one continuous ribbon (round joins
+   * and caps at every turn) instead of the old blocky per-cell cobblestone
+   * tiles, so the road reads as an actual curve at corners — matching the
+   * "sunny meadow" reference's smooth dirt path rather than a right-angle
+   * stair-step of square tiles. Drawn over the grass tiles the main tile
+   * loop already placed under every path cell. */
+  private drawCurvedRoad(ctx: CanvasRenderingContext2D, vw: number, vh: number, cellSize: number) {
+    const wps = this.map.waypoints;
+    if (wps.length < 2) return;
+
+    const screenPts = wps.map((c) => {
+      const [wx, wy] = this.map.grid.gridToWorld(c);
+      return this.cam.worldToScreen(wx, wy, vw, vh);
+    });
+
+    const roadWidth = cellSize * this.cam.zoom * 0.84;
+
+    const strokePolyline = (width: number, color: string, alpha: number) => {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.lineJoin = "round";
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(screenPts[0][0], screenPts[0][1]);
+      for (let i = 1; i < screenPts.length; i++) ctx.lineTo(screenPts[i][0], screenPts[i][1]);
+      ctx.stroke();
+      ctx.restore();
+    };
+
+    // Soft dark edge halo grounding the road against the grass, then the
+    // main dirt fill, then a lighter worn-tread strip down the center.
+    strokePolyline(roadWidth + 5 * (this.cam.zoom / 30), ROAD_SHADOW, 0.45);
+    strokePolyline(roadWidth, ROAD_BASE, 1);
+    strokePolyline(roadWidth * 0.5, ROAD_LIGHT, 0.5);
+
+    for (const fleck of this.roadFlecks) {
+      const [sx, sy] = this.cam.worldToScreen(fleck.wx, fleck.wy, vw, vh);
+      ctx.fillStyle = fleck.color;
+      ctx.globalAlpha = 0.55;
+      ctx.beginPath();
+      ctx.arc(sx, sy, fleck.r * this.cam.zoom, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  /** Draws the spawn/base portal glow at its two fixed map positions, on
+   * top of the grass + curved road (see drawCurvedRoad) rather than as a
+   * full per-cell tile — portalTile()'s art no longer paints an opaque
+   * square background, so this reads as a round glow sitting at the road's
+   * end instead of a hard-edged tile clashing with the rounded cap there. */
+  private drawPortals(ctx: CanvasRenderingContext2D, vw: number, vh: number, cellSize: number) {
+    const drawSize = cellSize * this.cam.zoom;
+    for (const [coord, kind] of [
+      [this.map.spawn, "spawn"],
+      [this.map.base, "base"],
+    ] as const) {
+      const [wx, wy] = this.map.grid.gridToWorld(coord);
+      const [sx, sy] = this.cam.worldToScreen(wx, wy, vw, vh);
+      if (sx < -drawSize || sx > vw + drawSize || sy < -drawSize || sy > vh + drawSize) continue;
+      const variant = hashString(`${coord.x},${coord.z}`);
+      const sprite = getTileSprite(kind, variant);
+      ctx.drawImage(sprite, sx - drawSize / 2, sy - drawSize / 2, drawSize, drawSize);
+    }
+  }
+
   /** Backdrop drawn behind the grid (and visible around it whenever the map
    * doesn't fill the viewport) — a soft dark-forest radial vignette plus a
    * field of slowly twinkling gold pollen motes, matching the sunny-meadow
@@ -1004,8 +1112,22 @@ export class Game {
       if (sx < -drawSize || sx > vw + drawSize || sy < -drawSize || sy > vh + drawSize) continue;
 
       const variant = hashString(`${cell.x},${cell.z}`);
-      const sprite = getTileSprite(cell.kind as CellKind, variant);
-      ctx.drawImage(sprite, sx - drawSize / 2, sy - drawSize / 2, drawSize, drawSize);
+      // Every cell gets continuous grass as its base layer now — path,
+      // spawn/base, and blocked cells each used to be a fully separate
+      // opaque tile, which always left a hard square edge wherever that
+      // tile's silhouette didn't fill its cell (a rounded road cap, a
+      // circular portal glow, an irregular boulder cluster). Each of those
+      // kinds now draws its actual art as a transparent-background overlay
+      // instead: drawCurvedRoad()/drawPortals() below handle path/spawn/
+      // base as their own passes (they aren't confined to one cell), and
+      // "blocked" draws its rock-cluster overlay right here since it's a
+      // simple single-cell decoration.
+      const grassSprite = getTileSprite("buildable", variant);
+      ctx.drawImage(grassSprite, sx - drawSize / 2, sy - drawSize / 2, drawSize, drawSize);
+      if (cell.kind === "blocked") {
+        const rockSprite = getTileSprite("blocked", variant);
+        ctx.drawImage(rockSprite, sx - drawSize / 2, sy - drawSize / 2, drawSize, drawSize);
+      }
 
       // Mowed-lawn diagonal banding — a very faint tint over every other
       // wide diagonal stripe of grass (kept subtle and slow-changing on
@@ -1013,6 +1135,8 @@ export class Game {
       // viewport read as flicker during play, not the gentle "mowed lawn"
       // sweep it reads as in a single reference screenshot). Keyed off
       // grid coords, not screen space, so it stays stable across zoom/pan.
+      // Only shown on plain buildable ground — path/portal/rocks draw a
+      // fully opaque overlay over it anyway, so it'd be wasted work there.
       if (cell.kind === "buildable") {
         const band = Math.floor((cell.x + cell.z) / 6);
         if ((((band % 2) + 2) % 2) === 0) {
@@ -1027,6 +1151,9 @@ export class Game {
         ctx.strokeRect(sx - drawSize / 2 + 2, sy - drawSize / 2 + 2, drawSize - 4, drawSize - 4);
       }
     }
+
+    this.drawCurvedRoad(ctx, vw, vh, cellSize);
+    this.drawPortals(ctx, vw, vh, cellSize);
 
     void halfCell;
 

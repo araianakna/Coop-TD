@@ -5,7 +5,7 @@ import { PixelCanvas, mulberry32 } from "./PixelCanvas";
 // individual pavers and rock shading all have room to read clearly once
 // upscaled with nearest-neighbor filtering.
 export const TILE_SPRITE_SIZE = 24;
-const VARIANTS_PER_KIND = 4;
+const VARIANTS_PER_KIND = 6;
 
 const cache = new Map<string, HTMLCanvasElement>();
 
@@ -39,8 +39,20 @@ const PATH_MORTAR = "#6b4a2c";
 const PATH_STONE = "#d9a15f";
 const PATH_STONE_GREY = "#c9a678";
 
-const ROCK_BG = "#241c30";
-const ROCK_BASE = "#7a6c8c";
+// Curved-road palette — warm packed dirt (not cobblestone), used by
+// Game.ts's drawCurvedRoad() to stroke the path as a single smooth ribbon
+// following the map's waypoint list instead of blocky per-cell tiles, so
+// turns read as an actual curve like the "sunny meadow" reference instead
+// of a right-angle stair-step.
+export const ROAD_SHADOW = "#5c3d22";
+export const ROAD_DARK = "#a06a37";
+export const ROAD_BASE = "#c98a4c";
+export const ROAD_LIGHT = "#e2ab6c";
+export const ROAD_TREAD = "#eec48d";
+
+// Warmed to sit with the sunny-meadow palette above — was a cool purple-grey
+// that read as a mismatched leftover from the old moody theme.
+const ROCK_BASE = "#8a7a68";
 const MOSS = "#5c7a3f";
 const MOSS_HI = "#7fa257";
 
@@ -150,7 +162,7 @@ function grassTile(variant: number): HTMLCanvasElement {
 function drawGrassAccent(pc: PixelCanvas, variant: number, rng: () => number, S: number) {
   const cx = 5 + Math.floor(rng() * (S - 10));
   const cy = 5 + Math.floor(rng() * (S - 10));
-  switch (((variant % 4) + 4) % 4) {
+  switch (((variant % 6) + 6) % 6) {
     case 0: {
       // Small wildflower cluster.
       for (let i = 0; i < 3; i++) {
@@ -186,12 +198,31 @@ function drawGrassAccent(pc: PixelCanvas, variant: number, rng: () => number, S:
       }
       break;
     }
-    default: {
+    case 3: {
       // Fallen twig + leaves.
       for (let i = 0; i < 4; i++) pc.px(cx - 2 + i, cy + Math.floor(i * 0.4), TWIG_COLOR);
       pc.px(cx, cy - 1, LEAF_COLOR);
       pc.px(cx + 2, cy + 1, LEAF_COLOR);
       pc.px(cx - 1, cy + 2, GRASS_DARK);
+      break;
+    }
+    case 4: {
+      // Small cut tree stump — a background-object accent matching the
+      // reference's scattered stumps, distinct from the twig/pebble motes.
+      pc.circle(cx, cy, 3, "#8a5a34");
+      pc.circle(cx, cy, 2, "#6b4526");
+      pc.circle(cx, cy, 1, "#a9754a");
+      pc.px(cx - 1, cy + 3, GRASS_DARK);
+      pc.px(cx + 2, cy + 2, GRASS_DARK);
+      break;
+    }
+    default: {
+      // Small rounded shrub — a second background-object accent, filling
+      // out the "trees/bushes scattered on the grass" theme.
+      pc.circle(cx, cy, 3, GRASS_MID);
+      pc.circle(cx - 1, cy - 1, 2, GRASS_LIGHT);
+      pc.px(cx + 1, cy + 2, GRASS_DARK);
+      pc.px(cx - 2, cy + 1, GRASS_DARK);
     }
   }
 }
@@ -310,14 +341,11 @@ function blockedTile(variant: number): HTMLCanvasElement {
   const pc = new PixelCanvas(S);
   const rng = mulberry32(3000 + variant * 173);
 
-  pc.rect(0, 0, S, S, ROCK_BG);
-
-  // Grass fringe poking out from behind the boulders grounds them in the field.
-  for (let i = 0; i < 5; i++) {
-    const ex = Math.floor(rng() * S);
-    const ey = S - 1 - Math.floor(rng() * 3);
-    pc.px(ex, ey, rng() > 0.5 ? GRASS_DARK : GRASS_BASE);
-  }
+  // No opaque background fill (left transparent on purpose) — Game.ts now
+  // draws real grass underneath every "blocked" cell first and layers this
+  // sprite on top, so the boulders sit directly on the field instead of a
+  // separate dark tile square (the grass-fringe hack this used to need to
+  // fake that blend is gone too, for the same reason: it's real grass now).
 
   const clusterCx = S * 0.5;
   const clusterCy = S * 0.55;
@@ -365,7 +393,10 @@ function portalTile(kind: "spawn" | "base", variant: number): HTMLCanvasElement 
   const color = kind === "spawn" ? SPAWN_COLOR : BASE_COLOR;
   const glow = kind === "spawn" ? SPAWN_GLOW : BASE_GLOW;
 
-  pc.rect(0, 0, S, S, ROCK_BG);
+  // No opaque background fill (left transparent on purpose) — this now
+  // draws over the same grass + curved road every other cell gets, so a
+  // painted-in square backdrop here would show as a hard-edged patch
+  // clashing with the road's rounded cap right where it ends.
 
   // Scattered flagstone floor around the arch.
   for (let i = 0; i < 10; i++) {
