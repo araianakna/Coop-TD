@@ -67,9 +67,16 @@ export function createFusionPanel(opts: CreateFusionPanelOptions): FusionPanelAp
   const panel = createPanel({ className: "rw-fusion", title: "Fuse Towers" });
   panel.root.classList.add("rw-fusion-panel", "rw-fusion-hidden");
 
+  // This panel only ever opens once exactly 2 towers are selected (the
+  // orchestrator calls open() from that state alone), so an empty
+  // candidate list always means "these two specific towers don't have a
+  // recipe together" — never "you haven't picked 2 yet". The copy has to
+  // say that, or players read it as a made-up range requirement (there is
+  // no distance check on fusing) and try uselessly moving towers closer.
   const empty = document.createElement("p");
   empty.className = "rw-fusion-empty";
-  empty.textContent = "Select two towers in range of each other to preview a fusion.";
+  empty.textContent =
+    "These two towers can't be fused. Pair two different base towers, or a Fusion tower with a base tower of a third element it doesn't already have.";
 
   const list = document.createElement("div");
   list.className = "rw-fusion-list";

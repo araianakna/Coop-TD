@@ -1144,6 +1144,16 @@
   padding: 9px 10px;
 }
 
+.rw-inspector-fusion-hint {
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px dashed color-mix(in srgb, var(--rw-wood-500) 55%, transparent);
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--rw-ink-500);
+  text-align: center;
+}
+
 /* -------------------------------------------------------------------------
    Phone/tablet layout — the desktop UI (a tall vertical shop list pinned to
    one corner, a bottom-right inspector) doesn't fit a narrow viewport

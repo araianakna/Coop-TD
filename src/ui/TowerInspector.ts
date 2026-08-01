@@ -60,7 +60,11 @@ export function createTowerInspector(opts: CreateTowerInspectorOptions): TowerIn
   sellBtn.textContent = "Sell";
   actions.append(upgradeBtn, sellBtn);
 
-  panel.body.append(head, desc, actions);
+  const fusionHint = document.createElement("div");
+  fusionHint.className = "rw-inspector-fusion-hint";
+  fusionHint.textContent = "✦ Select another tower to fuse them together";
+
+  panel.body.append(head, desc, actions, fusionHint);
 
   upgradeBtn.addEventListener("click", () => opts.onUpgrade());
   sellBtn.addEventListener("click", () => opts.onSell());
