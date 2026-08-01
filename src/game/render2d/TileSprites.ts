@@ -13,12 +13,15 @@ const cache = new Map<string, HTMLCanvasElement>();
 // Local palette (kept private to this file — do not import from Palette.ts)
 // ---------------------------------------------------------------------
 
-const GRASS_DARK = "#1e4620";
-const GRASS_BASE = "#2f6430";
-const GRASS_MID = "#417c3c";
-const GRASS_LIGHT = "#5da24d";
-const GRASS_BLADE_HI = "#82c264";
-const GRASS_BLADE_LO = "#173a1b";
+// Brighter, more saturated "sunny meadow" tone — matched to a warm
+// mobile-TD reference (vivid mowed-lawn green + light orange-tan cobble
+// path) rather than the moodier, desaturated forest green this used to be.
+const GRASS_DARK = "#2e6b2a";
+const GRASS_BASE = "#4f9438";
+const GRASS_MID = "#68ac47";
+const GRASS_LIGHT = "#8ecf5e";
+const GRASS_BLADE_HI = "#b3ea79";
+const GRASS_BLADE_LO = "#2a5a20";
 
 const FLOWER_PETAL = "#fbe58a";
 const FLOWER_PETAL2 = "#f7f1d8";
@@ -28,9 +31,9 @@ const PEBBLE_DARK = "#5f5849";
 const TWIG_COLOR = "#6b4a2c";
 const LEAF_COLOR = "#b5622e";
 
-const PATH_MORTAR = "#4d3c2c";
-const PATH_STONE = "#b48f60";
-const PATH_STONE_GREY = "#9c8f78";
+const PATH_MORTAR = "#6b4a2c";
+const PATH_STONE = "#d9a15f";
+const PATH_STONE_GREY = "#c9a678";
 
 const ROCK_BG = "#241c30";
 const ROCK_BASE = "#7a6c8c";

@@ -963,22 +963,24 @@ export class Game {
   // -------------------------------------------------------------------
 
   /** Backdrop drawn behind the grid (and visible around it whenever the map
-   * doesn't fill the viewport) — a soft radial vignette plus a field of
-   * slowly twinkling dust motes, replacing the old flat single-color fill.
-   * Cheap: one gradient plus ~90 small circles, no per-pixel work. */
+   * doesn't fill the viewport) — a soft dark-forest radial vignette plus a
+   * field of slowly twinkling gold pollen motes, matching the sunny-meadow
+   * tone of the tile art (TileSprites.ts) instead of clashing against it
+   * with an unrelated cosmic-void backdrop. Cheap: one gradient plus ~90
+   * small circles, no per-pixel work. */
   private drawBackdrop(ctx: CanvasRenderingContext2D, vw: number, vh: number) {
     const grad = ctx.createRadialGradient(vw / 2, vh / 2, 0, vw / 2, vh / 2, Math.max(vw, vh) * 0.78);
-    grad.addColorStop(0, "#1c1329");
-    grad.addColorStop(0.55, "#130c1d");
-    grad.addColorStop(1, "#07050d");
+    grad.addColorStop(0, "#1c3018");
+    grad.addColorStop(0.55, "#122210");
+    grad.addColorStop(1, "#08120a");
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, vw, vh);
 
     const t = this.elapsed;
     for (const m of this.bgMotes) {
-      const alpha = 0.12 + 0.3 * (0.5 + 0.5 * Math.sin(t * m.speed + m.phase));
+      const alpha = 0.1 + 0.28 * (0.5 + 0.5 * Math.sin(t * m.speed + m.phase));
       ctx.globalAlpha = alpha;
-      ctx.fillStyle = "#c9b8ff";
+      ctx.fillStyle = "#e8d98a";
       ctx.beginPath();
       ctx.arc(m.x * vw, m.y * vh, m.r, 0, Math.PI * 2);
       ctx.fill();
@@ -1004,6 +1006,20 @@ export class Game {
       const variant = hashString(`${cell.x},${cell.z}`);
       const sprite = getTileSprite(cell.kind as CellKind, variant);
       ctx.drawImage(sprite, sx - drawSize / 2, sy - drawSize / 2, drawSize, drawSize);
+
+      // Mowed-lawn diagonal banding — a light tint over every other 3-cell
+      // diagonal stripe of grass, matching the "sunny meadow" reference
+      // tone (TileSprites.ts's grass tiles don't encode this themselves
+      // since it needs to read continuously across tiles, which a per-tile
+      // cached sprite variant can't do; keyed off grid coords so it's
+      // stable regardless of zoom/pan instead of screen-space).
+      if (cell.kind === "buildable") {
+        const band = Math.floor((cell.x + cell.z) / 3);
+        if ((((band % 2) + 2) % 2) === 0) {
+          ctx.fillStyle = "rgba(255,255,255,0.07)";
+          ctx.fillRect(sx - drawSize / 2, sy - drawSize / 2, drawSize, drawSize);
+        }
+      }
 
       if (this.armedTowerDefId && cell.kind === "buildable" && !cell.occupiedByTowerId) {
         ctx.strokeStyle = "rgba(255,210,122,0.75)";
