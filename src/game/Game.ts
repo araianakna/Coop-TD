@@ -1007,16 +1007,16 @@ export class Game {
       const sprite = getTileSprite(cell.kind as CellKind, variant);
       ctx.drawImage(sprite, sx - drawSize / 2, sy - drawSize / 2, drawSize, drawSize);
 
-      // Mowed-lawn diagonal banding — a light tint over every other 3-cell
-      // diagonal stripe of grass, matching the "sunny meadow" reference
-      // tone (TileSprites.ts's grass tiles don't encode this themselves
-      // since it needs to read continuously across tiles, which a per-tile
-      // cached sprite variant can't do; keyed off grid coords so it's
-      // stable regardless of zoom/pan instead of screen-space).
+      // Mowed-lawn diagonal banding — a very faint tint over every other
+      // wide diagonal stripe of grass (kept subtle and slow-changing on
+      // purpose: a stronger/tighter version of this tiled across a whole
+      // viewport read as flicker during play, not the gentle "mowed lawn"
+      // sweep it reads as in a single reference screenshot). Keyed off
+      // grid coords, not screen space, so it stays stable across zoom/pan.
       if (cell.kind === "buildable") {
-        const band = Math.floor((cell.x + cell.z) / 3);
+        const band = Math.floor((cell.x + cell.z) / 6);
         if ((((band % 2) + 2) % 2) === 0) {
-          ctx.fillStyle = "rgba(255,255,255,0.07)";
+          ctx.fillStyle = "rgba(255,255,255,0.035)";
           ctx.fillRect(sx - drawSize / 2, sy - drawSize / 2, drawSize, drawSize);
         }
       }

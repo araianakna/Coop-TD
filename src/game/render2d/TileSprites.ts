@@ -13,15 +13,19 @@ const cache = new Map<string, HTMLCanvasElement>();
 // Local palette (kept private to this file — do not import from Palette.ts)
 // ---------------------------------------------------------------------
 
-// Brighter, more saturated "sunny meadow" tone — matched to a warm
-// mobile-TD reference (vivid mowed-lawn green + light orange-tan cobble
-// path) rather than the moodier, desaturated forest green this used to be.
-const GRASS_DARK = "#2e6b2a";
-const GRASS_BASE = "#4f9438";
-const GRASS_MID = "#68ac47";
-const GRASS_LIGHT = "#8ecf5e";
-const GRASS_BLADE_HI = "#b3ea79";
-const GRASS_BLADE_LO = "#2a5a20";
+// Warm "sunny meadow" tone, matched to a mobile-TD reference — but pulled
+// back from that reference's full saturation/contrast, which turned out to
+// be uncomfortable to look at for long play sessions once tiled across a
+// whole viewport (a much bigger, more persistent area than a single
+// mockup screenshot). Same warm green direction, tighter lightness range
+// (~100–165 instead of ~90–210) so the per-pixel tonal noise and blade
+// tufts don't read as flicker.
+const GRASS_DARK = "#3a6b34";
+const GRASS_BASE = "#4f8a3f";
+const GRASS_MID = "#5f9a49";
+const GRASS_LIGHT = "#72ab57";
+const GRASS_BLADE_HI = "#8ec06c";
+const GRASS_BLADE_LO = "#2f5528";
 
 const FLOWER_PETAL = "#fbe58a";
 const FLOWER_PETAL2 = "#f7f1d8";
